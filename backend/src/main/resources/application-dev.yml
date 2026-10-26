@@ -1,0 +1,20 @@
+# Lokale Entwicklung gegen compose.dev.yml - NICHT fuer Produktion.
+spring:
+  datasource:
+    password: logis
+
+logis:
+  admin:
+    username: admin
+    password: admin-dev-password
+  # Fester Dev-Schluessel (32 Byte, Base64)
+  encryption-key: ZGV2LW9ubHkta2V5LWRvLW5vdC11c2UtaW4tcHJvZCE=
+  auth:
+    lockout:
+      base-duration: 5s
+      max-duration: 30s
+
+# Management/Health lokal auf einem freien Zufallsport (8081 ist oft belegt; Docker nutzt 8081 im Container).
+management:
+  server:
+    port: 0

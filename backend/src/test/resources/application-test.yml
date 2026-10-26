@@ -1,0 +1,16 @@
+spring:
+  flyway:
+    locations:
+      - classpath:db/migration/core
+      - classpath:db/migration/vacationrental
+      - classpath:db/testmigration
+
+management:
+  server:
+    port: -1
+
+logis:
+  admin:
+    username: bootstrap-admin
+    password: bootstrap-admin-password
+  encryption-key: dGVzdC1rZXktMzItYnl0ZXMtbG9uZy0xMjM0NTY3OCE=

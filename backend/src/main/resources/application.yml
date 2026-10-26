@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: logis
+  modulith:
+    detection-strategy: explicitly-annotated
+  datasource:
+    url: ${LOGIS_DB_URL:jdbc:postgresql://localhost:5432/logis}
+    username: ${LOGIS_DB_USER:logis}
+    password: ${LOGIS_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    # Ein Schema pro Bereich; Migrationen aller Module laufen immer (auch deaktivierte).
+    schemas: core,vacationrental
+    default-schema: core
+    locations:
+      - classpath:db/migration/core
+      - classpath:db/migration/vacationrental
+
+server:
+  port: 8080
+  forward-headers-strategy: native
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        name: LOGIS_SESSION
+        http-only: true
+        same-site: lax
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logis:
+  admin:
+    username: ${LOGIS_ADMIN_USERNAME:}
+    password: ${LOGIS_ADMIN_PASSWORD:}
+  encryption-key: ${LOGIS_ENCRYPTION_KEY:}
+  auth:
+    session:
+      idle-timeout: 30m
+      absolute-timeout: 12h
+    lockout:
+      threshold: 5
+      base-duration: 1m
+      max-duration: 15m

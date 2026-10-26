@@ -1,0 +1,94 @@
+# Logis - Produktion (Mini-PC hinter vorhandenem Reverse Proxy).
+# Start: docker compose up -d --build   (Einstellungen aus .env, Vorlage: .env.example)
+name: logis
+
+services:
+  frontend:
+    build: ./frontend
+    image: logis-frontend:${LOGIS_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      LOGIS_TRUSTED_PROXIES: ${LOGIS_TRUSTED_PROXIES:-}
+    ports:
+      # Einziger veroeffentlichter Port. Standard: nur lokal fuer den Reverse Proxy.
+      - "${LOGIS_BIND:-127.0.0.1}:${LOGIS_PORT:-8080}:80"
+    networks: [edge, internal]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    image: logis-backend:${LOGIS_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      LOGIS_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB fehlt}
+      LOGIS_DB_USER: ${POSTGRES_USER:?POSTGRES_USER fehlt}
+      LOGIS_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt}
+      LOGIS_ADMIN_USERNAME: ${LOGIS_ADMIN_USERNAME:-}
+      LOGIS_ADMIN_PASSWORD: ${LOGIS_ADMIN_PASSWORD:-}
+      LOGIS_ENCRYPTION_KEY: ${LOGIS_ENCRYPTION_KEY:?LOGIS_ENCRYPTION_KEY fehlt}
+      LOGIS_MODULES_VACATIONRENTAL_ENABLED: ${LOGIS_MODULES_VACATIONRENTAL_ENABLED:-true}
+    networks: [internal]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backup:
+    # Gleiches Image wie die Datenbank, damit pg_dump zur Serverversion passt.
+    image: postgres:17
+    restart: unless-stopped
+    entrypoint: ["/usr/local/bin/backup.sh"]
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_TIME: ${BACKUP_TIME:-03:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ./ops/backup/backup.sh:/usr/local/bin/backup.sh:ro
+      - ./backups:/backups
+    networks: [internal]
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  # Nur frontend haengt hier; darueber laeuft der veroeffentlichte Port.
+  edge: {}
+  # Ohne Verbindung nach aussen: backend, db und backup sind nur intern erreichbar.
+  internal:
+    internal: true
+
+volumes:
+  pgdata:
