@@ -17,14 +17,20 @@ class InitialAdminRunnerTest extends IntegrationTest {
     JdbcTemplate jdbc;
     @Autowired
     TransactionTemplate tx;
+    @Autowired
+    org.springframework.context.ApplicationEventPublisher events;
 
     @BeforeEach
     void emptyDatabase() {
+        jdbc.update("DELETE FROM core.object_shares");
+        jdbc.update("DELETE FROM core.transactions");
+        jdbc.update("DELETE FROM core.accounts");
+        jdbc.update("DELETE FROM core.legal_entities");
         jdbc.update("DELETE FROM core.users");
     }
 
     private void run(String username, String password) {
-        var runner = new InitialAdminRunner(users, encoder, clock, username, password);
+        var runner = new InitialAdminRunner(users, encoder, clock, events, username, password);
         tx.executeWithoutResult(s -> runner.run(new DefaultApplicationArguments()));
     }
 

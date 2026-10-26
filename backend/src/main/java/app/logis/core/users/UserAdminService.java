@@ -2,6 +2,7 @@ package app.logis.core.users;
 
 import app.logis.core.auth.RecoveryCodeService;
 import app.logis.core.web.ApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +24,15 @@ class UserAdminService {
     private final PasswordEncoder encoder;
     private final RecoveryCodeService recoveryCodes;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    UserAdminService(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes, Clock clock) {
+    UserAdminService(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes, Clock clock,
+            ApplicationEventPublisher events) {
         this.users = users;
         this.encoder = encoder;
         this.recoveryCodes = recoveryCodes;
         this.clock = clock;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -45,7 +49,9 @@ class UserAdminService {
         var display = displayName == null || displayName.isBlank() ? name : displayName.trim();
         var user = new User(name, display, role, encoder.encode(password), clock.instant());
         user.setPasswordChangeRequired(true);
-        return users.save(user);
+        users.save(user);
+        events.publishEvent(new UserCreatedEvent(user.getId(), user.getDisplayName()));
+        return user;
     }
 
     User update(Long actingUserId, Long id, String displayName, Role role, Boolean enabled) {

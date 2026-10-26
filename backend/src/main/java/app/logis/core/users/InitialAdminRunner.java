@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +26,15 @@ class InitialAdminRunner implements ApplicationRunner {
     private final Clock clock;
     private final String username;
     private final String password;
+    private final ApplicationEventPublisher events;
 
-    InitialAdminRunner(UserRepository users, PasswordEncoder encoder, Clock clock,
+    InitialAdminRunner(UserRepository users, PasswordEncoder encoder, Clock clock, ApplicationEventPublisher events,
             @Value("${logis.admin.username:}") String username,
             @Value("${logis.admin.password:}") String password) {
         this.users = users;
         this.encoder = encoder;
         this.clock = clock;
+        this.events = events;
         this.username = username;
         this.password = password;
     }
@@ -52,6 +55,7 @@ class InitialAdminRunner implements ApplicationRunner {
         }
         var admin = new User(username.trim(), username.trim(), Role.ADMIN, encoder.encode(password), clock.instant());
         users.save(admin);
+        events.publishEvent(new UserCreatedEvent(admin.getId(), admin.getDisplayName()));
         log.info("Initialer Admin '{}' angelegt. Zwei-Faktor-Anmeldung wird beim ersten Login eingerichtet.", admin.getUsername());
     }
 }

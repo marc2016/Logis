@@ -2,6 +2,7 @@ package app.logis;
 
 import app.logis.core.users.Role;
 import app.logis.core.users.User;
+import app.logis.core.users.UserCreatedEvent;
 import app.logis.core.users.UserRepository;
 import app.logis.shared.SecretCipher;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,6 +72,8 @@ public abstract class IntegrationTest {
     protected SecretCipher cipher;
     @Autowired
     protected ObjectMapper json;
+    @Autowired
+    protected org.springframework.context.ApplicationEventPublisher events;
 
     @BeforeEach
     void resetClock() {
@@ -95,6 +98,8 @@ public abstract class IntegrationTest {
             user.setTotpSecretEnc(cipher.encrypt(secret));
         }
         users.save(user);
+        // Wie in der Anwendung: privater Rechtstraeger entsteht ueber das Event.
+        events.publishEvent(new UserCreatedEvent(user.getId(), user.getDisplayName()));
         return new TestUser(user.getId(), username, password, secret);
     }
 

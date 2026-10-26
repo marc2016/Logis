@@ -1,12 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  ArrowLeftRightIcon,
+  BuildingIcon,
   ChevronsUpDownIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  TagsIcon,
   UserCogIcon,
   UsersIcon,
+  WalletIcon,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -141,6 +145,14 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
       </SidebarHeader>
       <SidebarContent>
         <NavGroup label="Allgemein" items={[{ label: 'Übersicht', to: '/', icon: LayoutDashboardIcon }]} />
+        <NavGroup
+          label="Finanzen"
+          items={[
+            { label: 'Konten', to: '/finanzen/konten', icon: WalletIcon },
+            { label: 'Transaktionen', to: '/finanzen/transaktionen', icon: ArrowLeftRightIcon },
+            { label: 'Eigentümer', to: '/finanzen/eigentuemer', icon: BuildingIcon },
+          ]}
+        />
         {modules.map((module) => (
           <NavGroup
             key={module.id}
@@ -153,7 +165,13 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
           />
         ))}
         {user.role === 'ADMIN' && (
-          <NavGroup label="Einstellungen" items={[{ label: 'Benutzer', to: '/einstellungen/benutzer', icon: UsersIcon }]} />
+          <NavGroup
+            label="Einstellungen"
+            items={[
+              { label: 'Benutzer', to: '/einstellungen/benutzer', icon: UsersIcon },
+              { label: 'Kategorien', to: '/einstellungen/kategorien', icon: TagsIcon },
+            ]}
+          />
         )}
       </SidebarContent>
       <SidebarFooter>

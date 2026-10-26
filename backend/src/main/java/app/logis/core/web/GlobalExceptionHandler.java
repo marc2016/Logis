@@ -2,6 +2,7 @@ package app.logis.core.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -26,6 +27,13 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> handleApi(ApiException ex) {
         return ResponseEntity.status(ex.status())
                 .body(ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage()));
+    }
+
+    /** Gleichzeitige Aenderung, die erst beim Speichern auffaellt (JPA @Version). */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    ResponseEntity<ProblemDetail> handleOptimisticLock(OptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Die Daten wurden inzwischen geändert."));
     }
 
     @ExceptionHandler(Exception.class)

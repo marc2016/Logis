@@ -14,7 +14,8 @@ export function mockApi(handlers: Record<string, Handler>) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const method = (init?.method ?? 'GET').toUpperCase()
     const key = `${method} ${String(input)}`
-    const handler = handlers[key]
+    // Exakter Treffer inkl. Query-String, sonst nur der Pfad.
+    const handler = handlers[key] ?? handlers[`${method} ${String(input).split('?')[0]}`]
     if (!handler) return new Response(JSON.stringify({ detail: `kein Mock für ${key}` }), { status: 500 })
     const { status = 200, body } = typeof handler === 'function' ? handler(init) : handler
     return new Response(body === undefined ? null : JSON.stringify(body), {

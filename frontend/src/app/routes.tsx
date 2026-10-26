@@ -4,6 +4,11 @@ import { LoginPage } from '@/core/auth/LoginPage'
 import { DashboardPage } from '@/core/dashboard/DashboardPage'
 import { AccountPage } from '@/core/account/AccountPage'
 import { UsersPage } from '@/core/admin/users/UsersPage'
+import { CategoriesPage } from '@/core/admin/categories/CategoriesPage'
+import { AccountsPage } from '@/core/ledger/accounts/AccountsPage'
+import { AccountDetailPage } from '@/core/ledger/accounts/AccountDetailPage'
+import { TransactionsPage } from '@/core/ledger/transactions/TransactionsPage'
+import { LegalEntitiesPage } from '@/core/ledger/legal-entities/LegalEntitiesPage'
 import { AppShell } from './layout/AppShell'
 import { ModuleGuard, RequireAdmin } from './guards'
 import { NotFound } from './NotFound'
@@ -19,6 +24,18 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'konto', element: <AccountPage /> },
+          { path: 'finanzen/konten', element: <AccountsPage /> },
+          { path: 'finanzen/konten/:accountId', element: <AccountDetailPage /> },
+          { path: 'finanzen/transaktionen', element: <TransactionsPage /> },
+          { path: 'finanzen/eigentuemer', element: <LegalEntitiesPage /> },
+          {
+            path: 'einstellungen/kategorien',
+            element: (
+              <RequireAdmin>
+                <CategoriesPage />
+              </RequireAdmin>
+            ),
+          },
           {
             path: 'einstellungen/benutzer',
             element: (

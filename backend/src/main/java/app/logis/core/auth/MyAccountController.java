@@ -19,13 +19,13 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/account")
-class AccountController {
+class MyAccountController {
 
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final RecoveryCodeService recoveryCodes;
 
-    AccountController(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes) {
+    MyAccountController(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes) {
         this.users = users;
         this.encoder = encoder;
         this.recoveryCodes = recoveryCodes;

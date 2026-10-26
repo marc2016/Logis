@@ -1,0 +1,133 @@
+package app.logis.core.sharing;
+
+import app.logis.core.users.UserRepository;
+import app.logis.core.web.ApiException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Freigaben pro Objekt. Ohne Freigabe ist ein Objekt fuer den Benutzer nicht vorhanden (404),
+ * mit zu geringer Rolle gibt es 403. Die Systemrolle ADMIN spielt hier keine Rolle.
+ */
+@Service
+@Transactional
+public class SharingService {
+
+    static final String NOT_FOUND = "Nicht gefunden";
+    static final String LAST_OWNER = "Es muss mindestens einen Owner geben";
+
+    private final ObjectShareRepository shares;
+    private final UserRepository users;
+    private final Clock clock;
+
+    SharingService(ObjectShareRepository shares, UserRepository users, Clock clock) {
+        this.shares = shares;
+        this.users = users;
+        this.clock = clock;
+    }
+
+    public record ShareView(Long userId, String username, String displayName, ShareRole role) {
+    }
+
+    public void grantOwner(String type, Long objectId, Long userId) {
+        shares.save(new ObjectShare(type, objectId, userId, ShareRole.OWNER, clock.instant()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ShareRole> roleOf(String type, Long objectId, Long userId) {
+        return shares.find(type, objectId, userId).map(ObjectShare::getRole);
+    }
+
+    /**
+     * Prueft die Mindestrolle und liefert die tatsaechliche Rolle.
+     *
+     * @throws ApiException 404 ohne Freigabe, 403 bei zu geringer Rolle
+     */
+    @Transactional(readOnly = true)
+    public ShareRole requireRole(String type, Long objectId, Long userId, ShareRole required) {
+        var role = roleOf(type, objectId, userId).orElseThrow(() -> ApiException.notFound(NOT_FOUND));
+        if (!role.atLeast(required)) {
+            throw ApiException.forbidden("Dafür fehlt die Berechtigung.");
+        }
+        return role;
+    }
+
+    /** Alle Objekt-IDs eines Typs, an denen der Benutzer mindestens die Rolle hat, mit seiner Rolle. */
+    @Transactional(readOnly = true)
+    public Map<Long, ShareRole> rolesFor(String type, Long userId, ShareRole minimum) {
+        return shares.findAllForUser(type, userId).stream()
+                .filter(s -> s.getRole().atLeast(minimum))
+                .collect(Collectors.toMap(ObjectShare::getObjectId, ObjectShare::getRole));
+    }
+
+    @Transactional(readOnly = true)
+    public Set<Long> accessibleIds(String type, Long userId, ShareRole minimum) {
+        return rolesFor(type, userId, minimum).keySet();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShareView> list(String type, Long objectId, Long actorId) {
+        requireRole(type, objectId, actorId, ShareRole.VIEWER);
+        return shares.findAllForObject(type, objectId).stream()
+                .map(s -> {
+                    var user = users.findById(s.getUserId()).orElseThrow();
+                    return new ShareView(user.getId(), user.getUsername(), user.getDisplayName(), s.getRole());
+                })
+                .toList();
+    }
+
+    /** Laedt einen bestehenden, aktiven Benutzer ein oder aendert dessen bestehende Rolle. */
+    public void invite(String type, Long objectId, Long actorId, Long targetUserId, ShareRole role) {
+        requireRole(type, objectId, actorId, ShareRole.OWNER);
+        var target = users.findById(targetUserId).filter(u -> u.isEnabled())
+                .orElseThrow(() -> ApiException.notFound("Benutzer nicht gefunden"));
+        var existing = shares.find(type, objectId, target.getId());
+        if (existing.isPresent()) {
+            changeRoleInternal(type, objectId, existing.get(), role);
+        } else {
+            shares.save(new ObjectShare(type, objectId, target.getId(), role, clock.instant()));
+        }
+    }
+
+    public void changeRole(String type, Long objectId, Long actorId, Long targetUserId, ShareRole role) {
+        requireRole(type, objectId, actorId, ShareRole.OWNER);
+        var share = shares.find(type, objectId, targetUserId).orElseThrow(() -> ApiException.notFound(NOT_FOUND));
+        changeRoleInternal(type, objectId, share, role);
+    }
+
+    /** Entzieht eine Freigabe. Owner duerfen jede entziehen, jeder Benutzer seine eigene. */
+    public void revoke(String type, Long objectId, Long actorId, Long targetUserId) {
+        requireRole(type, objectId, actorId,
+                actorId.equals(targetUserId) ? ShareRole.VIEWER : ShareRole.OWNER);
+        var share = shares.find(type, objectId, targetUserId).orElseThrow(() -> ApiException.notFound(NOT_FOUND));
+        if (share.getRole() == ShareRole.OWNER) {
+            requireAnotherOwner(type, objectId);
+        }
+        shares.delete(share);
+    }
+
+    /** Beim Loeschen eines Objekts: alle Freigaben entfernen. */
+    public void deleteAll(String type, Long objectId) {
+        shares.deleteAllForObject(type, objectId);
+    }
+
+    private void changeRoleInternal(String type, Long objectId, ObjectShare share, ShareRole role) {
+        if (share.getRole() == ShareRole.OWNER && role != ShareRole.OWNER) {
+            requireAnotherOwner(type, objectId);
+        }
+        share.setRole(role);
+    }
+
+    private void requireAnotherOwner(String type, Long objectId) {
+        if (shares.lockOwners(type, objectId).size() <= 1) {
+            throw ApiException.conflict(LAST_OWNER);
+        }
+    }
+}

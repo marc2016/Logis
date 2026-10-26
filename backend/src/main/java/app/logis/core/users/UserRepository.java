@@ -1,6 +1,7 @@
 package app.logis.core.users;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> lockActiveAdmins();
 
     List<User> findAllByOrderByUsernameAsc();
+
+    @Query("select u from User u where u.enabled = true and (lower(u.username) like :pattern escape '\\' "
+            + "or lower(u.displayName) like :pattern escape '\\') order by u.username")
+    List<User> searchActive(String pattern, Pageable pageable);
 }

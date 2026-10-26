@@ -102,6 +102,22 @@ http:
 - Admins können Benutzer deaktivieren und Passwort oder 2FA zurücksetzen. Die Sitzungen der betroffenen Person enden dabei sofort.
 - Unter *Mein Konto* ändert jeder sein Passwort und erzeugt neue Wiederherstellungscodes.
 
+## Finanzen und Freigaben
+
+- **Eigentümer (Rechtsträger)** trennen Konten steuerlich, z. B. „Anna privat“ und „GbR Ostsee“. Jeder Benutzer hat automatisch seinen privaten Eigentümer. Weitere legt man unter *Finanzen > Eigentümer* an. Nur wer einen Eigentümer angelegt hat, verwaltet ihn und legt darin Konten an.
+- **Konten** gehören genau einem Eigentümer. Wer ein Konto anlegt, ist dessen **Owner**.
+- **Freigaben** gelten pro Konto. Der Owner lädt bestehende Benutzer über *Freigeben* ein:
+
+  | Rolle | Darf |
+  |---|---|
+  | Lesen (`VIEWER`) | Konto und Transaktionen ansehen |
+  | Bearbeiten (`EDITOR`) | zusätzlich Transaktionen und Umbuchungen erfassen, ändern, löschen |
+  | Owner (`OWNER`) | zusätzlich Konto bearbeiten, archivieren und Freigaben verwalten |
+
+  Ohne Freigabe ist ein Konto unsichtbar, auch für Admins. Es bleibt immer mindestens ein Owner.
+- **Kategorien** sind ein gemeinsamer Baum für alle Benutzer und werden von Admins unter *Einstellungen > Kategorien* gepflegt. Verwendete Kategorien lassen sich nur archivieren.
+- **Umbuchungen** zwischen eigenen Konten ändern die Salden, zählen aber nicht als Einnahme oder Ausgabe.
+
 ## Backup und Restore
 
 Der Dienst `backup` schreibt täglich zur Uhrzeit `BACKUP_TIME` eine Sicherung nach `./backups/logis_<YYYYMMDD_HHMMSS>.dump` und löscht Sicherungen, die älter als `BACKUP_RETENTION_DAYS` sind.
@@ -149,6 +165,20 @@ docker compose exec db psql -U logis -d logis -c \
 ```
 
 Ersetze dabei `admin` durch den Benutzernamen. Wenn `POSTGRES_USER` oder `POSTGRES_DB` in der `.env` anders lauten, ersetze im zweiten Befehl auch `logis`.
+
+**Einziger Owner deaktiviert:** Wurde der einzige Owner von Konten deaktiviert, sind diese Konten für niemanden mehr verwaltbar. Der einfachste Weg ist, den Benutzer wieder zu aktivieren. Soll stattdessen ein anderer Benutzer übernehmen, gibt der folgende Befehl ihm überall dort die Owner-Rolle, wo der alte Benutzer Owner war. Ersetze `alt` und `neu` durch die Benutzernamen.
+
+```sh
+docker compose exec -T db psql -U logis -d logis -v alt=carla -v neu=admin <<'SQL'
+INSERT INTO core.object_shares (object_type, object_id, user_id, role)
+SELECT s.object_type, s.object_id, (SELECT id FROM core.users WHERE username = :'neu'), 'OWNER'
+FROM core.object_shares s
+WHERE s.user_id = (SELECT id FROM core.users WHERE username = :'alt') AND s.role = 'OWNER'
+ON CONFLICT (object_type, object_id, user_id) DO UPDATE SET role = 'OWNER';
+SQL
+```
+
+Die Eigentümer des alten Benutzers bleiben dabei bei ihm. Die Konten darin sind danach aber über die neue Owner-Rolle verwaltbar.
 
 ## Entwicklung
 
