@@ -9,12 +9,12 @@ import { routes } from '@/app/routes'
 export type MockResponse = { status?: number; body?: unknown }
 type Handler = MockResponse | ((init: RequestInit | undefined) => MockResponse)
 
-/** Simuliert die API: Schluessel "METHODE /pfad". */
+/** Simulates the API: key "METHOD /path". */
 export function mockApi(handlers: Record<string, Handler>) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const method = (init?.method ?? 'GET').toUpperCase()
     const key = `${method} ${String(input)}`
-    // Exakter Treffer inkl. Query-String, sonst nur der Pfad.
+    // Exact match including query string, otherwise the path only.
     const handler = handlers[key] ?? handlers[`${method} ${String(input).split('?')[0]}`]
     if (!handler) return new Response(JSON.stringify({ detail: `kein Mock für ${key}` }), { status: 500 })
     const { status = 200, body } = typeof handler === 'function' ? handler(init) : handler

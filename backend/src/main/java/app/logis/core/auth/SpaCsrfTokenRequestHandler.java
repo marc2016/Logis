@@ -11,8 +11,8 @@ import org.springframework.util.StringUtils;
 import java.util.function.Supplier;
 
 /**
- * CSRF fuer eine Single-Page-App: Das Frontend liest das Token aus dem Cookie {@code XSRF-TOKEN}
- * und sendet es unveraendert im Header {@code X-XSRF-TOKEN}.
+ * CSRF for a single-page app: the frontend reads the token from the cookie {@code XSRF-TOKEN}
+ * and sends it unchanged in the header {@code X-XSRF-TOKEN}.
  */
 final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
 
@@ -22,7 +22,7 @@ final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
         xor.handle(request, response, csrfToken);
-        // Token sofort laden, damit das Cookie bei jeder Antwort gesetzt wird.
+        // Load the token immediately, so that the cookie is set on every response.
         csrfToken.get();
     }
 

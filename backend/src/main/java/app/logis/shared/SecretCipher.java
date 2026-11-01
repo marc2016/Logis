@@ -14,7 +14,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * Verschluesselt kleine Geheimnisse (z. B. TOTP-Secrets) mit AES-256-GCM.
+ * Encrypts small secrets (e.g. TOTP secrets) with AES-256-GCM.
  * Format: Base64(IV[12] || Ciphertext+Tag).
  */
 @Component
@@ -33,16 +33,16 @@ public class SecretCipher {
     static SecretKey parseKey(String base64Key) {
         if (base64Key == null || base64Key.isBlank()) {
             throw new IllegalStateException(
-                    "LOGIS_ENCRYPTION_KEY ist nicht gesetzt. Erzeugen mit: openssl rand -base64 32");
+                    "LOGIS_ENCRYPTION_KEY is not set. Generate with: openssl rand -base64 32");
         }
         byte[] raw;
         try {
             raw = Base64.getDecoder().decode(base64Key.trim());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalStateException("LOGIS_ENCRYPTION_KEY ist kein gueltiges Base64.");
+            throw new IllegalStateException("LOGIS_ENCRYPTION_KEY is not valid Base64.");
         }
         if (raw.length != 32) {
-            throw new IllegalStateException("LOGIS_ENCRYPTION_KEY muss genau 32 Byte lang sein (ist " + raw.length + ").");
+            throw new IllegalStateException("LOGIS_ENCRYPTION_KEY must be exactly 32 bytes long (is " + raw.length + ").");
         }
         return new SecretKeySpec(raw, "AES");
     }

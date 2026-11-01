@@ -11,7 +11,7 @@ const base = {
 }
 
 describe('Navigation', () => {
-  it('zeigt "Finanzen" für alle und "Kategorien" nur für Admins', async () => {
+  it('shows "Finanzen" to everyone and "Kategorien" only to admins', async () => {
     mockApi({ ...base, 'GET /api/auth/me': authenticated(normalUser) })
     renderApp('/')
     expect(await screen.findByRole('link', { name: /Konten/ })).toHaveAttribute('href', '/finanzen/konten')
@@ -20,15 +20,15 @@ describe('Navigation', () => {
     expect(screen.queryByRole('link', { name: /Kategorien/ })).not.toBeInTheDocument()
   })
 
-  it('zeigt "Kategorien" für Admins', async () => {
+  it('shows "Kategorien" to admins', async () => {
     mockApi(base)
     renderApp('/')
     expect(await screen.findByRole('link', { name: /Kategorien/ })).toHaveAttribute('href', '/einstellungen/kategorien')
   })
 })
 
-describe('Eigentümer', () => {
-  it('legt einen Eigentümer an und zeigt die Meldung bei doppeltem Namen', async () => {
+describe('Owners', () => {
+  it('creates an owner and shows the message for a duplicate name', async () => {
     let calls = 0
     mockApi({
       ...base,
@@ -54,8 +54,8 @@ describe('Eigentümer', () => {
   })
 })
 
-describe('Konten', () => {
-  it('gruppiert nach Eigentümer und formatiert den Saldo', async () => {
+describe('Accounts', () => {
+  it('groups by owner and formats the balance', async () => {
     mockApi({
       ...base,
       'GET /api/accounts': {
@@ -74,7 +74,7 @@ describe('Konten', () => {
     expect(within(gbr).getByText('Lesen')).toBeInTheDocument()
   })
 
-  it('zeigt die Meldung bei ungültiger IBAN', async () => {
+  it('shows the message for an invalid IBAN', async () => {
     mockApi({
       ...base,
       'GET /api/accounts': { body: [] },
@@ -92,7 +92,7 @@ describe('Konten', () => {
   })
 })
 
-describe('Transaktionen', () => {
+describe('Transactions', () => {
   const detailMocks = (role: 'OWNER' | 'VIEWER', items = [transaction()]) => ({
     ...base,
     'GET /api/accounts/1': { body: account({ myRole: role }) },
@@ -100,7 +100,7 @@ describe('Transaktionen', () => {
     'GET /api/transactions': { body: page(items) },
   })
 
-  it('sendet eine Ausgabe mit negativem Betrag', async () => {
+  it('sends an expense with a negative amount', async () => {
     let sent: unknown
     mockApi({
       ...detailMocks('OWNER'),
@@ -118,7 +118,7 @@ describe('Transaktionen', () => {
     await waitFor(() => expect(sent).toMatchObject({ accountId: 1, amount: '-84.90', counterparty: 'Edeka' }))
   })
 
-  it('zeigt die Meldung bei gleichzeitiger Änderung', async () => {
+  it('shows the message for a concurrent change', async () => {
     mockApi({
       ...detailMocks('OWNER'),
       'PUT /api/transactions/100': { status: 409, body: { detail: 'Die Transaktion wurde inzwischen geändert' } },
@@ -130,7 +130,7 @@ describe('Transaktionen', () => {
     expect(await screen.findByText('Die Transaktion wurde inzwischen geändert')).toBeInTheDocument()
   })
 
-  it('markiert Umbuchungen in der Tabelle', async () => {
+  it('marks transfers in the table', async () => {
     mockApi(
       detailMocks('OWNER', [
         transaction({ id: 101, amount: '-500.00', counterparty: null, transferId: 'abc', counterAccountId: 2, counterAccountName: 'Tagesgeld' }),
@@ -142,7 +142,7 @@ describe('Transaktionen', () => {
     expect(within(table).getByText('nach Tagesgeld')).toBeInTheDocument()
   })
 
-  it('zeigt einem Viewer keine Schaltflächen zum Erfassen oder Bearbeiten', async () => {
+  it('shows a viewer no buttons for entering or editing', async () => {
     mockApi(detailMocks('VIEWER'))
     renderApp('/finanzen/konten/1')
     expect(await screen.findByText('Edeka')).toBeInTheDocument()
@@ -152,7 +152,7 @@ describe('Transaktionen', () => {
     expect(screen.queryByRole('button', { name: 'Archivieren' })).not.toBeInTheDocument()
   })
 
-  it('zeigt "Seite nicht gefunden" für ein unbekanntes Konto', async () => {
+  it('shows "Seite nicht gefunden" for an unknown account', async () => {
     mockApi({
       ...base,
       'GET /api/accounts/99': { status: 404, body: { detail: 'Nicht gefunden' } },
@@ -163,7 +163,7 @@ describe('Transaktionen', () => {
     expect(await screen.findByRole('heading', { name: 'Seite nicht gefunden' })).toBeInTheDocument()
   })
 
-  it('sendet die Filter als Query-Parameter und zeigt die Summen', async () => {
+  it('sends the filters as query parameters and shows the totals', async () => {
     const urls: string[] = []
     const fetchMock = mockApi({
       ...base,
@@ -185,7 +185,7 @@ describe('Transaktionen', () => {
   })
 })
 
-describe('Freigaben', () => {
+describe('Sharing', () => {
   const shareMocks = (myRole: 'OWNER' | 'VIEWER', patch?: { status: number; body: unknown }) => ({
     ...base,
     'GET /api/auth/me': authenticated(adminUser),
@@ -200,7 +200,7 @@ describe('Freigaben', () => {
     ...(patch ? { 'PATCH /api/shares/account/1/1': patch } : {}),
   })
 
-  it('lädt einen Benutzer über die Suche ein', async () => {
+  it('invites a user via the search', async () => {
     const fetchMock = mockApi(shareMocks('OWNER'))
     renderApp('/finanzen/konten/1')
     const user = userEvent.setup()
@@ -215,7 +215,7 @@ describe('Freigaben', () => {
     })
   })
 
-  it('zeigt die Meldung beim letzten Owner', async () => {
+  it('shows the message for the last owner', async () => {
     mockApi(shareMocks('OWNER', { status: 409, body: { detail: 'Es muss mindestens einen Owner geben' } }))
     renderApp('/finanzen/konten/1')
     const user = userEvent.setup()
@@ -225,7 +225,7 @@ describe('Freigaben', () => {
     expect(await screen.findByText('Es muss mindestens einen Owner geben')).toBeInTheDocument()
   })
 
-  it('zeigt einem Viewer nur die Liste', async () => {
+  it('shows a viewer only the list', async () => {
     mockApi(shareMocks('VIEWER'))
     renderApp('/finanzen/konten/1')
     const user = userEvent.setup()
@@ -237,8 +237,8 @@ describe('Freigaben', () => {
   })
 })
 
-describe('Kategorien-Verwaltung', () => {
-  it('legt Kategorien an und zeigt beide Fehlermeldungen', async () => {
+describe('Category management', () => {
+  it('creates categories and shows both error messages', async () => {
     let posts = 0
     mockApi({
       ...base,

@@ -3,7 +3,7 @@ package app.logis.core.users;
 import app.logis.core.web.ApiException;
 
 /**
- * Zentrale Passwortregeln.
+ * Central password rules.
  */
 public final class PasswordPolicy {
 

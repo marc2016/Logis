@@ -14,8 +14,8 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * Fachlogik der einzelnen Login-Schritte. Fehlversuche werden auch bei abgelehnter Anmeldung gespeichert
- * (daher {@code noRollbackFor}).
+ * Logic of the individual sign-in steps. Failed attempts are stored even when sign-in is rejected
+ * (hence {@code noRollbackFor}).
  */
 @Service
 @Transactional(noRollbackFor = ApiException.class)
@@ -61,7 +61,7 @@ class AuthFlowService {
             attempts.recordFailure(user, ip, "PASSWORD");
             throw ApiException.unauthorized(INVALID_CREDENTIALS);
         }
-        // Zaehler wird erst nach dem zweiten Faktor zurueckgesetzt, sonst waere der Code-Schritt unbegrenzt ratbar.
+        // The counter is only reset after the second factor, otherwise the code step could be guessed without limit.
         var stage = user.isTotpEnabled() ? AuthStage.TOTP_REQUIRED : AuthStage.TOTP_ENROLLMENT_REQUIRED;
         return new StepResult(user, stage, List.of());
     }

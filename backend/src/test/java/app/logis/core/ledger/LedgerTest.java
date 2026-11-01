@@ -13,7 +13,7 @@ import java.util.Map;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Hilfen fuer Ledger-Tests: Benutzer mit Sitzung, Konten, Freigaben, Transaktionen.
+ * Helpers for ledger tests: users with session, accounts, shares, transactions.
  */
 abstract class LedgerTest extends IntegrationTest {
 

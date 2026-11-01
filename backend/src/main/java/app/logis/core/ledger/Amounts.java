@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * Pruefung von Geldbetraegen: exakt, hoechstens zwei Nachkommastellen, nie gerundet.
+ * Validation of money amounts: exact, at most two decimal places, never rounded.
  */
 final class Amounts {
 
@@ -15,7 +15,7 @@ final class Amounts {
     private Amounts() {
     }
 
-    /** Fuer Transaktionsbetraege: ungleich 0. */
+    /** For transaction amounts: non-zero. */
     static BigDecimal requireTransactionAmount(BigDecimal amount) {
         var value = requireMoney(amount, "Bitte einen Betrag angeben.");
         if (value.signum() == 0) {
@@ -24,7 +24,7 @@ final class Amounts {
         return value;
     }
 
-    /** Fuer Salden wie den Anfangssaldo: auch 0 erlaubt. */
+    /** For balances such as the opening balance: 0 is allowed too. */
     static BigDecimal requireMoney(BigDecimal amount, String missingMessage) {
         if (amount == null) {
             throw ApiException.badRequest(missingMessage);

@@ -48,7 +48,7 @@ export function AccountDetailPage() {
 
   const isOwner = account.myRole === 'OWNER'
   const canBook = account.myRole !== 'VIEWER' && !account.archived
-  // Im Dialog: dieses Konto plus alle anderen beschreibbaren (fuer Umbuchungen/Verschieben).
+  // In the dialog: this account plus all other writable ones (for transfers/moving).
   const writable = writableAccounts(accounts)
 
   return (

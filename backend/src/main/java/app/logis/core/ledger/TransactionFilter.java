@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.Locale;
 
 /**
- * Filter der Transaktionsliste. Die Kontenmenge stammt immer aus den Freigaben des Benutzers.
+ * Filter of the transaction list. The set of accounts always comes from the user's shares.
  */
 record TransactionFilter(Long accountId, LocalDate from, LocalDate to, Long categoryId, boolean uncategorized,
         String query) {

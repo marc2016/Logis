@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /**
- * Eigentuemer von Konten (steuerliche Trennung). Vergibt selbst keine Rechte.
+ * Owner of accounts (tax separation). Grants no rights itself.
  */
 @Entity
 @Table(name = "legal_entities", schema = "core")

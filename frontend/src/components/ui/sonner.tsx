@@ -4,7 +4,7 @@ import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
-      // Logis hat nur ein helles Theme.
+      // Logis has a light theme only.
       theme="light"
       className="toaster group"
       icons={{

@@ -51,7 +51,7 @@ class LegalEntitiesTest extends LedgerTest {
                 .andExpect(jsonPath("$[0].personal").value(true))
                 .andExpect(jsonPath("$[1].name").value("GbR Ostsee"));
 
-        // Gleicher Name bei einem anderen Benutzer ist erlaubt.
+        // The same name for another user is allowed.
         createEntity(actor(), "GbR Ostsee");
     }
 

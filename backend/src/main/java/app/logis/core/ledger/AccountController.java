@@ -30,7 +30,7 @@ class AccountController {
         this.service = service;
     }
 
-    /** Fremde Rechtstraeger erscheinen nur mit ID, Name und Art. */
+    /** Other people's legal entities appear only with ID, name and kind. */
     record LegalEntityRef(Long id, String name, LegalEntityKind kind) {
     }
 

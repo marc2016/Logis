@@ -8,7 +8,7 @@ import org.springframework.data.repository.Repository;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
- * Controller duerfen nicht an den Services (und damit an der Rechtepruefung) vorbei auf Repositories zugreifen.
+ * Controllers must not access repositories bypassing the services (and thus the permission checks).
  */
 class LedgerArchitectureTest {
 
@@ -18,7 +18,7 @@ class LedgerArchitectureTest {
                 .importPackages("app.logis.core.ledger", "app.logis.core.sharing");
         noClasses().that().haveSimpleNameEndingWith("Controller")
                 .should().dependOnClassesThat().areAssignableTo(Repository.class)
-                .because("jeder Datenzugriff muss durch die Freigabepruefung der Services laufen")
+                .because("every data access must go through the services' sharing checks")
                 .check(classes);
     }
 }

@@ -1,11 +1,11 @@
 package app.logis.core.sharing;
 
 /**
- * Registriert einen freigebbaren Objekttyp, z. B. {@code account} oder {@code vacationrental.property}.
- * Nur registrierte Typen sind ueber die Freigabe-API erreichbar.
+ * Registers a shareable object type, e.g. {@code account} or {@code vacationrental.property}.
+ * Only registered types are reachable through the sharing API.
  */
 public interface ShareableType {
 
-    /** Stabiler Typname, wie er in {@code core.object_shares.object_type} steht. */
+    /** Stable type name, as stored in {@code core.object_shares.object_type}. */
     String type();
 }

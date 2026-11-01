@@ -1,7 +1,7 @@
 package app.logis.core.sharing;
 
 /**
- * Rollen an einem Objekt, aufsteigend nach Rechten.
+ * Roles on an object, in ascending order of rights.
  */
 public enum ShareRole {
     VIEWER,

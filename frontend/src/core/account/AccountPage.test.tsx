@@ -11,8 +11,8 @@ async function fillPasswordForm(current: string) {
   await user.click(screen.getByRole('button', { name: 'Passwort ändern' }))
 }
 
-describe('Mein Konto', () => {
-  it('ändert das Passwort', async () => {
+describe('My account', () => {
+  it('changes the password', async () => {
     let body: unknown
     mockApi({
       'GET /api/auth/me': authenticated(),
@@ -28,7 +28,7 @@ describe('Mein Konto', () => {
     expect(body).toEqual({ currentPassword: 'altes-passwort-123', newPassword: 'mein-neues-passwort' })
   })
 
-  it('zeigt die Meldung bei falschem aktuellem Passwort', async () => {
+  it('shows the message for a wrong current password', async () => {
     mockApi({
       'GET /api/auth/me': authenticated(),
       'GET /api/modules': { body: [] },
@@ -39,7 +39,7 @@ describe('Mein Konto', () => {
     expect(await screen.findByText('Das aktuelle Passwort ist falsch.')).toBeInTheDocument()
   })
 
-  it('erzeugt neue Wiederherstellungscodes nach Bestätigung', async () => {
+  it('generates new recovery codes after confirmation', async () => {
     mockApi({
       'GET /api/auth/me': authenticated(),
       'GET /api/modules': { body: [] },

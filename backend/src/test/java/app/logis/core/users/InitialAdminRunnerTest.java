@@ -54,7 +54,7 @@ class InitialAdminRunnerTest extends IntegrationTest {
     @Test
     void failsWithShortPassword() {
         assertThatThrownBy(() -> run("chef", "kurz1234"))
-                .hasMessageContaining("mindestens 12 Zeichen");
+                .hasMessageContaining("at least 12 characters");
     }
 
     @Test

@@ -4,7 +4,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.List;
 
-/** Ein Postgres-Container fuer alle Tests einer JVM. */
+/** One Postgres container for all tests of a JVM. */
 public final class TestPostgres {
 
     public static final PostgreSQLContainer<?> CONTAINER = new PostgreSQLContainer<>("postgres:17");
@@ -16,7 +16,7 @@ public final class TestPostgres {
     private TestPostgres() {
     }
 
-    /** Als Kommandozeilenargumente, damit sie Vorrang vor application.yml haben. */
+    /** As command-line arguments, so that they take precedence over application.yml. */
     public static List<String> args() {
         return List.of(
                 "--spring.datasource.url=" + CONTAINER.getJdbcUrl(),

@@ -15,7 +15,7 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * Endpunkte des mehrstufigen Logins (siehe design.md D6).
+ * Endpoints of the multi-step sign-in (see design.md D6).
  */
 @RestController
 @RequestMapping("/api/auth")

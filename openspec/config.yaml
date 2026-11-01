@@ -9,6 +9,10 @@ schema: spec-driven
 #     We use conventional commits
 #     Domain: e-commerce platform
 
+context: |
+  Write all artifacts (proposal, design, specs, tasks) in English.
+  Only UI text is German; quote German UI labels and messages verbatim.
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 # Example:

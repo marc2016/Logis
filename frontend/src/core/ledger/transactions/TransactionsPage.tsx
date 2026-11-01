@@ -42,7 +42,7 @@ export function TransactionsPage() {
   }
   const { data, isLoading } = useTransactions(filter)
   const writable = writableAccounts(accounts)
-  // Jede Filteraenderung beginnt wieder auf Seite 1.
+  // Every filter change starts again on page 1.
   const reset = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v)
     setPage(0)

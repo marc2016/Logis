@@ -24,7 +24,7 @@ class LoginFlowTest extends IntegrationTest {
 
     private static final String INVALID_CREDENTIALS = "Benutzername oder Passwort ist falsch";
 
-    // --- 5.1 Passwort-Schritt ------------------------------------------------------------------
+    // --- 5.1 Password step ---------------------------------------------------------------------
 
     @Test
     void passwordStepLeadsToTotpButGrantsNoAccess() throws Exception {
@@ -54,7 +54,7 @@ class LoginFlowTest extends IntegrationTest {
 
         for (var creds : List.of(
                 Map.of("username", user.username(), "password", "falsches-passwort"),
-                Map.of("username", "gibt-es-nicht", "password", "egal-egal-egal"),
+                Map.of("username", "does-not-exist", "password", "whatever-whatever"),
                 Map.of("username", disabled.username(), "password", disabled.password()))) {
             postJson("/api/auth/login", creds, null)
                     .andExpect(status().isUnauthorized())
@@ -71,7 +71,7 @@ class LoginFlowTest extends IntegrationTest {
         assertThat(session.getId()).isNotEqualTo(idAfterPassword);
     }
 
-    // --- 5.2 Einrichtung ----------------------------------------------------------------------
+    // --- 5.2 Setup ----------------------------------------------------------------------------
 
     @Test
     void enrollmentWithValidCode() throws Exception {
@@ -109,7 +109,7 @@ class LoginFlowTest extends IntegrationTest {
         getWith("/api/auth/me", session).andExpect(jsonPath("$.stage").value("TOTP_ENROLLMENT_REQUIRED"));
     }
 
-    // --- 5.3 TOTP / Wiederherstellung ---------------------------------------------------------
+    // --- 5.3 TOTP / recovery ------------------------------------------------------------------
 
     @Test
     void reusedTotpCodeIsRejected() throws Exception {
@@ -147,7 +147,7 @@ class LoginFlowTest extends IntegrationTest {
         postJson("/api/auth/totp", Map.of("code", recovery), again).andExpect(status().isUnauthorized());
     }
 
-    // --- 5.4 Erzwungene Passwortaenderung -----------------------------------------------------
+    // --- 5.4 Forced password change -----------------------------------------------------------
 
     @Test
     void passwordChangeRequiredBeforeAccess() throws Exception {
@@ -167,7 +167,7 @@ class LoginFlowTest extends IntegrationTest {
                 users.findById(user.id()).orElseThrow().getPasswordHash())).isTrue();
     }
 
-    // --- 5.5 Sperre ---------------------------------------------------------------------------
+    // --- 5.5 Lockout --------------------------------------------------------------------------
 
     @Test
     void lockoutAfterFiveFailuresAndRecovery(CapturedOutput output) throws Exception {
@@ -211,7 +211,7 @@ class LoginFlowTest extends IntegrationTest {
         assertThat(Duration.between(clock.instant(), lockedUntil)).isEqualTo(Duration.ofMinutes(15));
     }
 
-    // --- 5.6 Sitzungsdauer --------------------------------------------------------------------
+    // --- 5.6 Session duration -----------------------------------------------------------------
 
     @Test
     void idleSessionExpiresAfterThirtyMinutes() throws Exception {
@@ -233,7 +233,7 @@ class LoginFlowTest extends IntegrationTest {
         getWith("/api/modules", session).andExpect(status().isUnauthorized());
     }
 
-    // --- 5.7 Abmelden -------------------------------------------------------------------------
+    // --- 5.7 Sign-out -------------------------------------------------------------------------
 
     @Test
     void logoutEndsSession() throws Exception {

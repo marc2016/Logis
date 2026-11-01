@@ -8,13 +8,13 @@ interface Props {
   id?: string
   value: number | null
   onChange: (value: number | null) => void
-  /** Bereits zugewiesene, inzwischen archivierte Kategorie weiterhin anzeigen. */
+  /** Keep showing a category that is already assigned but has since been archived. */
   currentName?: string | null
   placeholder?: string
   noneLabel?: string
 }
 
-/** Auswahl aus dem gemeinsamen Kategorienbaum, gruppiert nach Einnahmen/Ausgaben. */
+/** Selection from the shared category tree, grouped by income/expenses. */
 export function CategorySelect({ id, value, onChange, currentName, placeholder = 'Kategorie wählen', noneLabel = 'Keine Kategorie' }: Props) {
   const { data: tree = [] } = useCategories()
   const known = new Set<number>()

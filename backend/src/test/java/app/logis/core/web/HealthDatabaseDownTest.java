@@ -10,7 +10,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Eigener Container, damit er gestoppt werden kann, ohne andere Tests zu stoeren. */
+/** Separate container, so that it can be stopped without disturbing other tests. */
 class HealthDatabaseDownTest {
 
     @Test

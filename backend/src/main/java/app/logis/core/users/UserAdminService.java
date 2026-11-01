@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Benutzerverwaltung durch Admins (siehe Spec user-management).
+ * User management by admins (see spec user-management).
  */
 @Service
 @Transactional

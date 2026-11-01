@@ -19,9 +19,9 @@ import { todayIso } from './format'
 type Direction = 'EXPENSE' | 'INCOME'
 
 interface Props {
-  /** Bestehende Transaktion oder null fuer eine neue. */
+  /** Existing transaction, or null for a new one. */
   transaction: Transaction | null
-  /** Konten, in denen der Benutzer buchen darf. */
+  /** Accounts in which the user may enter transactions. */
   accounts: Account[]
   defaultAccountId?: number
   onClose: () => void

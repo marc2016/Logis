@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select count(u) > 0 from User u where lower(u.username) = lower(:username)")
     boolean existsByUsernameIgnoreCase(String username);
 
-    /** Sperrt alle aktiven Admins fuer die Dauer der Transaktion (Invariante "mindestens ein Admin"). */
+    /** Locks all active admins for the duration of the transaction (invariant "at least one admin"). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.role = app.logis.core.users.Role.ADMIN and u.enabled = true")
     List<User> lockActiveAdmins();

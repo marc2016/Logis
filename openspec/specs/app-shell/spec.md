@@ -2,64 +2,64 @@
 
 ## Purpose
 
-Die App-Shell ist der gemeinsame Rahmen der Weboberfläche. Sie stellt die Navigation über eine linke Sidebar bereit, in der jedes aktive Modul eine eigene Gruppe hat, und zeigt die Seiten der Module im Inhaltsbereich an.
+The app shell is the shared frame of the web interface. It provides navigation through a left sidebar in which each active module has its own group, and it shows the modules' pages in the content area.
 
 ## Requirements
 
-### Requirement: Sidebar mit Gruppen pro Modul
-Die Oberfläche SHALL links eine Sidebar anzeigen. Sie MUST einen Bereich für den Kern (mindestens „Übersicht“) und für jedes aktive Modul eine eigene Gruppe mit dessen Navigationseinträgen enthalten. Deaktivierte Module MUST NOT in der Sidebar erscheinen.
+### Requirement: Sidebar with one group per module
+The interface SHALL show a sidebar on the left. It MUST contain a section for the core (at least „Übersicht“) and a separate group for each active module with that module's navigation entries. Disabled modules MUST NOT appear in the sidebar.
 
-#### Scenario: Aktives Modul erscheint als Gruppe
-- **WHEN** ein angemeldeter Benutzer die Anwendung öffnet und `vacationrental` aktiv ist
-- **THEN** zeigt die Sidebar eine Gruppe „Ferienvermietung“ mit deren Navigationseinträgen
+#### Scenario: Active module appears as a group
+- **WHEN** a signed-in user opens the application and `vacationrental` is active
+- **THEN** the sidebar shows a group „Ferienvermietung“ with its navigation entries
 
-#### Scenario: Deaktiviertes Modul fehlt
-- **WHEN** ein angemeldeter Benutzer die Anwendung öffnet und `vacationrental` deaktiviert ist
-- **THEN** zeigt die Sidebar keine Gruppe „Ferienvermietung“
+#### Scenario: Disabled module is missing
+- **WHEN** a signed-in user opens the application and `vacationrental` is disabled
+- **THEN** the sidebar shows no group „Ferienvermietung“
 
-### Requirement: Sidebar einklappbar
-Die Sidebar SHALL sich auf eine reine Icon-Leiste einklappen und wieder ausklappen lassen. Der gewählte Zustand MUST beim erneuten Laden der Seite im selben Browser erhalten bleiben.
+### Requirement: Collapsible sidebar
+The sidebar SHALL collapse to an icon-only bar and expand again. The chosen state MUST persist when the page is reloaded in the same browser.
 
-#### Scenario: Einklappen
-- **WHEN** der Benutzer die Sidebar einklappt
-- **THEN** zeigt die Sidebar nur noch Icons, und der Inhaltsbereich nimmt die frei gewordene Breite ein
+#### Scenario: Collapse
+- **WHEN** the user collapses the sidebar
+- **THEN** the sidebar shows only icons, and the content area takes up the freed width
 
-#### Scenario: Zustand bleibt erhalten
-- **WHEN** der Benutzer die Sidebar eingeklappt hat und die Seite neu lädt
-- **THEN** ist die Sidebar weiterhin eingeklappt
+#### Scenario: State persists
+- **WHEN** the user has collapsed the sidebar and reloads the page
+- **THEN** the sidebar is still collapsed
 
-### Requirement: Navigation zu Modulseiten
-Ein Klick auf einen Navigationseintrag SHALL die zugehörige Seite im Inhaltsbereich anzeigen, ohne die gesamte Seite neu zu laden. Der aktive Eintrag MUST in der Sidebar hervorgehoben sein. Jede Seite MUST eine eigene URL haben, die direkt aufgerufen werden kann.
+### Requirement: Navigation to module pages
+Clicking a navigation entry SHALL show the corresponding page in the content area without reloading the whole page. The active entry MUST be highlighted in the sidebar. Every page MUST have its own URL that can be opened directly.
 
-#### Scenario: Eintrag anklicken
-- **WHEN** der Benutzer in der Gruppe „Ferienvermietung“ auf „Belegung“ klickt
-- **THEN** zeigt der Inhaltsbereich die Belegungsseite, die URL ändert sich entsprechend, und „Belegung“ ist hervorgehoben
+#### Scenario: Click an entry
+- **WHEN** the user clicks „Belegung“ in the group „Ferienvermietung“
+- **THEN** the content area shows the occupancy page, the URL changes accordingly, and „Belegung“ is highlighted
 
-#### Scenario: Direkter Aufruf einer URL
-- **WHEN** der angemeldete Benutzer die URL einer Modulseite direkt im Browser öffnet
-- **THEN** zeigt die Anwendung diese Seite innerhalb der Shell an
+#### Scenario: Open a URL directly
+- **WHEN** the signed-in user opens the URL of a module page directly in the browser
+- **THEN** the application shows that page inside the shell
 
-#### Scenario: URL eines deaktivierten Moduls
-- **WHEN** der Benutzer die URL einer Seite eines deaktivierten Moduls öffnet
-- **THEN** zeigt die Anwendung eine „Seite nicht gefunden“-Ansicht innerhalb der Shell
+#### Scenario: URL of a disabled module
+- **WHEN** the user opens the URL of a page belonging to a disabled module
+- **THEN** the application shows a "page not found" view inside the shell
 
-### Requirement: Nutzbarkeit auf schmalen Bildschirmen
-Auf schmalen Bildschirmen (Smartphone-Breite) SHALL die Sidebar standardmäßig ausgeblendet sein und sich über eine Schaltfläche als Overlay öffnen lassen.
+### Requirement: Usable on narrow screens
+On narrow screens (smartphone width) the sidebar SHALL be hidden by default and open as an overlay via a button.
 
 #### Scenario: Smartphone
-- **WHEN** die Anwendung in einem Fenster mit Smartphone-Breite geöffnet wird
-- **THEN** ist die Sidebar ausgeblendet, und eine Menü-Schaltfläche öffnet sie als Overlay
+- **WHEN** the application is opened in a window of smartphone width
+- **THEN** the sidebar is hidden, and a menu button opens it as an overlay
 
-### Requirement: Helles Erscheinungsbild
-Die Oberfläche SHALL ausschließlich in einem hellen Design dargestellt werden: helle Hintergründe und dunkle Schrift. Das gilt unabhängig davon, ob das Betriebssystem oder der Browser einen Dunkelmodus eingestellt hat.
+### Requirement: Light appearance
+The interface SHALL be shown in a light design only: light backgrounds and dark text. This applies regardless of whether the operating system or browser is set to dark mode.
 
-#### Scenario: Dunkelmodus im System
-- **WHEN** der Benutzer die Anwendung auf einem Gerät mit aktiviertem Dunkelmodus öffnet
-- **THEN** werden Shell, Sidebar und Inhalte im hellen Design angezeigt
+#### Scenario: Dark mode in the system
+- **WHEN** the user opens the application on a device with dark mode enabled
+- **THEN** shell, sidebar and content are shown in the light design
 
-### Requirement: Deutsche Oberfläche
-Alle Texte der Oberfläche SHALL auf Deutsch sein.
+### Requirement: German interface
+All interface text SHALL be in German.
 
-#### Scenario: Beschriftungen
-- **WHEN** der Benutzer die Shell betrachtet
-- **THEN** sind Navigation, Schaltflächen und Meldungen deutsch beschriftet
+#### Scenario: Labels
+- **WHEN** the user looks at the shell
+- **THEN** navigation, buttons and messages are labeled in German

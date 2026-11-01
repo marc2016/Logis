@@ -4,7 +4,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { useActiveModules } from '../useActiveModules'
 import { AppSidebar } from './AppSidebar'
 
-/** Liest den von der shadcn-Sidebar gesetzten Cookie, damit der Zustand einen Reload uebersteht. */
+/** Reads the cookie set by the shadcn sidebar, so that the state survives a reload. */
 function initialSidebarOpen(): boolean {
   const match = document.cookie.split('; ').find((c) => c.startsWith('sidebar_state='))
   return match ? match.split('=')[1] !== 'false' : true

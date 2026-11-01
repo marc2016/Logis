@@ -31,14 +31,14 @@ export function useSession() {
   return useQuery({ queryKey: sessionQueryKey, queryFn: fetchSession, staleTime: 60_000 })
 }
 
-/** Nur innerhalb des AuthGate verwenden - dort ist der Benutzer garantiert vorhanden. */
+/** Use only inside the AuthGate - the user is guaranteed to be present there. */
 export function useCurrentUser(): SessionUser {
   const { data } = useSession()
   if (!data?.user) throw new Error('useCurrentUser ausserhalb des AuthGate')
   return data.user
 }
 
-/** Erlaubt nur relative Ziele innerhalb der App (kein Open Redirect). */
+/** Allows only relative targets within the app (no open redirect). */
 export function safeNext(next: string | null): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) return '/'
   return next

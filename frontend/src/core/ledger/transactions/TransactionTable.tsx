@@ -15,7 +15,7 @@ import { TransferDialog } from './TransferDialog'
 
 interface Props {
   items: Transaction[]
-  /** Alle sichtbaren Konten - fuer Rechte je Zeile und die Auswahl im Dialog. */
+  /** All visible accounts - for rights per row and the selection in the dialog. */
   accounts: Account[]
   showAccount?: boolean
   isLoading?: boolean

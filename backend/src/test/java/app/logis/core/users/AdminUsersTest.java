@@ -143,7 +143,7 @@ class AdminUsersTest extends IntegrationTest {
 
     @Test
     void lastActiveAdminIsProtected() throws Exception {
-        // Alle anderen Admins deaktivieren, damit genau einer uebrig bleibt.
+        // Disable all other admins, so that exactly one remains.
         users.findAll().stream().filter(u -> u.getRole() == Role.ADMIN).forEach(u -> {
             u.setEnabled(false);
             users.save(u);

@@ -98,12 +98,12 @@ public abstract class IntegrationTest {
             user.setTotpSecretEnc(cipher.encrypt(secret));
         }
         users.save(user);
-        // Wie in der Anwendung: privater Rechtstraeger entsteht ueber das Event.
+        // As in the application: the private legal entity is created through the event.
         events.publishEvent(new UserCreatedEvent(user.getId(), user.getDisplayName()));
         return new TestUser(user.getId(), username, password, secret);
     }
 
-    /** TOTP-Code fuer den aktuellen Zeitschritt der Test-Uhr. */
+    /** TOTP code for the current time step of the test clock. */
     protected String totp(String secret) {
         try {
             long step = clock.instant().getEpochSecond() / 30;
@@ -129,7 +129,7 @@ public abstract class IntegrationTest {
         return (MockHttpSession) result.getRequest().getSession(false);
     }
 
-    /** Vollstaendige Anmeldung (Passwort + TOTP). Rueckt die Uhr vor, damit jeder Code frisch ist. */
+    /** Full sign-in (password + TOTP). Advances the clock so that every code is fresh. */
     protected MockHttpSession login(TestUser user) throws Exception {
         clock.advance(Duration.ofSeconds(31));
         var session = passwordStep(user);

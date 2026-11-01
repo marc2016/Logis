@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Freigaben am Beispiel Konto (registrierter Typ "account").
+ * Sharing using the account as example (registered type "account").
  */
 class SharingTest extends IntegrationTest {
 
@@ -148,7 +148,7 @@ class SharingTest extends IntegrationTest {
         mvc.perform(delete(url(c) + "/" + c.owner().id()).with(csrf()).session(c.ownerSession()))
                 .andExpect(status().isConflict());
 
-        // Mit zweitem Owner darf der erste gehen.
+        // With a second owner, the first one may leave.
         postJson(url(c), Map.of("userId", c.other().id(), "role", "OWNER"), c.ownerSession());
         mvc.perform(delete(url(c) + "/" + c.owner().id()).with(csrf()).session(c.ownerSession()))
                 .andExpect(status().isNoContent());
@@ -160,7 +160,7 @@ class SharingTest extends IntegrationTest {
         getWith("/api/shares/unbekannt/" + c.accountId(), c.ownerSession()).andExpect(status().isNotFound());
     }
 
-    // --- 2.3 Benutzersuche ----------------------------------------------------------------------
+    // --- 2.3 User search ------------------------------------------------------------------------
 
     @Test
     void userSearch() throws Exception {

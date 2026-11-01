@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
-// Kein generierter Standardbenutzer: Die Anmeldung laeuft ausschliesslich ueber core.auth.
+// No generated default user: sign-in runs exclusively through core.auth.
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 public class LogisApplication {
 

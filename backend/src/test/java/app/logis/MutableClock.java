@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-/** Verstellbare Uhr fuer Tests von Sperren, TOTP und Sitzungsdauer. */
+/** Adjustable clock for tests of lockouts, TOTP and session duration. */
 public class MutableClock extends Clock {
 
     private Instant now = Instant.now();

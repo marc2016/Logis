@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Eigener Kontext: {@code with(csrf())} in anderen Tests ersetzt das Token-Repository dauerhaft.
+ * Separate context: {@code with(csrf())} in other tests replaces the token repository permanently.
  */
 @TestPropertySource(properties = "logis.test.context=csrf-cookie")
 class CsrfCookieTest extends IntegrationTest {

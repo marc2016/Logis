@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Generische Freigabe-API fuer alle registrierten {@link ShareableType}s.
+ * Generic sharing API for all registered {@link ShareableType}s.
  */
 @RestController
 @RequestMapping("/api/shares/{type}/{objectId}")

@@ -6,7 +6,7 @@ import java.math.BigInteger;
 import java.util.Locale;
 
 /**
- * Formale IBAN-Pruefung: Laenge 15-34, Laenderkennung, Mod-97 = 1.
+ * Formal IBAN validation: length 15-34, country code, mod-97 = 1.
  */
 final class Iban {
 
@@ -15,7 +15,7 @@ final class Iban {
     private Iban() {
     }
 
-    /** Normalisiert (ohne Leerzeichen, Grossbuchstaben) und prueft; leer wird zu {@code null}. */
+    /** Normalizes (no spaces, upper case) and validates; empty becomes {@code null}. */
     static String normalize(String input) {
         if (input == null || input.isBlank()) {
             return null;

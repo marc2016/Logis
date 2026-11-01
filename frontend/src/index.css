@@ -46,7 +46,7 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Logis verwendet ausschliesslich ein helles Theme (Spec app-shell: "Helles Erscheinungsbild"). */
+/* Logis uses a light theme only (spec app-shell: "Light appearance"). */
 :root {
     color-scheme: light;
     --background: oklch(1 0 0);

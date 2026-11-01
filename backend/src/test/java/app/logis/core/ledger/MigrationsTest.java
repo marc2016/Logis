@@ -24,7 +24,7 @@ class MigrationsTest extends LedgerTest {
                         "EXPENSE:null:Gebühren", "EXPENSE:null:Sonstige Ausgaben");
     }
 
-    /** Eigene Datenbank: Benutzer vor der Migration anlegen, danach migrieren. */
+    /** Separate database: create users before the migration, then migrate. */
     @Test
     void existingUsersGetPersonalLegalEntity() {
         try (var pg = new PostgreSQLContainer<>("postgres:17")) {

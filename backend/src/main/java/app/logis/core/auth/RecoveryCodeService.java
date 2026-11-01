@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Einmalig verwendbare Wiederherstellungscodes (10 Stueck, Format XXXXX-XXXXX), gespeichert nur als Hash.
+ * Single-use recovery codes (10 codes, format XXXXX-XXXXX), stored only as hashes.
  */
 @Service
 public class RecoveryCodeService {
@@ -30,7 +30,7 @@ public class RecoveryCodeService {
         this.clock = clock;
     }
 
-    /** Ersetzt alle bisherigen Codes und liefert die neuen im Klartext (nur dieses eine Mal). */
+    /** Replaces all previous codes and returns the new ones in plain text (this one time only). */
     @Transactional
     public List<String> regenerate(Long userId) {
         codes.deleteAllForUser(userId);
@@ -49,7 +49,7 @@ public class RecoveryCodeService {
         codes.deleteAllForUser(userId);
     }
 
-    /** Prueft den Code und entwertet ihn bei Erfolg. */
+    /** Checks the code and invalidates it on success. */
     @Transactional
     boolean consume(Long userId, String input) {
         var normalized = normalize(input);

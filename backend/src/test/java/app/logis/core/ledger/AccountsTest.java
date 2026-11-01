@@ -74,7 +74,7 @@ class AccountsTest extends LedgerTest {
                 .andExpect(jsonPath("$[?(@.id == " + gbrGiro + ")].myRole").value("VIEWER"))
                 .andExpect(jsonPath("$[?(@.id == " + gbrGiro + ")].legalEntity.taxNumber").doesNotExist())
                 .andExpect(jsonPath("$[?(@.id == " + bertsOwn + ")].myRole").value("OWNER"));
-        // Bert sieht die GbR nicht in seiner Rechtstraeger-Liste.
+        // Bert does not see the GbR in their list of legal entities.
         getWith("/api/legal-entities", bert.session()).andExpect(jsonPath("$.length()").value(1));
     }
 

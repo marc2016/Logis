@@ -15,7 +15,7 @@ import { useInvalidateLedger, type Account, type Transaction } from '../api'
 import { todayIso } from './format'
 
 interface Props {
-  /** Eine Seite einer bestehenden Umbuchung oder null fuer eine neue. */
+  /** One side of an existing transfer, or null for a new one. */
   transaction: Transaction | null
   accounts: Account[]
   defaultFromAccountId?: number

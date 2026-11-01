@@ -36,9 +36,9 @@ class SecretCipherTest {
     @Test
     void invalidKeysAreRejected() {
         assertThatThrownBy(() -> new SecretCipher("")).hasMessageContaining("LOGIS_ENCRYPTION_KEY");
-        assertThatThrownBy(() -> new SecretCipher("kein base64!")).hasMessageContaining("Base64");
+        assertThatThrownBy(() -> new SecretCipher("not base64!")).hasMessageContaining("Base64");
         assertThatThrownBy(() -> new SecretCipher(Base64.getEncoder().encodeToString(new byte[16])))
-                .hasMessageContaining("32 Byte");
+                .hasMessageContaining("32 bytes");
     }
 
     @Test
@@ -49,6 +49,6 @@ class SecretCipherTest {
         assertThatThrownBy(() -> new SpringApplicationBuilder(LogisApplication.class).profiles("test")
                 .run(args.toArray(String[]::new)))
                 .rootCause()
-                .hasMessageContaining("LOGIS_ENCRYPTION_KEY ist nicht gesetzt");
+                .hasMessageContaining("LOGIS_ENCRYPTION_KEY is not set");
     }
 }

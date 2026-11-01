@@ -1,14 +1,14 @@
 package app.logis.core.modules;
 
 /**
- * Eine Kategorie, die ein Fachmodul mitbringt (z. B. "Reinigung" fuer die Ferienvermietung).
- * Beim Start wird sie angelegt, falls sie fehlt; Admins koennen sie nur archivieren.
+ * A category that a domain module brings along (e.g. "Reinigung" for vacation rental).
+ * It is created at startup if missing; admins can only archive it.
  *
- * @param moduleId  ID des Moduls (wie im {@link ModuleDescriptor})
- * @param key       stabiler, global eindeutiger Schluessel, z. B. {@code vacationrental.cleaning}
- * @param income    {@code true} fuer Einnahmen, {@code false} fuer Ausgaben
- * @param name      Anzeigename
- * @param parentKey Schluessel der Hauptkategorie dieses Moduls oder {@code null} fuer eine Hauptkategorie
+ * @param moduleId  ID of the module (as in the {@link ModuleDescriptor})
+ * @param key       stable, globally unique key, e.g. {@code vacationrental.cleaning}
+ * @param income    {@code true} for income, {@code false} for expenses
+ * @param name      display name
+ * @param parentKey key of this module's main category, or {@code null} for a main category
  */
 public record CategoryContribution(String moduleId, String key, boolean income, String name, String parentKey) {
 }

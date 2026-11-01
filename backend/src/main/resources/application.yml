@@ -12,7 +12,7 @@ spring:
     hibernate:
       ddl-auto: validate
   flyway:
-    # Ein Schema pro Bereich; Migrationen aller Module laufen immer (auch deaktivierte).
+    # One schema per area; migrations of all modules always run (including disabled ones).
     schemas: core,vacationrental
     default-schema: core
     locations:

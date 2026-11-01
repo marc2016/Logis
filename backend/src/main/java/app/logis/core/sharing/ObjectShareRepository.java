@@ -20,7 +20,7 @@ interface ObjectShareRepository extends JpaRepository<ObjectShare, Long> {
     @Query("select s from ObjectShare s where s.objectType = :type and s.userId = :userId")
     List<ObjectShare> findAllForUser(String type, Long userId);
 
-    /** Sperrt die Owner-Zeilen eines Objekts fuer die Invariante "mindestens ein Owner". */
+    /** Locks an object's owner rows for the invariant "at least one owner". */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from ObjectShare s where s.objectType = :type and s.objectId = :objectId "
             + "and s.role = app.logis.core.sharing.ShareRole.OWNER")

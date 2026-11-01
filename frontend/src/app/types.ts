@@ -1,17 +1,17 @@
 import type { LucideIcon } from 'lucide-react'
 import type { RouteObject } from 'react-router'
 
-/** Vertrag, den jedes Frontend-Modul erfuellt (siehe design.md D11). */
+/** Contract that every frontend module fulfills (see design.md D11). */
 export interface LogisModule {
-  /** Identisch mit der Modul-ID im Backend. */
+  /** Identical to the module ID in the backend. */
   id: string
   label: string
   icon: LucideIcon
   order: number
-  /** URL-Segment, unter dem die Modulseiten haengen, z. B. "ferienvermietung". */
+  /** URL segment under which the module pages live, e.g. "ferienvermietung". */
   basePath: string
-  /** Navigationseintraege; `path` relativ zu basePath. */
+  /** Navigation entries; `path` relative to basePath. */
   navItems: { label: string; path: string; icon?: LucideIcon }[]
-  /** Routen relativ zu basePath. */
+  /** Routes relative to basePath. */
   routes: RouteObject[]
 }

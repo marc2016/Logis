@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Benutzersuche zum Einladen. Die einzige Stelle, an der Nicht-Admins andere Benutzer sehen -
- * daher nur ID, Benutzername und Anzeigename aktiver Benutzer.
+ * User search for inviting. The only place where non-admins see other users -
+ * hence only ID, username and display name of active users.
  */
 @RestController
 class UserDirectoryController {

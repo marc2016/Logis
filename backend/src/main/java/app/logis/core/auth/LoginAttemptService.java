@@ -9,7 +9,7 @@ import java.time.Clock;
 import java.time.Duration;
 
 /**
- * Zaehlt Fehlversuche ueber Passwort- und Code-Schritt und sperrt mit wachsender Dauer.
+ * Counts failed attempts across password and code step and locks with growing duration.
  */
 @Component
 class LoginAttemptService {

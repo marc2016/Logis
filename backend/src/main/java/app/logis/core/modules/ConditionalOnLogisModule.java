@@ -9,9 +9,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registriert eine Komponente nur, wenn das Modul aktiviert ist
- * ({@code logis.modules.<id>.enabled}, Standard: {@code true}).
- * Jede Komponente eines Fachmoduls - insbesondere Controller - traegt diese Annotation.
+ * Registers a component only if the module is enabled
+ * ({@code logis.modules.<id>.enabled}, default: {@code true}).
+ * Every component of a domain module - controllers in particular - carries this annotation.
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -19,6 +19,6 @@ import java.lang.annotation.Target;
 @Conditional(LogisModuleCondition.class)
 public @interface ConditionalOnLogisModule {
 
-    /** Modul-ID, z. B. {@code vacationrental}. */
+    /** Module ID, e.g. {@code vacationrental}. */
     String value();
 }

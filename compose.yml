@@ -1,5 +1,5 @@
-# Logis - Produktion (Mini-PC hinter vorhandenem Reverse Proxy).
-# Start: docker compose up -d --build   (Einstellungen aus .env, Vorlage: .env.example)
+# Logis - production (mini PC behind an existing reverse proxy).
+# Start: docker compose up -d --build   (settings from .env, template: .env.example)
 name: logis
 
 services:
@@ -10,7 +10,7 @@ services:
     environment:
       LOGIS_TRUSTED_PROXIES: ${LOGIS_TRUSTED_PROXIES:-}
     ports:
-      # Einziger veroeffentlichter Port. Standard: nur lokal fuer den Reverse Proxy.
+      # The only published port. Default: local only, for the reverse proxy.
       - "${LOGIS_BIND:-127.0.0.1}:${LOGIS_PORT:-8080}:80"
     networks: [edge, internal]
     depends_on:
@@ -28,12 +28,12 @@ services:
     image: logis-backend:${LOGIS_VERSION:-latest}
     restart: unless-stopped
     environment:
-      LOGIS_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB fehlt}
-      LOGIS_DB_USER: ${POSTGRES_USER:?POSTGRES_USER fehlt}
-      LOGIS_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt}
+      LOGIS_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB is missing}
+      LOGIS_DB_USER: ${POSTGRES_USER:?POSTGRES_USER is missing}
+      LOGIS_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is missing}
       LOGIS_ADMIN_USERNAME: ${LOGIS_ADMIN_USERNAME:-}
       LOGIS_ADMIN_PASSWORD: ${LOGIS_ADMIN_PASSWORD:-}
-      LOGIS_ENCRYPTION_KEY: ${LOGIS_ENCRYPTION_KEY:?LOGIS_ENCRYPTION_KEY fehlt}
+      LOGIS_ENCRYPTION_KEY: ${LOGIS_ENCRYPTION_KEY:?LOGIS_ENCRYPTION_KEY is missing}
       LOGIS_MODULES_VACATIONRENTAL_ENABLED: ${LOGIS_MODULES_VACATIONRENTAL_ENABLED:-true}
     networks: [internal]
     depends_on:
@@ -63,7 +63,7 @@ services:
       retries: 10
 
   backup:
-    # Gleiches Image wie die Datenbank, damit pg_dump zur Serverversion passt.
+    # Same image as the database, so that pg_dump matches the server version.
     image: postgres:17
     restart: unless-stopped
     entrypoint: ["/usr/local/bin/backup.sh"]
@@ -84,9 +84,9 @@ services:
         condition: service_healthy
 
 networks:
-  # Nur frontend haengt hier; darueber laeuft der veroeffentlichte Port.
+  # Only frontend is attached here; the published port runs through it.
   edge: {}
-  # Ohne Verbindung nach aussen: backend, db und backup sind nur intern erreichbar.
+  # No outside connection: backend, db and backup are reachable internally only.
   internal:
     internal: true
 

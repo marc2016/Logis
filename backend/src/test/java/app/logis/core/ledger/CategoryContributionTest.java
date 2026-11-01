@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Beitrag eines Moduls ("vacationrental", das in den Tests aktiv ist) und eines inaktiven Moduls.
+ * Contribution of a module ("vacationrental", which is active in the tests) and of an inactive module.
  */
 @Import(CategoryContributionTest.Contributions.class)
 @TestPropertySource(properties = "logis.test.context=category-contributions")

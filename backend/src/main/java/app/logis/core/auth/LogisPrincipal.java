@@ -1,7 +1,7 @@
 package app.logis.core.auth;
 
 /**
- * Der angemeldete Benutzer im SecurityContext.
+ * The signed-in user in the SecurityContext.
  */
 public record LogisPrincipal(Long userId, String username) {
 }

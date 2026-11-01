@@ -72,7 +72,7 @@ class TransactionsTest extends LedgerTest {
         putTx(bert, tx, body(acc, "-2.00", categoryId("Gebühren"), 0))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.categoryName").value("Gebühren"));
 
-        // Admin ohne Freigabe sieht nichts.
+        // Admin without a share sees nothing.
         var admin = actor(Role.ADMIN);
         mvc.perform(delete("/api/transactions/" + tx).with(csrf()).session(admin.session()))
                 .andExpect(status().isNotFound());
@@ -116,7 +116,7 @@ class TransactionsTest extends LedgerTest {
         postJson("/api/transactions", body(acc, "-1.00", cat, null), admin.session())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Die Kategorie ist nicht verfügbar"));
-        // Bestehende Zuordnung bleibt, auch beim Bearbeiten anderer Felder.
+        // Existing assignment stays, even when editing other fields.
         putTx(admin, tx, body(acc, "-5.00", cat, 0))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.categoryId").value(cat));
     }

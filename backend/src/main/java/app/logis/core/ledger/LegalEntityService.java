@@ -10,7 +10,7 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * Rechtstraeger: Wer einen anlegt, verwaltet ihn. Jeder Benutzer hat genau einen privaten.
+ * Legal entities: whoever creates one manages it. Every user has exactly one private one.
  */
 @Service
 @Transactional
@@ -28,7 +28,7 @@ class LegalEntityService {
         this.clock = clock;
     }
 
-    /** Legt beim Anlegen eines Benutzers dessen privaten Rechtstraeger an (gleiche Transaktion). */
+    /** Creates the private legal entity when a user is created (same transaction). */
     @EventListener
     void onUserCreated(UserCreatedEvent event) {
         entities.save(new LegalEntity(event.displayName() + " privat", LegalEntityKind.PRIVATE_PERSON, null,

@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 
 /**
- * Legt beim allerersten Start den Admin aus LOGIS_ADMIN_USERNAME / LOGIS_ADMIN_PASSWORD an.
- * Existiert bereits ein Benutzer, wird die Konfiguration ignoriert.
+ * Creates the admin from LOGIS_ADMIN_USERNAME / LOGIS_ADMIN_PASSWORD at the very first start.
+ * If a user already exists, the configuration is ignored.
  */
 @Component
 class InitialAdminRunner implements ApplicationRunner {
@@ -47,15 +47,15 @@ class InitialAdminRunner implements ApplicationRunner {
         }
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             throw new IllegalStateException(
-                    "Es existiert noch kein Benutzer. Bitte LOGIS_ADMIN_USERNAME und LOGIS_ADMIN_PASSWORD setzen.");
+                    "No user exists yet. Please set LOGIS_ADMIN_USERNAME and LOGIS_ADMIN_PASSWORD.");
         }
         if (!PasswordPolicy.isValid(password)) {
             throw new IllegalStateException(
-                    "LOGIS_ADMIN_PASSWORD muss mindestens " + PasswordPolicy.MIN_LENGTH + " Zeichen lang sein.");
+                    "LOGIS_ADMIN_PASSWORD must be at least " + PasswordPolicy.MIN_LENGTH + " characters long.");
         }
         var admin = new User(username.trim(), username.trim(), Role.ADMIN, encoder.encode(password), clock.instant());
         users.save(admin);
         events.publishEvent(new UserCreatedEvent(admin.getId(), admin.getDisplayName()));
-        log.info("Initialer Admin '{}' angelegt. Zwei-Faktor-Anmeldung wird beim ersten Login eingerichtet.", admin.getUsername());
+        log.info("Initial admin '{}' created. Two-factor authentication is set up at the first sign-in.", admin.getUsername());
     }
 }

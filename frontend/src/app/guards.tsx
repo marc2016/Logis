@@ -4,7 +4,7 @@ import { useCurrentUser } from '@/core/auth/session'
 import { useActiveModules } from './useActiveModules'
 import { NotFound } from './NotFound'
 
-/** Zeigt Modulseiten nur, wenn das Modul aktiv ist - sonst "Seite nicht gefunden". */
+/** Shows module pages only if the module is active - otherwise "page not found". */
 export function ModuleGuard({ moduleId }: { moduleId: string }) {
   const { modules, isLoading } = useActiveModules()
   if (isLoading) return null

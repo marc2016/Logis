@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   server: {
-    // Same-Origin wie in Produktion: /api geht an das lokal laufende Backend.
+    // Same origin as in production: /api goes to the locally running backend.
     proxy: {
       '/api': 'http://localhost:8080',
     },

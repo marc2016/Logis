@@ -13,8 +13,8 @@ import java.time.Clock;
 import java.util.OptionalLong;
 
 /**
- * TOTP nach RFC 6238: SHA-1, 6 Stellen, 30 s, Toleranz +-1 Zeitschritt.
- * Ein Code ist nur gueltig, wenn sein Zeitschritt groesser als der zuletzt verwendete ist (Replay-Schutz).
+ * TOTP according to RFC 6238: SHA-1, 6 digits, 30 s, tolerance +-1 time step.
+ * A code is only valid if its time step is greater than the last one used (replay protection).
  */
 @Component
 class TotpService {
@@ -41,8 +41,8 @@ class TotpService {
     }
 
     /**
-     * @param lastUsedStep zuletzt erfolgreich verwendeter Zeitschritt oder {@code null}
-     * @return der Zeitschritt des passenden Codes, sonst leer
+     * @param lastUsedStep last successfully used time step, or {@code null}
+     * @return the time step of the matching code, otherwise empty
      */
     OptionalLong verify(String secret, String code, Long lastUsedStep) {
         if (code == null || !code.matches("\\d{6}")) {
@@ -65,7 +65,7 @@ class TotpService {
         try {
             return codeGenerator.generate(secret, step);
         } catch (CodeGenerationException ex) {
-            throw new IllegalStateException("TOTP-Code konnte nicht erzeugt werden", ex);
+            throw new IllegalStateException("Could not generate TOTP code", ex);
         }
     }
 

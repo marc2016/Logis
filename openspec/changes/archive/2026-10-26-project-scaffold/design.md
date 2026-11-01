@@ -2,154 +2,154 @@
 
 ## Context
 
-Es handelt sich um ein Greenfield-Projekt: Im Repo gibt es bisher nur `openspec/`. Die Motivation und die Leitentscheidungen stehen in proposal.md, die Anforderungen in `specs/`.
+This is a greenfield project: so far the repo only contains `openspec/`. Motivation and guiding decisions are in proposal.md, the requirements in `specs/`.
 
-Diese Rahmenbedingungen prägen das Design:
+These constraints shape the design:
 
-- Es gibt einen Entwickler und Betreiber, aber **mehrere Benutzer**.
-- Logis ist **aus dem Internet erreichbar** über einen vorhandenen Reverse Proxy auf dem Mini-PC, der TLS übernimmt.
-- Entwickelt wird auf einem Mac mit **arm64**, betrieben auf einem Mini-PC mit **amd64** (`x86_64`). Gebaut wird zunächst direkt auf dem Mini-PC.
-- Es sind Finanzdaten. Zwei-Faktor-Anmeldung, Schutz vor Brute-Force, Härtung und Datensicherung sind daher Pflicht.
-- Folgende Changes (Ledger, Immobilien, Ferienvermietung) sollen sich als Module einfügen, ohne den Rahmen umzubauen.
+- There is one developer and operator, but **multiple users**.
+- Logis is **reachable from the internet** through an existing reverse proxy on the mini PC that handles TLS.
+- Development happens on a Mac with **arm64**, operation on a mini PC with **amd64** (`x86_64`). Builds run directly on the mini PC for now.
+- This is financial data. Two-factor sign-in, brute-force protection, hardening and backups are therefore mandatory.
+- Subsequent changes (ledger, real estate, vacation rental) should plug in as modules without rebuilding the frame.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Feste Modulgrenzen, deren Verletzung einen Test scheitern lässt und nicht erst im Code-Review auffällt.
-- Ein neues Modul braucht im Backend genau ein Package und im Frontend genau einen Registry-Eintrag.
-- Eine Anmeldung, die im Internet ohne vorgeschaltete Authentifizierungsschicht vertretbar ist.
-- Der Stack startet mit einem einzigen Befehl auf dem Mini-PC.
-- Die lokale Entwicklung bietet Hot Reload für Backend und Frontend, ohne die Images neu zu bauen.
+- Fixed module boundaries whose violation makes a test fail, rather than only being noticed in code review.
+- A new module needs exactly one package in the backend and exactly one registry entry in the frontend.
+- A sign-in that is defensible on the internet without an authentication layer in front of it.
+- The stack starts with a single command on the mini PC.
+- Local development offers hot reload for backend and frontend without rebuilding the images.
 
 **Non-Goals:**
-- TLS-Terminierung und Zertifikate. Das übernimmt der vorhandene Reverse Proxy.
-- Zugriffsrechte auf fachliche Daten (z. B. pro Rechtsträger). Siehe Open Questions, das Thema kommt mit `core-ledger`.
-- Passwort-vergessen-Funktion per E-Mail. Stattdessen setzt ein Admin das Passwort zurück, ein E-Mail-Versand existiert noch nicht.
-- Passkeys/WebAuthn. Das wäre später als zweiter Faktor oder Ersatz nachrüstbar.
-- CI, eine Image-Registry und Release-Versionierung.
-- Sicherung von Dokumenten bzw. Dateien. Es gibt noch keine, das Thema kommt mit der KI-Inbox.
+- TLS termination and certificates. The existing reverse proxy handles that.
+- Access rights to domain data (e.g. per legal entity). See Open Questions; the topic comes with `core-ledger`.
+- A forgot-password function via email. Instead an admin resets the password; there is no email sending yet.
+- Passkeys/WebAuthn. These could be added later as a second factor or replacement.
+- CI, an image registry and release versioning.
+- Backing up documents or files. There are none yet; the topic comes with the AI inbox.
 
 ## Decisions
 
-### D1: Repo-Layout
+### D1: Repo layout
 
 ```
 logis/
   backend/            Maven, Spring Boot 3.x, Java 21
   frontend/           Vite, React, TypeScript, Tailwind, shadcn/ui
-  ops/backup/         Backup-Skript fuer den Backup-Container
-  compose.yml         Produktion: frontend, backend, db, backup
-  compose.dev.yml     Entwicklung: nur db
+  ops/backup/         backup script for the backup container
+  compose.yml         production: frontend, backend, db, backup
+  compose.dev.yml     development: db only
   .env.example
-  README.md           Start, Reverse Proxy, Entwicklung, Backup/Restore
+  README.md           start, reverse proxy, development, backup/restore
 ```
 
-### D2: Spring Modulith für die Modulgrenzen
+### D2: Spring Modulith for module boundaries
 
 ```
 app.logis
   LogisApplication
-  core/                   Kern
-    auth/                 Login-Schritte, TOTP, Recovery, Lockout, Sessions
-    users/                User, Rollen, Admin-API, "Mein Konto"
+  core/                   core
+    auth/                 sign-in steps, TOTP, recovery, lockout, sessions
+    users/                user, roles, admin API, "my account"
     modules/              ModuleDescriptor, GET /api/modules
-    web/                  Fehlerbehandlung, Health
-  shared/                 Querschnitt ohne Fachlogik (Crypto, spaeter Money)
+    web/                  error handling, health
+  shared/                 cross-cutting without domain logic (crypto, later money)
   modules/
-    vacationrental/       Platzhalter: GET /api/vacationrental/status
+    vacationrental/       placeholder: GET /api/vacationrental/status
 ```
 
-- Ein Test mit `ApplicationModules.of(LogisApplication.class).verify()` prüft, dass Module nur die API-Packages anderer Module nutzen und dass es keine Zyklen gibt.
-- `modules.*` darf auf `core` zugreifen, `core` aber nie auf `modules.*`.
-- *Alternative:* getrennte Maven-Module pro Fachmodul. Das ergibt härtere Grenzen über Compile-Abhängigkeiten, kostet aber viel Build-Konfiguration für eine einzige Person. Ein Wechsel ist später möglich, weil die Package-Grenzen dieselben sind.
+- A test with `ApplicationModules.of(LogisApplication.class).verify()` checks that modules only use the API packages of other modules and that there are no cycles.
+- `modules.*` may access `core`, but `core` never accesses `modules.*`.
+- *Alternative:* separate Maven modules per domain module. That gives harder boundaries through compile dependencies, but costs a lot of build configuration for a single person. Switching later is possible because the package boundaries are the same.
 
-### D3: Module ein- und ausschalten
+### D3: Switching modules on and off
 
-- Jedes Modul hat eine `@Configuration` mit `@ConditionalOnProperty(prefix = "logis.modules.<id>", name = "enabled", matchIfMissing = true)`. Alle Beans des Moduls einschließlich der Controller hängen an dieser Konfiguration. Ist das Modul deaktiviert, existieren keine Controller, und Spring antwortet mit 404.
-- Jedes aktive Modul registriert ein `ModuleDescriptor`-Bean (`id`, `label`, `order`). `GET /api/modules` liefert alle registrierten Descriptoren.
-- In Docker werden die Einstellungen über Umgebungsvariablen gesetzt (`LOGIS_MODULES_VACATIONRENTAL_ENABLED=false`, Relaxed Binding).
-- Das Schalten gilt global. Module pro Benutzer freizuschalten ist bewusst nicht vorgesehen, solange das Thema Datenzugriff offen ist.
-- *Alternative:* Feature-Flags in der Datenbank mit einer Admin-Oberfläche. Das wäre zur Laufzeit umschaltbar, bräuchte aber Bean-Refresh und UI. Für einen einzelnen Betreiber reichen ein Neustart und `.env`.
+- Every module has an `@Configuration` with `@ConditionalOnProperty(prefix = "logis.modules.<id>", name = "enabled", matchIfMissing = true)`. All beans of the module, including the controllers, hang off this configuration. If the module is disabled, no controllers exist and Spring responds with 404.
+- Every active module registers a `ModuleDescriptor` bean (`id`, `label`, `order`). `GET /api/modules` returns all registered descriptors.
+- In Docker the settings are set through environment variables (`LOGIS_MODULES_VACATIONRENTAL_ENABLED=false`, relaxed binding).
+- Switching applies globally. Enabling modules per user is deliberately not planned as long as data access is an open topic.
+- *Alternative:* feature flags in the database with an admin interface. That would be switchable at runtime, but would need bean refresh and UI. For a single operator, a restart and `.env` are enough.
 
-### D4: Datenbank und Migrationen
+### D4: Database and migrations
 
-- Es gibt eine Postgres-Instanz (Version 17) und **ein Schema pro Bereich**: `core` sowie eines pro Modul (`vacationrental` usw.).
-- Es gibt eine Flyway-Instanz mit den Locations `classpath:db/migration/core` und `classpath:db/migration/<modul>`. Versionsnummern sind global eindeutig und werden mit Zeitstempel vergeben (`V20261025_1200__core_users.sql`).
-- **Migrationen aller Module laufen immer, auch für deaktivierte Module.** Schema und Daten bleiben dadurch beim Deaktivieren erhalten.
-- JPA läuft mit `ddl-auto=validate`, Flyway ist die einzige Quelle für das Schema.
-- *Alternative:* eine Flyway-Instanz pro Modul mit eigener History-Tabelle. Das bringt Probleme mit der Reihenfolge, wenn Module Fremdschlüssel auf `core` setzen.
+- There is one Postgres instance (version 17) and **one schema per area**: `core` and one per module (`vacationrental` etc.).
+- There is one Flyway instance with the locations `classpath:db/migration/core` and `classpath:db/migration/<module>`. Version numbers are globally unique and assigned by timestamp (`V20261025_1200__core_users.sql`).
+- **Migrations of all modules always run, including for disabled modules.** This keeps schema and data intact when a module is disabled.
+- JPA runs with `ddl-auto=validate`; Flyway is the only source of the schema.
+- *Alternative:* one Flyway instance per module with its own history table. That causes ordering problems when modules set foreign keys to `core`.
 
-### D5: Benutzer, Rollen und Sitzungen
+### D5: Users, roles and sessions
 
-- Tabelle `core.users`:
-  - Stammdaten: `id`, `username` (unique über `lower(username)`), `display_name`, `role` (`ADMIN`/`USER`), `enabled`.
-  - Passwort: `password_hash`, `password_change_required`.
-  - Zwei-Faktor: `totp_secret_enc` (nullable), `totp_last_step`.
-  - Sperre: `failed_attempts`, `locked_until`.
-  - Zeitstempel: `last_login_at`, `created_at`.
-- Tabelle `core.recovery_codes` (`user_id`, `code_hash`, `used_at`).
-- Passwörter werden über `DelegatingPasswordEncoder` gespeichert, Standard ist bcrypt. Die Mindestlänge von 12 Zeichen wird zentral validiert.
-- **Sitzung:** Spring-Session-Cookie (`HttpOnly`, `SameSite=Lax`, `Secure` laut `X-Forwarded-Proto`). Inaktivitäts-Timeout 30 min über `server.servlet.session.timeout`. Das absolute Limit von 12 h prüft ein Filter anhand eines Login-Zeitstempels in der Session.
-- Die Sessions liegen im Speicher. **Sitzungen werden über eine Sitzungsversion beendet:** `core.users.session_version` wird beim Deaktivieren, beim Zurücksetzen und bei einer Passwortänderung erhöht. Ein Filter (`SessionAuthenticationFilter`) vergleicht sie bei jeder Anfrage mit der Version in der Session, prüft dabei auch Inaktivität (30 min) und absolute Dauer (12 h) und baut den SecurityContext mit der **aktuell gespeicherten** Rolle auf. Rollenänderungen greifen dadurch bei der nächsten Anfrage.
-  - *Ursprünglich geplant:* ein `SessionRegistry`. Dagegen sprach bei der Umsetzung, dass dort gespeicherte Rollen erst nach einem neuen Login aktualisiert würden. Außerdem kostet der neue Weg nur eine Abfrage per Primärschlüssel pro Anfrage.
-- Ohne vollständige Sitzung gibt es 401 über einen `HttpStatusEntryPoint` und keine Weiterleitung.
-- **CSRF:** `CookieCsrfTokenRepository` mit einem lesbaren `XSRF-TOKEN`-Cookie. Das Frontend sendet den Header `X-XSRF-TOKEN` mit.
-- **Initialer Admin:** Ein `ApplicationRunner` legt ihn an, wenn `core.users` leer ist. Er nutzt `LOGIS_ADMIN_USERNAME` und `LOGIS_ADMIN_PASSWORD`, vergibt die Rolle `ADMIN`, setzt `password_change_required=false` und lässt TOTP leer, sodass die Einrichtung beim ersten Login erzwungen wird. Fehlende oder zu kurze Werte lassen den Start scheitern.
-- *Alternative:* JWT im Local Storage. Das ist anfälliger für XSS, und ein sofortiges Beenden der Sitzung beim Deaktivieren ist damit nicht möglich.
+- Table `core.users`:
+  - Master data: `id`, `username` (unique via `lower(username)`), `display_name`, `role` (`ADMIN`/`USER`), `enabled`.
+  - Password: `password_hash`, `password_change_required`.
+  - Two-factor: `totp_secret_enc` (nullable), `totp_last_step`.
+  - Lockout: `failed_attempts`, `locked_until`.
+  - Timestamps: `last_login_at`, `created_at`.
+- Table `core.recovery_codes` (`user_id`, `code_hash`, `used_at`).
+- Passwords are stored via `DelegatingPasswordEncoder`, defaulting to bcrypt. The minimum length of 12 characters is validated centrally.
+- **Session:** Spring session cookie (`HttpOnly`, `SameSite=Lax`, `Secure` according to `X-Forwarded-Proto`). Inactivity timeout 30 min via `server.servlet.session.timeout`. A filter checks the absolute limit of 12 h based on a sign-in timestamp in the session.
+- Sessions are held in memory. **Sessions are ended through a session version:** `core.users.session_version` is incremented on disabling, on resets and on a password change. A filter (`SessionAuthenticationFilter`) compares it on every request with the version in the session, also checks inactivity (30 min) and absolute duration (12 h), and builds the SecurityContext with the **currently stored** role. Role changes therefore take effect on the next request.
+  - *Originally planned:* a `SessionRegistry`. During implementation it turned out that roles stored there would only update after a new sign-in. In addition, the new approach costs only one primary-key query per request.
+- Without a full session there is a 401 via an `HttpStatusEntryPoint` and no redirect.
+- **CSRF:** `CookieCsrfTokenRepository` with a readable `XSRF-TOKEN` cookie. The frontend sends the header `X-XSRF-TOKEN`.
+- **Initial admin:** An `ApplicationRunner` creates it if `core.users` is empty. It uses `LOGIS_ADMIN_USERNAME` and `LOGIS_ADMIN_PASSWORD`, assigns the role `ADMIN`, sets `password_change_required=false` and leaves TOTP empty, so that setup is forced at first sign-in. Missing or too short values make startup fail.
+- *Alternative:* JWT in local storage. That is more vulnerable to XSS, and ending a session immediately on disabling is not possible with it.
 
-### D6: Mehrstufige Anmeldung als Zustandsautomat
+### D6: Multi-step sign-in as a state machine
 
-Spring Security 6 bringt keine eingebaute MFA mit. Die Anmeldung wird deshalb als Zustand in der Session modelliert:
+Spring Security 6 has no built-in MFA. Sign-in is therefore modeled as state in the session:
 
 ```
                 POST /api/auth/login (user+pw ok)
-  [anonym] -----------------------------------------> [PASSWORD_OK]
+  [anonymous] --------------------------------------> [PASSWORD_OK]
                                                          |
-                       totp_secret_enc == null           |  totp vorhanden
+                       totp_secret_enc == null           |  totp present
                   +--------------------------------------+------------------+
                   v                                                         v
        [TOTP_ENROLLMENT_REQUIRED]                                    [TOTP_REQUIRED]
-         POST /api/auth/totp/setup  -> Secret + otpauth-URI            POST /api/auth/totp
-         POST /api/auth/totp/confirm (code ok) -> 10 Recovery-Codes      (TOTP- oder Recovery-Code ok)
+         POST /api/auth/totp/setup  -> secret + otpauth URI            POST /api/auth/totp
+         POST /api/auth/totp/confirm (code ok) -> 10 recovery codes      (TOTP or recovery code ok)
                   |                                                         |
                   +-------------------------+-------------------------------+
                                             v
                          password_change_required ?
-                          ja |                          | nein
+                         yes |                          | no
                              v                          v
                [PASSWORD_CHANGE_REQUIRED]         [AUTHENTICATED]  -> ROLE_ADMIN / ROLE_USER
                  POST /api/auth/password ---------------^
 ```
 
-- Jeder Zwischenzustand ist eine eigene Authority (`AUTH_STAGE_*`) ohne fachliche Rechte. Nur `AUTHENTICATED` erhält `ROLE_USER` bzw. `ROLE_ADMIN`. Fachliche Endpunkte verlangen eine dieser Rollen, wodurch die Spec-Anforderung „erst nach beiden Schritten“ automatisch erfüllt ist.
-- Beim Zustandswechsel wird die Session-ID neu vergeben (Schutz vor Session Fixation).
-- `GET /api/auth/me` liefert `{ stage, user? }`. Das Frontend leitet daraus ab, welcher Schritt angezeigt wird.
-- **TOTP:** RFC 6238 mit SHA-1, 6 Stellen, 30 s und ±1 Zeitschritt Toleranz. Ein wiederverwendeter Code wird über `totp_last_step` abgewiesen, denn ein Code ist nur gültig, wenn sein Schritt größer als der zuletzt verwendete ist. Bibliothek: `dev.samstevens.totp`.
-- **TOTP-Secret verschlüsselt:** AES-256-GCM mit dem Schlüssel aus `LOGIS_ENCRYPTION_KEY` (Base64, 32 Byte). So sind Secrets in Backups ohne den Schlüssel wertlos. Fehlt der Schlüssel, scheitert der Start.
-- **Wiederherstellungscodes:** 10 Stück zu je 10 Zeichen in Base32, gruppiert (`xxxxx-xxxxx`). Sie werden als bcrypt-Hash gespeichert, und `used_at` macht jeden Code einmalig.
-- *Alternative:* Spring Security 7 mit eingebauter MFA. Es ist mit der Vorgabe Spring Boot 3.x nicht verfügbar. Beim späteren Upgrade lässt sich prüfen, ob der eigene Automat ersetzt werden kann.
+- Every intermediate state is its own authority (`AUTH_STAGE_*`) without domain rights. Only `AUTHENTICATED` gets `ROLE_USER` or `ROLE_ADMIN`. Domain endpoints require one of these roles, which automatically satisfies the spec requirement "only after both steps".
+- On a state change the session ID is reissued (protection against session fixation).
+- `GET /api/auth/me` returns `{ stage, user? }`. The frontend derives from it which step to show.
+- **TOTP:** RFC 6238 with SHA-1, 6 digits, 30 s and ±1 time step tolerance. A reused code is rejected via `totp_last_step`, because a code is only valid if its step is greater than the last one used. Library: `dev.samstevens.totp`.
+- **TOTP secret encrypted:** AES-256-GCM with the key from `LOGIS_ENCRYPTION_KEY` (Base64, 32 bytes). This makes secrets in backups worthless without the key. If the key is missing, startup fails.
+- **Recovery codes:** 10 codes of 10 characters each in Base32, grouped (`xxxxx-xxxxx`). They are stored as bcrypt hashes, and `used_at` makes each code single-use.
+- *Alternative:* Spring Security 7 with built-in MFA. It is not available given the Spring Boot 3.x constraint. On a later upgrade it can be checked whether the custom state machine can be replaced.
 
-### D7: Schutz vor Brute-Force
+### D7: Brute-force protection
 
-Er besteht aus zwei Schichten:
+It consists of two layers:
 
-1. **nginx:** `limit_req` auf `/api/auth/` mit dem Schlüssel aus der echten Client-IP (siehe D9), etwa 10 Anfragen pro Minute und Burst 5. Bei Überschreitung gibt es 429.
-2. **Backend pro Benutzer:** `failed_attempts` zählt Fehlschläge im Passwort- und im Code-Schritt. Ab 5 Fehlschlägen gilt `locked_until = now + min(2^(n-5), 15) min`. Ein Erfolg setzt den Zähler zurück. Eine Sperre wird geprüft, bevor das Passwort geprüft wird.
+1. **nginx:** `limit_req` on `/api/auth/` keyed on the real client IP (see D9), about 10 requests per minute with a burst of 5. Exceeding it returns 429.
+2. **Backend per user:** `failed_attempts` counts failures in the password and the code step. From 5 failures on, `locked_until = now + min(2^(n-5), 15) min` applies. A success resets the counter. A lockout is checked before the password is checked.
 
-- **Unbekannter Benutzer:** Das Backend führt trotzdem einen bcrypt-Abgleich gegen einen Dummy-Hash aus. So lässt sich an der Antwortzeit nicht erkennen, ob ein Benutzer existiert.
-- Fehlschläge werden als strukturierte Logzeile `auth.failed user=<name> ip=<ip> stage=<stage>` geschrieben, ohne Passwort und ohne Code.
+- **Unknown user:** The backend still runs a bcrypt comparison against a dummy hash. This way the response time does not reveal whether a user exists.
+- Failures are written as a structured log line `auth.failed user=<name> ip=<ip> stage=<stage>`, without password and without code.
 
-### D8: Benutzerverwaltung
+### D8: User management
 
-- Endpunkte für Admins unter `/api/admin/users`: `GET` (Liste), `POST` (Anlegen mit Startpasswort, dabei `password_change_required=true`), `PATCH /{id}` (Anzeigename, Rolle, `enabled`), `POST /{id}/reset-password` und `POST /{id}/reset-totp`.
-- „Mein Konto“ unter `/api/account`: `POST /password` (aktuelles und neues Passwort) und `POST /recovery-codes` (neu erzeugen).
-- Die Invariante „mindestens ein aktiver Admin“ und die Regel „nicht sich selbst deaktivieren“ prüft ein Service in derselben Transaktion. Die Zählung aktiver Admins läuft mit `SELECT … FOR UPDATE`, damit zwei gleichzeitige Herabstufungen sich nicht gegenseitig durchlassen.
-- Benutzer werden nie gelöscht, nur deaktiviert. Fachliche Daten werden ihnen später als Ersteller oder Bearbeiter zugeordnet.
+- Admin endpoints under `/api/admin/users`: `GET` (list), `POST` (create with initial password, setting `password_change_required=true`), `PATCH /{id}` (display name, role, `enabled`), `POST /{id}/reset-password` and `POST /{id}/reset-totp`.
+- "My account" under `/api/account`: `POST /password` (current and new password) and `POST /recovery-codes` (regenerate).
+- A service checks the invariant "at least one active admin" and the rule "do not disable oneself" in the same transaction. Counting active admins uses `SELECT … FOR UPDATE`, so that two concurrent downgrades cannot let each other through.
+- Users are never deleted, only disabled. Domain data will later be assigned to them as creator or editor.
 
-### D9: Reverse Proxy, Header und Härtung
+### D9: Reverse proxy, headers and hardening
 
 ```
- Internet --TLS--> Reverse Proxy (vorhanden, z. B. Traefik/Caddy/NPM)
+ Internet --TLS--> Reverse proxy (existing, e.g. Traefik/Caddy/NPM)
                         |  HTTP, X-Forwarded-For / -Proto
                         v
             ${LOGIS_BIND:-127.0.0.1}:${LOGIS_PORT:-8080}
@@ -158,77 +158,77 @@ Er besteht aus zwei Schichten:
                         |              real_ip_header X-Forwarded-For
                         v
                  backend :8080     -- server.forward-headers-strategy=native
-                                      (Tomcat RemoteIpValve, internalProxies = frontend-Netz)
+                                      (Tomcat RemoteIpValve, internalProxies = frontend network)
 ```
 
-- **Bind-Adresse:** Standard `127.0.0.1`, passend für einen Proxy auf demselben Host. Läuft der Proxy als Container im selben Docker-Netz, wird `LOGIS_BIND`/`LOGIS_PORT` entsprechend gesetzt oder das externe Netz eingebunden, was im README beschrieben wird.
-- **nginx übernimmt die Client-IP** nur von `LOGIS_TRUSTED_PROXIES` und reicht `X-Forwarded-For` und `X-Forwarded-Proto` an das Backend weiter. Das Backend vertraut ausschließlich nginx im internen Netz.
-- **Security-Header setzt nginx** für alle Antworten (`add_header … always`):
+- **Bind address:** default `127.0.0.1`, suitable for a proxy on the same host. If the proxy runs as a container in the same Docker network, `LOGIS_BIND`/`LOGIS_PORT` are set accordingly or the external network is attached, as described in the README.
+- **nginx accepts the client IP** only from `LOGIS_TRUSTED_PROXIES` and passes `X-Forwarded-For` and `X-Forwarded-Proto` on to the backend. The backend trusts only nginx in the internal network.
+- **nginx sets the security headers** for all responses (`add_header … always`):
   - `Strict-Transport-Security: max-age=31536000`
-  - `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'`. `unsafe-inline` ist nur für Styles nötig, weil Radix/shadcn Inline-Styles setzen. Skripte bleiben streng.
+  - `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'`. `unsafe-inline` is only needed for styles because Radix/shadcn set inline styles. Scripts stay strict.
   - `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`
-  - Dazu `server_tokens off`.
-- **Fehlerantworten:** Ein globaler `@RestControllerAdvice` liefert ein einheitliches `ProblemDetail` ohne Details. `server.error.include-stacktrace=never` und `include-message=never`.
-- Der QR-Code für TOTP wird im Frontend aus der `otpauth://`-URI gerendert. Das Secret geht dadurch nicht an einen fremden QR-Dienst, und die CSP bleibt bei `'self'`.
+  - Plus `server_tokens off`.
+- **Error responses:** A global `@RestControllerAdvice` returns a uniform `ProblemDetail` without details. `server.error.include-stacktrace=never` and `include-message=never`.
+- The QR code for TOTP is rendered in the frontend from the `otpauth://` URI. The secret therefore never goes to a third-party QR service, and the CSP stays at `'self'`.
 
 ### D10: Health
 
-- Das Actuator-`health` wird **nur intern** auf dem Management-Port `8081` bereitgestellt. Den nutzt der Docker-Healthcheck des Backends. Die Security-Konfiguration erlaubt dort ausschließlich den Health-Endpunkt ohne Anmeldung.
-- Ein eigener `GET /api/health` (ohne Anmeldung) prüft die Datenbank per `SELECT 1` und liefert nur `{"status":"UP"}` bzw. 503.
-- nginx proxyt ausschließlich `/api/`, `/actuator` ist dadurch von außen nicht erreichbar.
+- The Actuator `health` is exposed **internally only** on the management port `8081`. The backend's Docker health check uses it. The security configuration allows only the health endpoint there without sign-in.
+- A dedicated `GET /api/health` (without sign-in) checks the database with `SELECT 1` and returns only `{"status":"UP"}` or 503.
+- nginx proxies only `/api/`, so `/actuator` is unreachable from outside.
 
-### D11: Frontend-Architektur
+### D11: Frontend architecture
 
 ```
 frontend/src/
-  main.tsx, App.tsx         Router, QueryClient, AuthGate
+  main.tsx, App.tsx         router, QueryClient, AuthGate
   app/
     layout/AppShell.tsx     SidebarProvider + AppSidebar + <Outlet/>
-    registry.ts             Liste aller Frontend-Module
+    registry.ts             list of all frontend modules
     NotFound.tsx
   core/
-    auth/                   LoginFlow (Passwort -> TOTP | Einrichtung -> Recovery-Codes
-                            -> ggf. Passwortwechsel), useSession, api
-    account/                "Mein Konto": Passwort aendern, Recovery-Codes neu
-    admin/users/            Benutzerliste, Anlegen-/Bearbeiten-Dialoge, Zuruecksetzen
-    dashboard/              Uebersicht (Platzhalter)
+    auth/                   LoginFlow (password -> TOTP | setup -> recovery codes
+                            -> password change if required), useSession, api
+    account/                "my account": change password, regenerate recovery codes
+    admin/users/            user list, create/edit dialogs, resets
+    dashboard/              overview (placeholder)
   modules/
     vacationrental/
       index.ts              export const module: LogisModule
-      pages/                BelegungPage (Platzhalter)
-  lib/api.ts                fetch-Wrapper: credentials, XSRF-Header, 401 -> Login
-  components/ui/            shadcn-Komponenten (generiert, im Repo)
+      pages/                BelegungPage (placeholder)
+  lib/api.ts                fetch wrapper: credentials, XSRF header, 401 -> sign-in
+  components/ui/            shadcn components (generated, in the repo)
 ```
 
-- **Der Modulvertrag:**
+- **The module contract:**
   ```ts
   interface LogisModule {
-    id: string;                 // == Backend-Modul-ID
+    id: string;                 // == backend module ID
     label: string;              // "Ferienvermietung"
     icon: LucideIcon;
     order: number;
     basePath: string;           // "ferienvermietung"
     navItems: { label: string; path: string; icon?: LucideIcon }[];
-    routes: RouteObject[];      // relativ zu /<basePath>
+    routes: RouteObject[];      // relative to /<basePath>
   }
   ```
-- Alle Frontend-Module werden statisch gebündelt. Zur Laufzeit lädt die Shell `GET /api/modules` und blendet nur aktive Module ein, sowohl in der Sidebar als auch bei den Routen.
-- **Sidebar:** shadcn `Sidebar` mit `collapsible="icon"`. Oben steht die Kerngruppe („Übersicht“), dann eine Gruppe pro Modul. Unten liegt der Bereich „Einstellungen > Benutzer“, der nur für `ADMIN` sichtbar ist, und das Benutzermenü im Footer („Mein Konto“, „Abmelden“). Den Zustand des Einklappens speichert die Sidebar in einem Cookie. Auf Mobilgeräten öffnet sie sich als Sheet-Overlay.
-- **AuthGate:** Es liest `stage` aus `GET /api/auth/me` und zeigt den passenden Schritt des Login-Ablaufs oder die Shell. Den Parameter `next` behält es über alle Schritte hinweg.
-- **QR-Code:** Eine kleine Bibliothek (`qrcode.react`) rendert lokal ein SVG.
-- **Routing:** React Router (Data Router) mit deutschen URLs (`/ferienvermietung/belegung`, `/konto`, `/einstellungen/benutzer`).
-- **Server-State:** TanStack Query. Der API-Wrapper leitet bei 401 auf `/login?next=<pfad>` um.
-- **Styling:** Tailwind v4 und shadcn/ui mit dem Preset `radix-nova` (Radix, lucide, Schrift Geist). Die aktuelle shadcn-CLI bietet den Stil `new-york` nicht mehr an. **Nur ein helles Theme.** Es gibt keine `dark`-Klasse, und die Systemeinstellung wird ignoriert. Die Farb-Tokens liegen in `index.css` als CSS-Variablen (shadcn-Konvention), sodass ein Dunkelmodus später nachgerüstet werden könnte, ohne die Komponenten anzufassen.
+- All frontend modules are bundled statically. At runtime the shell loads `GET /api/modules` and shows only active modules, both in the sidebar and in the routes.
+- **Sidebar:** shadcn `Sidebar` with `collapsible="icon"`. At the top is the core group („Übersicht“), then one group per module. At the bottom are the section „Einstellungen > Benutzer“, visible only to `ADMIN`, and the user menu in the footer („Mein Konto“, „Abmelden“). The sidebar stores its collapsed state in a cookie. On mobile devices it opens as a sheet overlay.
+- **AuthGate:** It reads `stage` from `GET /api/auth/me` and shows the matching step of the sign-in flow or the shell. It keeps the `next` parameter across all steps.
+- **QR code:** A small library (`qrcode.react`) renders an SVG locally.
+- **Routing:** React Router (data router) with German URLs (`/ferienvermietung/belegung`, `/konto`, `/einstellungen/benutzer`).
+- **Server state:** TanStack Query. The API wrapper redirects to `/login?next=<path>` on 401.
+- **Styling:** Tailwind v4 and shadcn/ui with the preset `radix-nova` (Radix, lucide, font Geist). The current shadcn CLI no longer offers the style `new-york`. **Light theme only.** There is no `dark` class, and the system setting is ignored. The color tokens live in `index.css` as CSS variables (shadcn convention), so that a dark mode could be added later without touching the components.
 
-### D12: Container
+### D12: Containers
 
 ```
-          Reverse Proxy (vorhanden)
+          Reverse proxy (existing)
                     |
    ${LOGIS_BIND}:${LOGIS_PORT}
            +--------v--------+
            | frontend (nginx)|   /     -> SPA (try_files ... /index.html)
-           |  Header, limit  |   /api/ -> http://backend:8080
+           |  headers, limit |   /api/ -> http://backend:8080
            +--------+--------+
                     | net: internal
            +--------v--------+        +-----------+
@@ -241,48 +241,48 @@ frontend/src/
                                       +-----------+
 ```
 
-- **Frontend-Image:** `node:24-alpine` baut, `nginx:1.28-alpine` liefert aus. Gegenüber der Planung sind das die jeweils aktuelle LTS- bzw. Stable-Linie. Ein Skript in `/docker-entrypoint.d/` erzeugt beim Start die `set_real_ip_from`-Zeilen aus `LOGIS_TRUSTED_PROXIES`. nginx blendet die Security-Header des Backends aus und setzt sie selbst, damit kein Header doppelt vorkommt.
-- Die Dockerfiles kommen ohne BuildKit-Funktionen wie Cache-Mounts aus, damit sie auch mit einem klassischen Docker-Builder bauen.
-- **Backend-Image:** `eclipse-temurin:21-jdk` baut, `eclipse-temurin:21-jre` startet die Anwendung als Nicht-Root-Benutzer.
-- Alle Basis-Images sind Multi-Arch und ohne `platform:`-Angaben, der Build läuft nativ auf amd64 und arm64.
-- `depends_on` mit `condition: service_healthy`. Nur `frontend` hat `ports:`.
-- Healthchecks: `db` mit `pg_isready`, `backend` mit `:8081/actuator/health`, `frontend` mit `/api/health`.
+- **Frontend image:** `node:24-alpine` builds, `nginx:1.28-alpine` serves. Compared to the plan, these are the current LTS and stable lines. A script in `/docker-entrypoint.d/` generates the `set_real_ip_from` lines from `LOGIS_TRUSTED_PROXIES` at startup. nginx hides the backend's security headers and sets them itself, so that no header appears twice.
+- The Dockerfiles do without BuildKit features such as cache mounts, so they also build with a classic Docker builder.
+- **Backend image:** `eclipse-temurin:21-jdk` builds, `eclipse-temurin:21-jre` runs the application as a non-root user.
+- All base images are multi-arch and without `platform:` settings; the build runs natively on amd64 and arm64.
+- `depends_on` with `condition: service_healthy`. Only `frontend` has `ports:`.
+- Health checks: `db` with `pg_isready`, `backend` with `:8081/actuator/health`, `frontend` with `/api/health`.
 
 ### D13: Backups
 
-- Ein Container `backup` basiert auf `postgres:17` mit passender `pg_dump`-Version. Er führt `ops/backup/backup.sh` als Schleife aus: `pg_dump -Fc` nach `/backups/logis_<YYYYMMDD_HHMMSS>.dump`, Löschen von Dateien älter als `BACKUP_RETENTION_DAYS` (Standard 14), täglich zur Uhrzeit `BACKUP_TIME` (Standard `03:00`).
-- Bind-Mount `./backups` auf dem Host.
-- Das README weist ausdrücklich darauf hin, dass **`LOGIS_ENCRYPTION_KEY` getrennt von den Backups** gesichert werden muss. Ohne ihn lassen sich die TOTP-Secrets nach einem Restore nicht entschlüsseln, und alle Benutzer müssten 2FA neu einrichten.
-- Die Wiederherstellung (`pg_restore --clean --if-exists`) wird im README dokumentiert und von Hand getestet.
+- A `backup` container is based on `postgres:17` with a matching `pg_dump` version. It runs `ops/backup/backup.sh` as a loop: `pg_dump -Fc` to `/backups/logis_<YYYYMMDD_HHMMSS>.dump`, deleting files older than `BACKUP_RETENTION_DAYS` (default 14), daily at `BACKUP_TIME` (default `03:00`).
+- Bind mount `./backups` on the host.
+- The README explicitly points out that **`LOGIS_ENCRYPTION_KEY` must be backed up separately from the backups**. Without it the TOTP secrets cannot be decrypted after a restore, and all users would have to set up 2FA again.
+- Restoring (`pg_restore --clean --if-exists`) is documented in the README and tested by hand.
 
-### D14: Entwicklungsumgebung
+### D14: Development environment
 
-- `compose.dev.yml` startet nur `db` auf `localhost:5432`.
-- Das Backend läuft im Profil `dev` mit Devtools. `application-dev.yml` enthält einen Dev-Admin, einen festen Dev-Verschlüsselungsschlüssel, `Secure`-Cookies sind ausgeschaltet (HTTP auf localhost), und das Lockout ist mit kurzen Zeiten aktiv.
-- Das Frontend läuft mit `npm run dev`. Der Vite-Proxy leitet `/api` an `http://localhost:8080` weiter.
+- `compose.dev.yml` starts only `db` on `localhost:5432`.
+- The backend runs with the `dev` profile and devtools. `application-dev.yml` contains a dev admin and a fixed dev encryption key, `Secure` cookies are switched off (HTTP on localhost), and lockout is active with short times.
+- The frontend runs with `npm run dev`. The Vite proxy forwards `/api` to `http://localhost:8080`.
 
 ### D15: Tests
 
-- **Backend:** JUnit 5. Dazu gehören der Modulith-Verify-Test und Integrationstests mit Testcontainers (Postgres 17) für den gesamten Login-Automaten, TOTP-Replay, Recovery-Codes, Lockout, Session-Timeouts (mit `Clock`-Injection), Benutzerverwaltung samt Admin-Invariante, Modulschaltung, Health, Fehlerantworten und den Initial-Admin-Runner.
-- **Frontend:** Vitest und Testing Library für Registry-Filterung, die Schritte des AuthGate, die Sichtbarkeit von Admin-Einträgen und das Sidebar-Rendering.
-- **Stack:** Eine Smoke-Checkliste im README prüft Port und Bind-Adresse, Header, 429 bei vielen Logins, `/api/health`, den geschlossenen DB-Port, `/actuator` und das Backup.
+- **Backend:** JUnit 5. This includes the Modulith verify test and integration tests with Testcontainers (Postgres 17) for the whole sign-in state machine, TOTP replay, recovery codes, lockout, session timeouts (with `Clock` injection), user management including the admin invariant, module switching, health, error responses and the initial admin runner.
+- **Frontend:** Vitest and Testing Library for registry filtering, the AuthGate steps, visibility of admin entries and sidebar rendering.
+- **Stack:** A smoke checklist in the README checks port and bind address, headers, 429 on many sign-ins, `/api/health`, the closed DB port, `/actuator` and the backup.
 
 ## Risks / Trade-offs
 
-- [Eigener MFA-Automat statt einer Lösung des Frameworks, das ist sicherheitskritischer Eigenbau] → Er ist klein und zustandsbasiert, jeder Übergang hat einen Integrationstest, und es wird eine etablierte TOTP-Bibliothek genutzt. Beim Upgrade auf Spring Security 7 wird geprüft, ob er ersetzt werden kann.
-- [Die Sessions liegen im Speicher, ein Neustart meldet alle ab] → Das ist akzeptabel. Bei Bedarf lässt sich Spring Session JDBC nachrüsten, das `SessionRegistry` muss dann mitwandern.
-- [Ohne eine Passwort-vergessen-Funktion braucht man einen Admin] → Bei einem Betreiber und wenigen Benutzern ist das vertretbar. Für den Notfall des einzigen Admins beschreibt das README einen CLI-Weg (ein SQL-Statement setzt `password_change_required` und einen neuen Hash bzw. leert `totp_secret_enc`).
-- [Geht `LOGIS_ENCRYPTION_KEY` verloren, ist 2FA für alle ungültig] → Das README fordert eine getrennte Sicherung. Die Wiederherstellung über den Admin-Reset bzw. den SQL-Notfallweg bleibt möglich.
-- [Der Reverse Proxy ist falsch konfiguriert, z. B. kein `X-Forwarded-Proto` oder eine falsche IP] → `Secure`-Cookies oder das Rate-Limit greifen dann nicht korrekt. Die Smoke-Checkliste prüft Cookie-Attribute und die protokollierte Client-IP ausdrücklich.
-- [`style-src 'unsafe-inline'` in der CSP] → Das ist für Radix-Inline-Styles nötig. Das Risiko ist gering, da `script-src` streng bleibt.
-- [Ein gemeinsamer Flyway-Verlauf für alle Module] → Zeitstempel-Versionen mit Modulpräfix verhindern Kollisionen.
-- [Spring Boot 3.x statt der aktuellen Hauptversion] → Das ist eine bewusste Vorgabe. Das Upgrade wird ein eigenes Change.
-- [Backups liegen auf demselben Host] → Das schützt nicht gegen einen Hardwareausfall. Eine Kopie außerhalb des Hosts sollte als zeitnaher Folgeschritt kommen und steht als Hinweis im README.
+- [Custom MFA state machine instead of a framework solution, i.e. security-critical custom code] → It is small and state-based, every transition has an integration test, and an established TOTP library is used. When upgrading to Spring Security 7 it will be checked whether it can be replaced.
+- [Sessions are held in memory, a restart signs everyone out] → That is acceptable. Spring Session JDBC can be added if needed; the `SessionRegistry` then has to move along.
+- [Without a forgot-password function an admin is needed] → With one operator and few users that is defensible. For the emergency of the only admin, the README describes a CLI route (an SQL statement sets `password_change_required` and a new hash, or clears `totp_secret_enc`).
+- [If `LOGIS_ENCRYPTION_KEY` is lost, 2FA becomes invalid for everyone] → The README requires a separate backup. Recovery through the admin reset or the SQL emergency route remains possible.
+- [The reverse proxy is misconfigured, e.g. no `X-Forwarded-Proto` or a wrong IP] → `Secure` cookies or the rate limit then do not work correctly. The smoke checklist explicitly checks cookie attributes and the logged client IP.
+- [`style-src 'unsafe-inline'` in the CSP] → This is needed for Radix inline styles. The risk is low because `script-src` stays strict.
+- [One shared Flyway history for all modules] → Timestamp versions with a module prefix prevent collisions.
+- [Spring Boot 3.x instead of the current major version] → This is a deliberate constraint. The upgrade will be its own change.
+- [Backups live on the same host] → This does not protect against hardware failure. An off-host copy should follow soon and is noted in the README.
 
 ## Migration Plan
 
-Als Erstinstallation gibt es keine Migration von Bestandsdaten. Die Inbetriebnahme läuft so ab: `git clone`, `.env` aus `.env.example` anlegen (Schlüssel mit `openssl rand -base64 32` erzeugen), `docker compose up -d --build`, dann im vorhandenen Reverse Proxy eine Route auf `LOGIS_BIND:LOGIS_PORT` mit TLS einrichten. Danach beim ersten Login als Admin 2FA einrichten. Für ein Rollback checkt man einen älteren Git-Stand aus und baut neu. Gehen Schemaänderungen schief, wird das letzte Backup eingespielt.
+As a first installation there is no migration of existing data. Setup works like this: `git clone`, create `.env` from `.env.example` (generate the key with `openssl rand -base64 32`), `docker compose up -d --build`, then set up a route to `LOGIS_BIND:LOGIS_PORT` with TLS in the existing reverse proxy. Afterwards set up 2FA at the first sign-in as admin. For a rollback, check out an older Git state and rebuild. If schema changes go wrong, the last backup is restored.
 
 ## Open Questions
 
-- **Details des Freigabemodells (für `core-ledger`):** Die Grundsatzentscheidung ist gefallen: Freigaben pro Objekt mit `OWNER`/`EDITOR`/`VIEWER`, untergeordnete Daten erben, Einladung nur bestehender Benutzer (siehe proposal.md). Offen ist, wie Transaktionen auf einem Konto behandelt werden, die zugleich einem Objekt zugeordnet sind. Vorschlag: Schreiben nur mit Rechten auf dem Konto, Lesen mit Rechten auf dem Konto oder dem Objekt. Ebenfalls offen ist, welche minimalen Benutzerdaten (Anzeigename, Benutzername) Nicht-Admins für die Auswahl beim Einladen sehen dürfen. Beides ändert das Scaffold nicht.
+- **Details of the sharing model (for `core-ledger`):** The basic decision has been made: sharing per object with `OWNER`/`EDITOR`/`VIEWER`, subordinate data inherits, only existing users are invited (see proposal.md). Still open is how transactions on an account are handled that are also assigned to an object. Proposal: write only with rights on the account, read with rights on the account or the object. Also open is which minimal user data (display name, username) non-admins may see when choosing whom to invite. Neither changes the scaffold.

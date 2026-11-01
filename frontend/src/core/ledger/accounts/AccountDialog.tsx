@@ -12,7 +12,7 @@ import { errorMessage } from '@/lib/errors'
 import { parseAmount, toInputValue } from '@/lib/money'
 import { accountKindLabel, useInvalidateLedger, useLegalEntities, type Account, type AccountKind } from '../api'
 
-/** Konto anlegen (account = null) oder bearbeiten (nur Owner). */
+/** Create an account (account = null) or edit it (owners only). */
 export function AccountDialog({ account, onClose }: { account: Account | null; onClose: () => void }) {
   const isNew = account === null
   const { data: entities = [] } = useLegalEntities()

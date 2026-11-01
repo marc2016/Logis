@@ -11,7 +11,7 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // 401/403/404 nicht wiederholen - das aendert sich nicht durch erneutes Fragen.
+      // Do not retry 401/403/404 - asking again does not change them.
       retry: (count, error) => !(error instanceof ApiError && error.status < 500) && count < 2,
       refetchOnWindowFocus: false,
     },

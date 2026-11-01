@@ -82,7 +82,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-/** Freigaben eines Objekts anzeigen und - als Owner - verwalten. Fuer alle freigebbaren Typen. */
+/** Shows an object's shares and - as owner - manages them. For all shareable types. */
 export function ShareDialog({ objectType, objectId, objectName, open, onOpenChange }: Props) {
   const me = useCurrentUser()
   const queryClient = useQueryClient()

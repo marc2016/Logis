@@ -1,8 +1,8 @@
 #!/bin/sh
-# Taegliche Datenbanksicherung fuer Logis.
-#   backup.sh         Dauerbetrieb: taeglich zur Uhrzeit BACKUP_TIME sichern
-#   backup.sh --now   sofort eine Sicherung erstellen und beenden
-# Erwartet PGHOST, PGUSER, PGPASSWORD, PGDATABASE (Standardvariablen von libpq).
+# Daily database backup for Logis.
+#   backup.sh         continuous mode: back up daily at BACKUP_TIME
+#   backup.sh --now   create a backup immediately and exit
+# Expects PGHOST, PGUSER, PGPASSWORD, PGDATABASE (standard libpq variables).
 set -eu
 
 BACKUP_DIR=${BACKUP_DIR:-/backups}
@@ -19,16 +19,16 @@ run_backup() {
   target="$BACKUP_DIR/logis_$ts.dump"
   if pg_dump -Fc -f "$tmp"; then
     mv "$tmp" "$target"
-    log "Sicherung erstellt: $(basename "$target") ($(du -h "$target" | cut -f1))"
+    log "Backup created: $(basename "$target") ($(du -h "$target" | cut -f1))"
   else
     rm -f "$tmp"
-    log "FEHLER: Sicherung fehlgeschlagen"
+    log "ERROR: backup failed"
     return 1
   fi
-  # Aelter als die Aufbewahrungsdauer (in Minuten gerechnet, damit "14 Tage" exakt gilt).
+  # Older than the retention period (counted in minutes, so that "14 days" is exact).
   find "$BACKUP_DIR" -maxdepth 1 -type f -name 'logis_*.dump' \
     -mmin +$((BACKUP_RETENTION_DAYS * 24 * 60)) -print -delete | while read -r f; do
-    log "Alte Sicherung geloescht: $(basename "$f")"
+    log "Old backup deleted: $(basename "$f")"
   done
 }
 
@@ -48,10 +48,10 @@ if [ "${1:-}" = "--now" ]; then
   exit $?
 fi
 
-log "Gestartet: taeglich um $BACKUP_TIME, Aufbewahrung $BACKUP_RETENTION_DAYS Tage, Ziel $BACKUP_DIR"
+log "Started: daily at $BACKUP_TIME, retention $BACKUP_RETENTION_DAYS days, target $BACKUP_DIR"
 while true; do
   wait=$(seconds_until_next_run)
-  log "Naechste Sicherung in $((wait / 60)) Minuten"
+  log "Next backup in $((wait / 60)) minutes"
   sleep "$wait"
   run_backup || true
 done

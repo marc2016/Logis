@@ -1,7 +1,7 @@
 package app.logis.core.users;
 
 /**
- * Wird synchron in der Transaktion veroeffentlicht, in der ein Benutzer angelegt wurde.
+ * Published synchronously in the transaction in which a user was created.
  */
 public record UserCreatedEvent(Long userId, String displayName) {
 }

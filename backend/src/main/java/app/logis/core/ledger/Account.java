@@ -18,7 +18,7 @@ import java.time.Instant;
 @Table(name = "accounts", schema = "core")
 class Account {
 
-    /** Objekttyp fuer Freigaben. */
+    /** Object type for sharing. */
     static final String SHARE_TYPE = "account";
 
     @Id

@@ -2,119 +2,119 @@
 
 ## Purpose
 
-Logis läuft selbst gehostet als Container-Stack auf einem Mini-PC und ist über einen vorhandenen Reverse Proxy mit TLS aus dem Internet erreichbar. Diese Capability legt das beobachtbare Betriebsverhalten fest: Erreichbarkeit, Isolation interner Dienste, Härtung, Gesundheitsprüfung, Konfiguration und Datensicherung.
+Logis is self-hosted as a container stack on a mini PC and reachable from the internet through an existing reverse proxy with TLS. This capability defines the observable operational behavior: reachability, isolation of internal services, hardening, health checks, configuration and backups.
 
 ## ADDED Requirements
 
-### Requirement: Einziger Einstiegspunkt für den Reverse Proxy
-Der Stack MUST genau einen HTTP-Port auf dem Host veröffentlichen. Über ihn SHALL sowohl die Weboberfläche als auch die API unter `/api/` erreichbar sein. Portnummer und Bind-Adresse MUST konfigurierbar sein, damit der Port nur für den Reverse Proxy erreichbar gemacht werden kann.
+### Requirement: Single entry point for the reverse proxy
+The stack MUST publish exactly one HTTP port on the host. Both the web interface and the API under `/api/` SHALL be reachable through it. Port number and bind address MUST be configurable, so that the port can be made reachable for the reverse proxy only.
 
-#### Scenario: Oberfläche und API über denselben Port
-- **WHEN** der Stack gestartet ist und der Reverse Proxy den konfigurierten Port aufruft
-- **THEN** wird die Weboberfläche ausgeliefert, und Aufrufe unter `/api/` erreichen das Backend
+#### Scenario: Interface and API on the same port
+- **WHEN** the stack is running and the reverse proxy calls the configured port
+- **THEN** the web interface is served, and calls under `/api/` reach the backend
 
-#### Scenario: Deep Link nach Neuladen
-- **WHEN** der Browser eine Unterseite der Oberfläche (z. B. `/ferienvermietung/belegung`) direkt aufruft
-- **THEN** wird die Oberfläche ausgeliefert und kein HTTP 404 vom Webserver
+#### Scenario: Deep link after reload
+- **WHEN** the browser opens a subpage of the interface (e.g. `/ferienvermietung/belegung`) directly
+- **THEN** the interface is served and not an HTTP 404 from the web server
 
-#### Scenario: Bind-Adresse
-- **WHEN** die Bind-Adresse auf `127.0.0.1` gesetzt ist
-- **THEN** ist der Port von anderen Rechnern im Netz aus nicht erreichbar
+#### Scenario: Bind address
+- **WHEN** the bind address is set to `127.0.0.1`
+- **THEN** the port is not reachable from other machines on the network
 
-### Requirement: Betrieb hinter einem Reverse Proxy
-Das System MUST die Angaben `X-Forwarded-For` und `X-Forwarded-Proto` nur von konfigurierten vertrauenswürdigen Proxy-Adressen übernehmen. Die übernommene Client-IP MUST für das Rate-Limit und die Protokollierung von Anmeldungen verwendet werden. Sitzungs- und CSRF-Cookies MUST mit dem Attribut `Secure` gesetzt werden, sofern die Anfrage laut Proxy über HTTPS kam.
+### Requirement: Running behind a reverse proxy
+The system MUST accept `X-Forwarded-For` and `X-Forwarded-Proto` only from configured trusted proxy addresses. The accepted client IP MUST be used for rate limiting and for logging sign-ins. Session and CSRF cookies MUST be set with the `Secure` attribute if, according to the proxy, the request came over HTTPS.
 
-#### Scenario: Client-IP hinter dem Proxy
-- **WHEN** eine fehlgeschlagene Anmeldung über den vertrauenswürdigen Proxy mit `X-Forwarded-For: 203.0.113.7` eintrifft
-- **THEN** protokolliert das System die Client-IP `203.0.113.7`
+#### Scenario: Client IP behind the proxy
+- **WHEN** a failed sign-in arrives through the trusted proxy with `X-Forwarded-For: 203.0.113.7`
+- **THEN** the system logs the client IP `203.0.113.7`
 
-#### Scenario: Gefälschter Header
-- **WHEN** eine Anfrage von einer nicht vertrauenswürdigen Adresse den Header `X-Forwarded-For: 10.0.0.1` mitsendet
-- **THEN** verwendet das System die tatsächliche Absenderadresse und nicht `10.0.0.1`
+#### Scenario: Forged header
+- **WHEN** a request from an untrusted address sends the header `X-Forwarded-For: 10.0.0.1`
+- **THEN** the system uses the actual sender address and not `10.0.0.1`
 
-#### Scenario: Sichere Cookies
-- **WHEN** die Anmeldung über HTTPS am Reverse Proxy erfolgt
-- **THEN** trägt das Sitzungs-Cookie die Attribute `Secure`, `HttpOnly` und `SameSite=Lax`
+#### Scenario: Secure cookies
+- **WHEN** sign-in happens over HTTPS at the reverse proxy
+- **THEN** the session cookie carries the attributes `Secure`, `HttpOnly` and `SameSite=Lax`
 
-### Requirement: Security-Header
-Alle Antworten des Einstiegspunkts MUST die Header `Strict-Transport-Security`, `Content-Security-Policy` (ohne Inline-Skripte und mit Einbettung nur durch die eigene Origin), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` und `Referrer-Policy: same-origin` enthalten.
+### Requirement: Security headers
+All responses of the entry point MUST contain the headers `Strict-Transport-Security`, `Content-Security-Policy` (without inline scripts and allowing embedding only by the own origin), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: same-origin`.
 
-#### Scenario: Header vorhanden
-- **WHEN** ein Client die Startseite oder einen API-Endpunkt abruft
-- **THEN** enthält die Antwort alle genannten Header
+#### Scenario: Headers present
+- **WHEN** a client retrieves the start page or an API endpoint
+- **THEN** the response contains all of the headers listed
 
-### Requirement: Keine internen Details nach außen
-Fehlerantworten MUST NOT Stacktraces, Framework- oder Serverversionen oder interne Hostnamen enthalten. Die Server-Kennung des Webservers MUST NOT eine Version nennen.
+### Requirement: No internal details exposed
+Error responses MUST NOT contain stack traces, framework or server versions, or internal host names. The web server's server identifier MUST NOT name a version.
 
-#### Scenario: Unerwarteter Fehler
-- **WHEN** bei einer API-Anfrage ein unerwarteter Fehler auftritt
-- **THEN** antwortet das System mit HTTP 500 und einer allgemeinen Meldung ohne technische Details
+#### Scenario: Unexpected error
+- **WHEN** an unexpected error occurs during an API request
+- **THEN** the system responds with HTTP 500 and a generic message without technical details
 
-### Requirement: Interne Dienste nicht erreichbar
-Backend und Datenbank MUST NOT über einen Host-Port erreichbar sein. Betriebsendpunkte des Backends (Metriken, Health-Details) MUST NOT über den Einstiegspunkt erreichbar sein.
+### Requirement: Internal services unreachable
+Backend and database MUST NOT be reachable through a host port. Operational endpoints of the backend (metrics, health details) MUST NOT be reachable through the entry point.
 
-#### Scenario: Datenbankport
-- **WHEN** der Stack läuft und ein Client vom Host aus den Postgres-Port anspricht
-- **THEN** ist keine Verbindung möglich
+#### Scenario: Database port
+- **WHEN** the stack is running and a client on the host addresses the Postgres port
+- **THEN** no connection is possible
 
-#### Scenario: Betriebsendpunkte
-- **WHEN** ein Client über den Einstiegspunkt einen Pfad unter `/actuator/` aufruft
-- **THEN** werden keine Betriebsdaten des Backends ausgeliefert
+#### Scenario: Operational endpoints
+- **WHEN** a client calls a path under `/actuator/` through the entry point
+- **THEN** no operational data of the backend is served
 
-### Requirement: Health-Endpunkt
-Das System SHALL unter `/api/health` ohne Anmeldung einen Health-Status liefern. Er MUST HTTP 200 melden, wenn das Backend die Datenbank erreicht, und andernfalls HTTP 503. Die Antwort MUST NOT interne Details wie Hostnamen oder Versionen enthalten.
+### Requirement: Health endpoint
+The system SHALL provide a health status under `/api/health` without sign-in. It MUST report HTTP 200 when the backend can reach the database, and HTTP 503 otherwise. The response MUST NOT contain internal details such as host names or versions.
 
-#### Scenario: Gesund
-- **WHEN** Backend und Datenbank laufen und `/api/health` aufgerufen wird
-- **THEN** antwortet das System mit HTTP 200
+#### Scenario: Healthy
+- **WHEN** backend and database are running and `/api/health` is called
+- **THEN** the system responds with HTTP 200
 
-#### Scenario: Datenbank nicht erreichbar
-- **WHEN** die Datenbank nicht erreichbar ist und `/api/health` aufgerufen wird
-- **THEN** antwortet das System mit HTTP 503
+#### Scenario: Database unreachable
+- **WHEN** the database is unreachable and `/api/health` is called
+- **THEN** the system responds with HTTP 503
 
-### Requirement: Geordneter Start
-Das Backend MUST erst Anfragen annehmen, wenn die Datenbank bereit ist und alle Migrationen angewendet wurden. Schlägt eine Migration fehl, dann MUST das Backend nicht starten.
+### Requirement: Ordered startup
+The backend MUST accept requests only once the database is ready and all migrations have been applied. If a migration fails, the backend MUST NOT start.
 
-#### Scenario: Kaltstart
-- **WHEN** der gesamte Stack auf einem frischen Host gestartet wird
-- **THEN** ist die Anwendung nach dem Start ohne manuelle Eingriffe nutzbar und das Datenbankschema vollständig angelegt
+#### Scenario: Cold start
+- **WHEN** the whole stack is started on a fresh host
+- **THEN** the application is usable after startup without manual intervention, and the database schema is fully created
 
-### Requirement: Konfiguration über Umgebung
-Alle Secrets (Datenbankpasswort, initiales Admin-Passwort, Schlüssel zur Verschlüsselung der TOTP-Secrets) und betriebsspezifischen Einstellungen (Port, Bind-Adresse, vertrauenswürdige Proxys, aktivierte Module, Backup-Aufbewahrung) MUST über Umgebungsvariablen bzw. eine `.env`-Datei gesetzt werden. Container-Images MUST NOT Secrets enthalten. Fehlt der Verschlüsselungsschlüssel, dann MUST der Start abbrechen.
+### Requirement: Configuration through the environment
+All secrets (database password, initial admin password, key for encrypting the TOTP secrets) and deployment-specific settings (port, bind address, trusted proxies, enabled modules, backup retention) MUST be set through environment variables or a `.env` file. Container images MUST NOT contain secrets. If the encryption key is missing, startup MUST abort.
 
-#### Scenario: Vorlage
-- **WHEN** ein Betreiber das Repository auscheckt
-- **THEN** findet er eine `.env.example` mit allen benötigten Einstellungen und ohne echte Secrets
+#### Scenario: Template
+- **WHEN** an operator checks out the repository
+- **THEN** they find a `.env.example` with all required settings and no real secrets
 
-#### Scenario: Fehlender Schlüssel
-- **WHEN** das Backend ohne Verschlüsselungsschlüssel startet
-- **THEN** bricht der Start mit einer Meldung ab, die die fehlende Einstellung nennt
+#### Scenario: Missing key
+- **WHEN** the backend starts without an encryption key
+- **THEN** startup aborts with a message naming the missing setting
 
-### Requirement: Persistenz über Neustarts
-Daten MUST einen Neustart und ein Neuerstellen der Container überstehen.
+### Requirement: Persistence across restarts
+Data MUST survive a restart and a recreation of the containers.
 
 #### Scenario: Update
-- **WHEN** die Images neu gebaut und die Container neu erstellt werden
-- **THEN** sind alle zuvor gespeicherten Daten vorhanden
+- **WHEN** the images are rebuilt and the containers recreated
+- **THEN** all previously stored data is present
 
-### Requirement: Automatische Datenbank-Backups
-Der Stack SHALL täglich automatisch eine vollständige Sicherung der Datenbank in ein Verzeichnis auf dem Host schreiben. Sicherungen, die älter als die konfigurierte Aufbewahrungsdauer sind, MUST automatisch gelöscht werden. Eine Sicherung MUST sich in eine leere Datenbank zurückspielen lassen. Zusammen mit dem Verschlüsselungsschlüssel MUST danach eine Anmeldung mit bestehender Zwei-Faktor-Anmeldung möglich sein.
+### Requirement: Automatic database backups
+The stack SHALL automatically write a full backup of the database to a directory on the host every day. Backups older than the configured retention period MUST be deleted automatically. A backup MUST be restorable into an empty database. Together with the encryption key, sign-in with existing two-factor authentication MUST be possible afterwards.
 
-#### Scenario: Tägliche Sicherung
-- **WHEN** der Stack länger als einen Tag läuft
-- **THEN** liegt im Backup-Verzeichnis auf dem Host eine Sicherung mit Zeitstempel im Dateinamen
+#### Scenario: Daily backup
+- **WHEN** the stack runs for more than a day
+- **THEN** the backup directory on the host contains a backup with a timestamp in the file name
 
-#### Scenario: Aufbewahrung
-- **WHEN** die Aufbewahrungsdauer auf 14 Tage gesetzt ist und eine Sicherung älter als 14 Tage ist
-- **THEN** wird diese Sicherung beim nächsten Backup-Lauf gelöscht
+#### Scenario: Retention
+- **WHEN** the retention period is set to 14 days and a backup is older than 14 days
+- **THEN** that backup is deleted on the next backup run
 
-#### Scenario: Wiederherstellung
-- **WHEN** eine Sicherung nach der dokumentierten Anleitung in eine leere Datenbank eingespielt wird und derselbe Verschlüsselungsschlüssel konfiguriert ist
-- **THEN** startet die Anwendung mit dem gesicherten Datenbestand, und Benutzer können sich mit ihrer bestehenden Zwei-Faktor-Anmeldung anmelden
+#### Scenario: Restore
+- **WHEN** a backup is restored into an empty database following the documented instructions and the same encryption key is configured
+- **THEN** the application starts with the backed-up data, and users can sign in with their existing two-factor authentication
 
-### Requirement: Lauffähig auf amd64 und arm64
-Die Container-Images MUST sich sowohl auf amd64 (Mini-PC) als auch auf arm64 (Entwicklungsrechner) bauen und ausführen lassen, ohne dass die Build-Dateien geändert werden.
+### Requirement: Runs on amd64 and arm64
+The container images MUST build and run on both amd64 (mini PC) and arm64 (development machine) without changing the build files.
 
-#### Scenario: Build auf dem Mini-PC
-- **WHEN** auf dem amd64-Mini-PC der Stack gebaut und gestartet wird
-- **THEN** laufen alle Container ohne Emulation
+#### Scenario: Build on the mini PC
+- **WHEN** the stack is built and started on the amd64 mini PC
+- **THEN** all containers run without emulation

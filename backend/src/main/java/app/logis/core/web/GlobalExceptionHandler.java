@@ -16,7 +16,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Einheitliche Fehlerantworten als ProblemDetail - ohne Stacktraces, Exception-Namen oder Versionen.
+ * Uniform error responses as ProblemDetail - without stack traces, exception names or versions.
  */
 @RestControllerAdvice
 class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -29,7 +29,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage()));
     }
 
-    /** Gleichzeitige Aenderung, die erst beim Speichern auffaellt (JPA @Version). */
+    /** Concurrent change that is only noticed on save (JPA @Version). */
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ResponseEntity<ProblemDetail> handleOptimisticLock(OptimisticLockingFailureException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -38,7 +38,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> handleUnexpected(Exception ex) {
-        log.error("Unerwarteter Fehler", ex);
+        log.error("Unexpected error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Ein unerwarteter Fehler ist aufgetreten."));
@@ -57,7 +57,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body,
             HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
-        // Standardfehler von Spring MVC (404, 405, 415 ...) ohne technische Details ausliefern.
+        // Return Spring MVC standard errors (404, 405, 415 ...) without technical details.
         var problem = ProblemDetail.forStatus(statusCode);
         return ResponseEntity.status(statusCode).headers(headers).body(problem);
     }

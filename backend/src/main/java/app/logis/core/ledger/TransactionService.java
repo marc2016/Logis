@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Transaktionen und Umbuchungen. Rechte kommen immer vom Konto.
+ * Transactions and transfers. Rights always come from the account.
  */
 @Service
 @Transactional
@@ -59,7 +59,7 @@ class TransactionService {
     record ListResult(Page<Transaction> page, BigDecimal income, BigDecimal expense) {
     }
 
-    // --- Einzelne Transaktionen -----------------------------------------------------------------
+    // --- Single transactions -------------------------------------------------------------------
 
     Transaction create(Long userId, TransactionInput input) {
         accounts.requireWritable(userId, requireAccountId(input.accountId()));
@@ -85,7 +85,7 @@ class TransactionService {
         return t;
     }
 
-    /** Loescht eine Transaktion; bei einer Umbuchung beide Seiten. */
+    /** Deletes a transaction; for a transfer, both sides. */
     void delete(Long userId, Long id) {
         var t = load(userId, id);
         if (t.isTransfer()) {
@@ -96,7 +96,7 @@ class TransactionService {
         transactions.delete(t);
     }
 
-    // --- Umbuchungen ----------------------------------------------------------------------------
+    // --- Transfers -----------------------------------------------------------------------------
 
     List<Transaction> createTransfer(Long userId, TransferInput input) {
         var amount = requireTransferInput(userId, input);
@@ -132,7 +132,7 @@ class TransactionService {
         transactions.deleteAll(sides);
     }
 
-    // --- Liste und Summen -----------------------------------------------------------------------
+    // --- List and totals -----------------------------------------------------------------------
 
     @Transactional(readOnly = true)
     ListResult list(Long userId, TransactionFilter filter, int page, int size) {
@@ -156,7 +156,7 @@ class TransactionService {
         return new ListResult(result, sums[0], sums[1]);
     }
 
-    /** Einnahmen und Ausgaben ueber alle Treffer, ohne Umbuchungen. */
+    /** Income and expenses across all hits, excluding transfers. */
     private BigDecimal[] sums(Specification<Transaction> spec) {
         var cb = em.getCriteriaBuilder();
         var query = cb.createQuery(Object[].class);
@@ -172,9 +172,9 @@ class TransactionService {
         return new BigDecimal[] {scale((BigDecimal) row[0]), scale((BigDecimal) row[1])};
     }
 
-    // --- Hilfen ---------------------------------------------------------------------------------
+    // --- Helpers -------------------------------------------------------------------------------
 
-    /** Laedt eine Transaktion, sofern der Benutzer das Konto sehen darf; sonst 404. */
+    /** Loads a transaction if the user may see the account; otherwise 404. */
     private Transaction load(Long userId, Long id) {
         var t = transactions.findById(id).orElseThrow(() -> ApiException.notFound("Transaktion nicht gefunden"));
         if (sharing.roleOf(Account.SHARE_TYPE, t.getAccountId(), userId).isEmpty()) {
@@ -183,7 +183,7 @@ class TransactionService {
         return t;
     }
 
-    /** Beide Seiten einer Umbuchung, Abgang zuerst. */
+    /** Both sides of a transfer, outgoing side first. */
     private List<Transaction> loadTransfer(Long userId, UUID transferId) {
         var sides = transactions.findByTransferId(transferId).stream()
                 .sorted(Comparator.comparing(Transaction::getAmount))

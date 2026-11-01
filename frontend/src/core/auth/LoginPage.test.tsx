@@ -5,8 +5,8 @@ import { adminUser, authenticated, mockApi, renderApp, vacationRentalActive } fr
 
 const anonymous = { body: { stage: 'ANONYMOUS', user: null, recoveryCodes: null } }
 
-describe('Anmeldung', () => {
-  it('Deep Link ohne Sitzung -> Passwort -> TOTP -> Zielseite', async () => {
+describe('Sign-in', () => {
+  it('deep link without session -> password -> TOTP -> target page', async () => {
     let loggedIn = false
     mockApi({
       'GET /api/auth/me': () => (loggedIn ? authenticated() : anonymous),
@@ -35,7 +35,7 @@ describe('Anmeldung', () => {
     expect(router.state.location.pathname).toBe('/ferienvermietung/belegung')
   })
 
-  it('Erst-Login: Passwort -> Einrichtung -> Codes -> Übersicht', async () => {
+  it('first sign-in: password -> setup -> codes -> overview', async () => {
     let loggedIn = false
     mockApi({
       'GET /api/auth/me': () => (loggedIn ? authenticated(adminUser) : anonymous),
@@ -66,7 +66,7 @@ describe('Anmeldung', () => {
     expect(await screen.findByRole('heading', { name: 'Übersicht' })).toBeInTheDocument()
   })
 
-  it('zeigt die Fehlermeldungen des Backends', async () => {
+  it('shows the backend error messages', async () => {
     let attempt = 0
     mockApi({
       'GET /api/auth/me': anonymous,
@@ -98,7 +98,7 @@ describe('Anmeldung', () => {
     expect(await screen.findByText('Code ist ungültig')).toBeInTheDocument()
   })
 
-  it('erlaubt die Anmeldung mit Wiederherstellungscode', async () => {
+  it('allows sign-in with a recovery code', async () => {
     let body: unknown
     mockApi({
       'GET /api/auth/me': { body: { stage: 'TOTP_REQUIRED', user: null, recoveryCodes: null } },
@@ -115,7 +115,7 @@ describe('Anmeldung', () => {
     await waitFor(() => expect(body).toEqual({ code: 'AAAAA-BBBBB' }))
   })
 
-  it('ignoriert externe Weiterleitungsziele', async () => {
+  it('ignores external redirect targets', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
     const { router } = renderApp('/login?next=//evil.example.com')
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))

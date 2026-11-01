@@ -28,8 +28,8 @@ class SecurityConfiguration {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
-                // Der Login-Zustand liegt in eigenen Session-Attributen; der SecurityContext wird pro
-                // Anfrage vom SessionAuthenticationFilter aufgebaut und nicht in der Session gespeichert.
+                // The sign-in state lives in dedicated session attributes; the SecurityContext is built per
+                // request by the SessionAuthenticationFilter and not stored in the session.
                 .securityContext(ctx -> ctx.securityContextRepository(new RequestAttributeSecurityContextRepository()))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -40,7 +40,7 @@ class SecurityConfiguration {
                         AnonymousAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
-                        // Nur auf dem internen Management-Port 8081 (Docker-Healthcheck), nie ueber nginx.
+                        // Only on the internal management port 8081 (Docker health check), never via nginx.
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").hasRole("USER")

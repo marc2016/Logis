@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
-// Betraege sind immer Dezimal-Strings ("-84.90"), siehe lib/money.ts.
+// Amounts are always decimal strings ("-84.90"), see lib/money.ts.
 
 export type ShareRole = 'OWNER' | 'EDITOR' | 'VIEWER'
 export type LegalEntityKind = 'PRIVATE_PERSON' | 'GBR' | 'GMBH' | 'OTHER'
@@ -181,7 +181,7 @@ export function useUserSearch(q: string) {
   })
 }
 
-/** Nach Buchungen aendern sich Salden, Listen und ggf. Kontodetails. */
+/** After entries, balances, lists and possibly account details change. */
 export function useInvalidateLedger() {
   const queryClient = useQueryClient()
   return () =>
@@ -192,7 +192,7 @@ export function useInvalidateLedger() {
     ])
 }
 
-/** Gruppiert nach Eigentuemer, in der Reihenfolge der Server-Sortierung. */
+/** Grouped by owner, in the order of the server's sorting. */
 export function groupByLegalEntity(accounts: Account[]) {
   const groups = new Map<number, { name: string; accounts: Account[] }>()
   for (const account of accounts) {
@@ -203,7 +203,7 @@ export function groupByLegalEntity(accounts: Account[]) {
   return [...groups.entries()].map(([id, g]) => ({ id, ...g }))
 }
 
-/** Konten, in denen der Benutzer buchen darf. */
+/** Accounts in which the user may enter transactions. */
 export function writableAccounts(accounts: Account[]) {
   return accounts.filter((a) => a.myRole !== 'VIEWER' && !a.archived)
 }

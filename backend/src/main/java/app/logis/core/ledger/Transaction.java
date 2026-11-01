@@ -42,7 +42,7 @@ class Transaction {
     @Column
     private String note;
 
-    /** Beide Seiten einer Umbuchung teilen sich diese ID. */
+    /** Both sides of a transfer share this ID. */
     @Column(name = "transfer_id", updatable = false)
     private UUID transferId;
 

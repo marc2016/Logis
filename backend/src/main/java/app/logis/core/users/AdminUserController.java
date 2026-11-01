@@ -30,7 +30,7 @@ class AdminUserController {
         this.service = service;
     }
 
-    /** Ausgelieferte Sicht - ohne Hashes, Secrets oder Codes. */
+    /** Returned view - without hashes, secrets or codes. */
     record UserView(Long id, String username, String displayName, Role role, boolean enabled, boolean totpEnabled,
             Instant lastLoginAt, Instant createdAt) {
 

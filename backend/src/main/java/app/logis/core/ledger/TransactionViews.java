@@ -16,7 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Baut die Ausgabe von Transaktionen mit Konto-, Kategorie- und Gegenkontonamen in wenigen Abfragen.
+ * Builds the transaction output with account, category and counter-account names in few queries.
  */
 @Component
 class TransactionViews {
@@ -45,7 +45,7 @@ class TransactionViews {
         if (list.isEmpty()) {
             return List.of();
         }
-        // Gegenseiten von Umbuchungen
+        // Other sides of transfers
         var transferIds = list.stream().map(Transaction::getTransferId).filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         var counterparts = transferIds.isEmpty() ? List.<Transaction>of() : transactions.findByTransferIdIn(transferIds);
@@ -55,7 +55,7 @@ class TransactionViews {
         counterparts.forEach(t -> accountIds.add(t.getAccountId()));
         var names = accounts.findAllById(accountIds).stream()
                 .collect(Collectors.toMap(Account::getId, Account::getName));
-        // Namen fremder Gegenkonten nur zeigen, wenn der Benutzer sie sehen darf.
+        // Show names of other people's counter-accounts only if the user may see them.
         var visible = sharing.accessibleIds(Account.SHARE_TYPE, userId, ShareRole.VIEWER);
 
         var categoryIds = list.stream().map(Transaction::getCategoryId).filter(Objects::nonNull)

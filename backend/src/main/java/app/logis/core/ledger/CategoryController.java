@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Auswahl fuer alle Benutzer unter /api/categories, Pflege nur fuer Admins unter /api/admin/categories.
+ * Selection for all users under /api/categories, maintenance for admins only under /api/admin/categories.
  */
 @RestController
 class CategoryController {

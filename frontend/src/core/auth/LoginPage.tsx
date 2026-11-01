@@ -21,8 +21,8 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Mehrstufige Anmeldung: Passwort -> TOTP-Code bzw. Einrichtung -> ggf. Wiederherstellungscodes
- * und Passwortwechsel. Der Parameter `next` bleibt ueber alle Schritte erhalten.
+ * Multi-step sign-in: password -> TOTP code or setup -> recovery codes and password change
+ * if required. The parameter `next` is kept across all steps.
  */
 export function LoginPage() {
   const { data: session, isLoading } = useSession()
@@ -78,7 +78,7 @@ interface StepProps {
   onDone: (response: SessionResponse) => void
 }
 
-/** Bei abgelaufener Zwischenstufe zurueck zum Passwort-Schritt. */
+/** Back to the password step if an intermediate stage has expired. */
 function handleStepError(error: unknown, setError: (m: string) => void, onRestart?: () => void) {
   if (error instanceof ApiError && error.message.startsWith('Die Anmeldung ist abgelaufen') && onRestart) {
     onRestart()

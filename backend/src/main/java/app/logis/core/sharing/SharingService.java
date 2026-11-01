@@ -13,8 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Freigaben pro Objekt. Ohne Freigabe ist ein Objekt fuer den Benutzer nicht vorhanden (404),
- * mit zu geringer Rolle gibt es 403. Die Systemrolle ADMIN spielt hier keine Rolle.
+ * Shares per object. Without a share an object does not exist for the user (404);
+ * with a role that is too low there is 403. The system role ADMIN plays no part here.
  */
 @Service
 @Transactional
@@ -46,9 +46,9 @@ public class SharingService {
     }
 
     /**
-     * Prueft die Mindestrolle und liefert die tatsaechliche Rolle.
+     * Checks the minimum role and returns the actual role.
      *
-     * @throws ApiException 404 ohne Freigabe, 403 bei zu geringer Rolle
+     * @throws ApiException 404 without a share, 403 for a role that is too low
      */
     @Transactional(readOnly = true)
     public ShareRole requireRole(String type, Long objectId, Long userId, ShareRole required) {
@@ -59,7 +59,7 @@ public class SharingService {
         return role;
     }
 
-    /** Alle Objekt-IDs eines Typs, an denen der Benutzer mindestens die Rolle hat, mit seiner Rolle. */
+    /** All object IDs of a type on which the user has at least the role, with their role. */
     @Transactional(readOnly = true)
     public Map<Long, ShareRole> rolesFor(String type, Long userId, ShareRole minimum) {
         return shares.findAllForUser(type, userId).stream()
@@ -83,7 +83,7 @@ public class SharingService {
                 .toList();
     }
 
-    /** Laedt einen bestehenden, aktiven Benutzer ein oder aendert dessen bestehende Rolle. */
+    /** Invites an existing, active user or changes their existing role. */
     public void invite(String type, Long objectId, Long actorId, Long targetUserId, ShareRole role) {
         requireRole(type, objectId, actorId, ShareRole.OWNER);
         var target = users.findById(targetUserId).filter(u -> u.isEnabled())
@@ -102,7 +102,7 @@ public class SharingService {
         changeRoleInternal(type, objectId, share, role);
     }
 
-    /** Entzieht eine Freigabe. Owner duerfen jede entziehen, jeder Benutzer seine eigene. */
+    /** Revokes a share. Owners may revoke any, every user their own. */
     public void revoke(String type, Long objectId, Long actorId, Long targetUserId) {
         requireRole(type, objectId, actorId,
                 actorId.equals(targetUserId) ? ShareRole.VIEWER : ShareRole.OWNER);
@@ -113,7 +113,7 @@ public class SharingService {
         shares.delete(share);
     }
 
-    /** Beim Loeschen eines Objekts: alle Freigaben entfernen. */
+    /** When an object is deleted: remove all shares. */
     public void deleteAll(String type, Long objectId) {
         shares.deleteAllForObject(type, objectId);
     }

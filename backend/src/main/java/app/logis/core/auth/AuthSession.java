@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpSession;
 import java.time.Instant;
 
 /**
- * Zugriff auf den Login-Zustand in der HTTP-Session.
+ * Access to the sign-in state in the HTTP session.
  */
 final class AuthSession {
 
@@ -21,7 +21,7 @@ final class AuthSession {
     private AuthSession() {
     }
 
-    /** Verwirft eine bestehende Sitzung und beginnt eine neue (Schutz vor Session Fixation). */
+    /** Discards an existing session and starts a new one (protection against session fixation). */
     static HttpSession start(HttpServletRequest request, Long userId, int version, AuthStage stage, Instant now) {
         var old = request.getSession(false);
         if (old != null) {
@@ -36,7 +36,7 @@ final class AuthSession {
         return session;
     }
 
-    /** Wechselt in die naechste Stufe und vergibt dabei eine neue Session-ID. */
+    /** Moves to the next stage and issues a new session ID. */
     static void advance(HttpServletRequest request, AuthStage stage, int version) {
         var session = request.getSession(false);
         session.setAttribute(STAGE, stage.name());
@@ -60,7 +60,7 @@ final class AuthSession {
         return AuthStage.valueOf((String) session.getAttribute(STAGE));
     }
 
-    /** Liefert die Benutzer-ID, sofern die Sitzung genau in der erwarteten Stufe ist. */
+    /** Returns the user ID if the session is in exactly the expected stage. */
     static Long requireStage(HttpServletRequest request, AuthStage expected) {
         if (stage(request) != expected) {
             throw ApiException.unauthorized("Die Anmeldung ist abgelaufen. Bitte erneut anmelden.");

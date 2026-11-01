@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Oeffentlicher Health-Endpunkt fuer nginx und Monitoring. Liefert bewusst keine Details.
+ * Public health endpoint for nginx and monitoring. Deliberately returns no details.
  */
 @RestController
 class HealthController {

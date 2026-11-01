@@ -1,7 +1,7 @@
 package app.logis.core.auth;
 
 /**
- * Zustand des mehrstufigen Logins. Nur {@link #AUTHENTICATED} gibt Zugriff auf fachliche Endpunkte.
+ * State of the multi-step sign-in. Only {@link #AUTHENTICATED} grants access to domain endpoints.
  */
 public enum AuthStage {
     ANONYMOUS,

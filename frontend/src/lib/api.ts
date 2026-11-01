@@ -1,9 +1,9 @@
 /**
- * Fetch-Wrapper fuer die Logis-API.
- * - sendet das Sitzungs-Cookie mit (Same-Origin)
- * - setzt bei zustandsaendernden Aufrufen den CSRF-Header aus dem Cookie XSRF-TOKEN
- * - leitet bei 401 auf die Anmeldung um (ausser bei den Anmeldeschritten selbst)
- * - liefert Fehler als ApiError mit deutscher Meldung aus dem ProblemDetail
+ * Fetch wrapper for the Logis API.
+ * - sends the session cookie (same origin)
+ * - sets the CSRF header from the cookie XSRF-TOKEN on state-changing calls
+ * - redirects to sign-in on 401 (except for the sign-in steps themselves)
+ * - returns errors as ApiError with the German message from the ProblemDetail
  */
 
 export class ApiError extends Error {
@@ -68,7 +68,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
       const problem = await response.json()
       if (typeof problem?.detail === 'string' && problem.detail) message = problem.detail
     } catch {
-      // kein JSON-Body
+      // no JSON body
     }
     throw new ApiError(response.status, message)
   }

@@ -35,15 +35,15 @@ async function openCreateDialog() {
   return dialog
 }
 
-describe('Benutzerverwaltung', () => {
-  it('listet Benutzer mit Status', async () => {
+describe('User management', () => {
+  it('lists users with status', async () => {
     setup()
     expect(await screen.findByText('Aktiv')).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: /Anna Admin/ })).toBeInTheDocument()
     expect(screen.getByText('Eingerichtet')).toBeInTheDocument()
   })
 
-  it('legt einen Benutzer an', async () => {
+  it('creates a user', async () => {
     let body: unknown
     setup({
       'POST /api/admin/users': (init) => {
@@ -56,13 +56,13 @@ describe('Benutzerverwaltung', () => {
     expect(body).toEqual({ username: 'anna', displayName: '', role: 'USER', password: 'start-passwort-123' })
   })
 
-  it('zeigt die Meldung bei doppeltem Benutzernamen', async () => {
+  it('shows the message for a duplicate username', async () => {
     setup({ 'POST /api/admin/users': { status: 409, body: { detail: 'Benutzername ist bereits vergeben' } } })
     const dialog = await openCreateDialog()
     expect(await within(dialog).findByText('Benutzername ist bereits vergeben')).toBeInTheDocument()
   })
 
-  it('zeigt die Meldung, wenn der letzte Admin herabgestuft werden soll', async () => {
+  it('shows the message when the last admin would be downgraded', async () => {
     setup({
       'PATCH /api/admin/users/1': {
         status: 409,
@@ -79,7 +79,7 @@ describe('Benutzerverwaltung', () => {
     expect(await within(dialog).findByText('Es muss mindestens ein aktiver Admin bestehen bleiben')).toBeInTheDocument()
   })
 
-  it('kann das eigene Konto nicht deaktivieren', async () => {
+  it('cannot disable the own account', async () => {
     setup()
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Aktionen für admin' }))

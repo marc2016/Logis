@@ -38,7 +38,7 @@ class ErrorHandlingTest extends IntegrationTest {
 
     @Test
     void unknownApiPathGives404WithoutDetails() throws Exception {
-        mvc.perform(get("/api/gibt-es-nicht").with(user("u").roles("USER")))
+        mvc.perform(get("/api/does-not-exist").with(user("u").roles("USER")))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(not(containsString("NoResourceFound"))))
                 .andExpect(content().string(not(containsString("static resource"))));

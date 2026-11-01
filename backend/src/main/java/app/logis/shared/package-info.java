@@ -1,5 +1,5 @@
 /**
- * Querschnittsfunktionen ohne Fachlogik (Zeit, Verschluesselung).
+ * Cross-cutting functions without domain logic (time, encryption).
  */
 @ApplicationModule(displayName = "Shared", type = ApplicationModule.Type.OPEN)
 package app.logis.shared;

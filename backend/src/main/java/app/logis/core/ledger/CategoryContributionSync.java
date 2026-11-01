@@ -12,8 +12,8 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Legt beim Start fehlende Modulkategorien an (anhand ihres Schluessels). Bestehende werden nie
- * umbenannt oder verschoben. Laeuft auch fuer deaktivierte Module nicht - deren Beans fehlen.
+ * Creates missing module categories at startup (by their key). Existing ones are never
+ * renamed or moved. Does not run for disabled modules either - their beans are missing.
  */
 @Component
 class CategoryContributionSync implements ApplicationRunner {
@@ -31,7 +31,7 @@ class CategoryContributionSync implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        // Hauptkategorien zuerst, damit Unterkategorien ihren Parent finden.
+        // Main categories first, so that subcategories find their parent.
         contributions.stream()
                 .sorted(Comparator.comparing(c -> c.parentKey() != null))
                 .forEach(this::ensure);
@@ -46,17 +46,17 @@ class CategoryContributionSync implements ApplicationRunner {
         if (c.parentKey() != null) {
             var parent = categories.findByModuleKey(c.parentKey()).orElse(null);
             if (parent == null) {
-                log.warn("Modulkategorie '{}': Hauptkategorie '{}' fehlt - uebersprungen", c.key(), c.parentKey());
+                log.warn("Module category '{}': main category '{}' is missing - skipped", c.key(), c.parentKey());
                 return;
             }
             parentId = parent.getId();
             kind = parent.getKind();
         }
         if (categories.nameTaken(kind, parentId, c.name(), null)) {
-            log.warn("Modulkategorie '{}': Name '{}' ist bereits vergeben - uebersprungen", c.key(), c.name());
+            log.warn("Module category '{}': name '{}' is already taken - skipped", c.key(), c.name());
             return;
         }
         categories.save(new Category(parentId, kind, c.name(), c.key(), c.moduleId()));
-        log.info("Modulkategorie '{}' angelegt", c.key());
+        log.info("Module category '{}' created", c.key());
     }
 }

@@ -1,12 +1,12 @@
 package app.logis.core.modules;
 
 /**
- * Beschreibt ein aktives Fachmodul. Jedes Modul registriert genau ein Bean dieses Typs,
- * solange es aktiviert ist.
+ * Describes an active domain module. Every module registers exactly one bean of this type
+ * as long as it is enabled.
  *
- * @param id    stabile Modul-ID, identisch mit der ID im Frontend
- * @param label Anzeigename
- * @param order Reihenfolge in der Navigation
+ * @param id    stable module ID, identical to the ID in the frontend
+ * @param label display name
+ * @param order order in the navigation
  */
 public record ModuleDescriptor(String id, String label, int order) {
 }

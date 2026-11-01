@@ -1,4 +1,4 @@
-# Multi-Arch: alle Basis-Images gibt es fuer amd64 und arm64, daher keine platform-Angabe.
+# Multi-arch: all base images exist for amd64 and arm64, hence no platform setting.
 
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
@@ -15,6 +15,6 @@ RUN groupadd --system --gid 10001 logis \
 WORKDIR /app
 COPY --from=build /app.jar app.jar
 USER logis
-# 8080: Anwendung (nur intern ueber nginx), 8081: Management/Health (nur intern)
+# 8080: application (internal only, via nginx), 8081: management/health (internal only)
 EXPOSE 8080 8081
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]

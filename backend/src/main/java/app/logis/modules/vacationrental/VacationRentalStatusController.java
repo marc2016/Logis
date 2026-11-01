@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Platzhalter: weist nach, dass das Modul aktiv und erreichbar ist.
+ * Placeholder: proves that the module is active and reachable.
  */
 @RestController
 @ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)

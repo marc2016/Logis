@@ -1,4 +1,4 @@
-# Entwicklung: nur die Datenbank. Backend und Frontend laufen lokal
+# Development: database only. Backend and frontend run locally
 # (./mvnw spring-boot:run -Dspring-boot.run.profiles=dev / npm run dev).
 name: logis-dev
 

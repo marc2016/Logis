@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
-// jsdom kennt matchMedia/ResizeObserver nicht (Sidebar, Radix).
+// jsdom does not know matchMedia/ResizeObserver (sidebar, Radix).
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
@@ -24,10 +24,10 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver
 
-// Radix Select nutzt Pointer-Capture-APIs.
+// Radix Select uses pointer capture APIs.
 Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.scrollIntoView ??= () => {}
-// input-otp prueft Passwort-Manager-Badges per elementFromPoint.
+// input-otp checks for password manager badges via elementFromPoint.
 document.elementFromPoint ??= () => null
 
 afterEach(() => {

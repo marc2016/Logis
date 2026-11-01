@@ -1,4 +1,4 @@
-# Multi-Arch: alle Basis-Images gibt es fuer amd64 und arm64, daher keine platform-Angabe.
+# Multi-arch: all base images exist for amd64 and arm64, hence no platform setting.
 
 FROM node:24-alpine AS build
 WORKDIR /src

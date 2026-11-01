@@ -2,50 +2,50 @@
 
 ## Purpose
 
-Logis besteht aus einem Kern und fachlichen Modulen (z. B. Ferienvermietung). Diese Capability legt fest, wie Module aktiviert und deaktiviert werden und wie das System die aktiven Module nach außen bekannt macht.
+Logis consists of a core and domain modules (e.g. vacation rental). This capability defines how modules are enabled and disabled and how the system exposes the active modules.
 
 ## ADDED Requirements
 
-### Requirement: Module per Konfiguration aktivieren
-Jedes fachliche Modul MUST über eine Konfigurationseinstellung aktivierbar und deaktivierbar sein, ohne dass der Code geändert wird. Ein Modul ohne explizite Einstellung SHALL als aktiviert gelten.
+### Requirement: Enable modules via configuration
+Every domain module MUST be possible to enable and disable through a configuration setting, without changing code. A module without an explicit setting SHALL count as enabled.
 
-#### Scenario: Modul ist standardmäßig aktiv
-- **WHEN** die Anwendung ohne Einstellung für das Modul `vacationrental` startet
-- **THEN** ist das Modul `vacationrental` aktiv
+#### Scenario: Module is active by default
+- **WHEN** the application starts without a setting for the module `vacationrental`
+- **THEN** the module `vacationrental` is active
 
-#### Scenario: Modul wird deaktiviert
-- **WHEN** die Anwendung mit der Einstellung startet, dass `vacationrental` deaktiviert ist
-- **THEN** ist das Modul `vacationrental` nicht aktiv
+#### Scenario: Module is disabled
+- **WHEN** the application starts with the setting that `vacationrental` is disabled
+- **THEN** the module `vacationrental` is not active
 
-### Requirement: Aktive Module abrufen
-Das System SHALL angemeldeten Benutzern eine Liste der aktiven Module bereitstellen. Jeder Eintrag MUST mindestens eine stabile Modul-ID enthalten. Deaktivierte Module MUST NOT in der Liste erscheinen.
+### Requirement: Retrieve active modules
+The system SHALL provide signed-in users with a list of the active modules. Each entry MUST contain at least a stable module ID. Disabled modules MUST NOT appear in the list.
 
-#### Scenario: Liste enthält aktive Module
-- **WHEN** ein angemeldeter Benutzer die Modulliste abruft und `vacationrental` aktiv ist
-- **THEN** enthält die Antwort einen Eintrag mit der ID `vacationrental`
+#### Scenario: List contains active modules
+- **WHEN** a signed-in user retrieves the module list and `vacationrental` is active
+- **THEN** the response contains an entry with the ID `vacationrental`
 
-#### Scenario: Deaktiviertes Modul fehlt in der Liste
-- **WHEN** ein angemeldeter Benutzer die Modulliste abruft und `vacationrental` deaktiviert ist
-- **THEN** enthält die Antwort keinen Eintrag mit der ID `vacationrental`
+#### Scenario: Disabled module is missing from the list
+- **WHEN** a signed-in user retrieves the module list and `vacationrental` is disabled
+- **THEN** the response contains no entry with the ID `vacationrental`
 
-#### Scenario: Liste ohne Anmeldung
-- **WHEN** ein nicht angemeldeter Client die Modulliste abruft
-- **THEN** antwortet das System mit HTTP 401
+#### Scenario: List without sign-in
+- **WHEN** a client that is not signed in retrieves the module list
+- **THEN** the system responds with HTTP 401
 
-### Requirement: Endpunkte deaktivierter Module sind nicht erreichbar
-Die API-Endpunkte eines deaktivierten Moduls MUST nicht erreichbar sein. Aufrufe SHALL mit HTTP 404 beantwortet werden.
+### Requirement: Endpoints of disabled modules are unreachable
+The API endpoints of a disabled module MUST NOT be reachable. Calls SHALL be answered with HTTP 404.
 
-#### Scenario: Aufruf eines deaktivierten Moduls
-- **WHEN** ein angemeldeter Benutzer einen Endpunkt unter `/api/vacationrental/` aufruft und `vacationrental` deaktiviert ist
-- **THEN** antwortet das System mit HTTP 404
+#### Scenario: Call to a disabled module
+- **WHEN** a signed-in user calls an endpoint under `/api/vacationrental/` and `vacationrental` is disabled
+- **THEN** the system responds with HTTP 404
 
-#### Scenario: Aufruf eines aktiven Moduls
-- **WHEN** ein angemeldeter Benutzer den Status-Endpunkt von `vacationrental` aufruft und das Modul aktiv ist
-- **THEN** antwortet das System mit HTTP 200
+#### Scenario: Call to an active module
+- **WHEN** a signed-in user calls the status endpoint of `vacationrental` and the module is active
+- **THEN** the system responds with HTTP 200
 
-### Requirement: Daten deaktivierter Module bleiben erhalten
-Wird ein Modul deaktiviert, dann MUST das System dessen gespeicherte Daten unverändert lassen. Nach einer erneuten Aktivierung SHALL der vorherige Datenbestand wieder verfügbar sein.
+### Requirement: Data of disabled modules is kept
+When a module is disabled, the system MUST leave its stored data unchanged. After the module is enabled again, the previous data SHALL be available again.
 
-#### Scenario: Deaktivieren und wieder aktivieren
-- **WHEN** ein Modul mit gespeicherten Daten deaktiviert, die Anwendung neu gestartet und das Modul danach wieder aktiviert wird
-- **THEN** sind die zuvor gespeicherten Daten des Moduls unverändert vorhanden
+#### Scenario: Disable and enable again
+- **WHEN** a module with stored data is disabled, the application is restarted, and the module is then enabled again
+- **THEN** the module's previously stored data is present and unchanged

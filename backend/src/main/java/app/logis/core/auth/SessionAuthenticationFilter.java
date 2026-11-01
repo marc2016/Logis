@@ -17,9 +17,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Prueft bei jeder Anfrage die Sitzung gegen den aktuellen Benutzerstand:
- * Inaktivitaet, absolute Dauer, Deaktivierung und Sitzungsversion. Nur vollstaendig angemeldete
- * Sitzungen erhalten Rollen im SecurityContext - mit der aktuell gespeicherten Rolle.
+ * Checks the session against the current user state on every request:
+ * inactivity, absolute duration, disabling and session version. Only fully signed-in
+ * sessions get roles in the SecurityContext - with the currently stored role.
  */
 class SessionAuthenticationFilter extends OncePerRequestFilter {
 

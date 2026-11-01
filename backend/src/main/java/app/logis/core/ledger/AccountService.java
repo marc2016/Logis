@@ -15,7 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Konten. Jeder Zugriff laeuft ueber die Freigaben; ohne Freigabe ist ein Konto nicht vorhanden.
+ * Accounts. Every access goes through the shares; without a share an account does not exist.
  */
 @Service
 @Transactional
@@ -64,14 +64,14 @@ class AccountService {
         return details(List.of(account), Map.of(accountId, role)).getFirst();
     }
 
-    /** Prueft die Mindestrolle und liefert das Konto. */
+    /** Checks the minimum role and returns the account. */
     @Transactional(readOnly = true)
     Account require(Long userId, Long accountId, ShareRole minimum) {
         sharing.requireRole(Account.SHARE_TYPE, accountId, userId, minimum);
         return accounts.findById(accountId).orElseThrow(() -> ApiException.notFound("Konto nicht gefunden"));
     }
 
-    /** Wie {@link #require}, zusaetzlich darf das Konto nicht archiviert sein (fuer Buchungen). */
+    /** Like {@link #require}, and the account must not be archived (for entries). */
     @Transactional(readOnly = true)
     Account requireWritable(Long userId, Long accountId) {
         var account = require(userId, accountId, ShareRole.EDITOR);

@@ -13,8 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Gemeinsamer Kategorienbaum mit hoechstens zwei Ebenen. Pflege nur durch Admins
- * (abgesichert ueber /api/admin/**), Modulkategorien nur archivierbar.
+ * Shared category tree with at most two levels. Maintained by admins only
+ * (secured via /api/admin/**); module categories can only be archived.
  */
 @Service
 @Transactional
@@ -37,13 +37,13 @@ class CategoryService {
     record Node(Category category, List<Node> children) {
     }
 
-    /** Auswahlbaum: nur aktive Kategorien, ohne Kategorien deaktivierter Module. */
+    /** Selection tree: active categories only, without categories of disabled modules. */
     @Transactional(readOnly = true)
     List<Node> selectableTree() {
         return tree(categories.findAllOrdered().stream().filter(this::isSelectable).toList());
     }
 
-    /** Verwaltungsbaum: alle Kategorien inkl. archivierter. */
+    /** Management tree: all categories including archived ones. */
     @Transactional(readOnly = true)
     List<Node> fullTree() {
         return tree(categories.findAllOrdered());
@@ -54,14 +54,14 @@ class CategoryService {
         return categories.findAllById(ids).stream().collect(Collectors.toMap(Category::getId, c -> c));
     }
 
-    /** Fuer Transaktionen: Kategorie muss existieren und auswaehlbar sein. */
+    /** For transactions: the category must exist and be selectable. */
     @Transactional(readOnly = true)
     Category requireSelectable(Long id) {
         return categories.findById(id).filter(this::isSelectable)
                 .orElseThrow(() -> ApiException.badRequest(NOT_AVAILABLE));
     }
 
-    /** Die Kategorie und ihre Unterkategorien (fuer Filter). */
+    /** The category and its subcategories (for filters). */
     @Transactional(readOnly = true)
     Set<Long> withChildren(Long id) {
         var ids = new java.util.HashSet<Long>();

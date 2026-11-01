@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * "Mein Konto": eigenes Passwort aendern, Wiederherstellungscodes neu erzeugen.
+ * "My account": change one's own password, regenerate recovery codes.
  */
 @RestController
 @RequestMapping("/api/account")
@@ -47,7 +47,7 @@ class MyAccountController {
         }
         PasswordPolicy.requireValid(body.newPassword());
         user.setPasswordHash(encoder.encode(body.newPassword()));
-        // Andere Sitzungen beenden, die aktuelle behalten.
+        // End other sessions, keep the current one.
         user.invalidateSessions();
         AuthSession.updateVersion(request, user.getSessionVersion());
     }

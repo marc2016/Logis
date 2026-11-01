@@ -3,8 +3,8 @@ package app.logis.core.web;
 import org.springframework.http.HttpStatus;
 
 /**
- * Fachlicher Fehler mit einer fuer Benutzer bestimmten (deutschen) Meldung.
- * Die Meldung wird als {@code detail} im ProblemDetail ausgeliefert.
+ * Domain error with a (German) message intended for users.
+ * The message is returned as {@code detail} in the ProblemDetail.
  */
 public class ApiException extends RuntimeException {
 

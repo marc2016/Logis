@@ -70,7 +70,7 @@ public class User {
         this.createdAt = createdAt;
     }
 
-    /** Beendet alle bestehenden Sitzungen dieses Benutzers bei deren naechster Anfrage. */
+    /** Ends all existing sessions of this user on their next request. */
     public void invalidateSessions() {
         this.sessionVersion++;
     }

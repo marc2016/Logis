@@ -52,7 +52,7 @@ class TransfersTest extends LedgerTest {
         getWith("/api/accounts/" + s.giro(), s.anna().session()).andExpect(jsonPath("$.balance").value("800.00"));
         getWith("/api/accounts/" + s.savings(), s.anna().session()).andExpect(jsonPath("$.balance").value("200.00"));
 
-        // Normale Bearbeitung einer Umbuchungsseite ist nicht erlaubt.
+        // Regular editing of one side of a transfer is not allowed.
         mvc.perform(put("/api/transactions/" + s.outId()).with(csrf()).session(s.anna().session())
                         .contentType("application/json").content("{\"accountId\":" + s.giro()
                                 + ",\"amount\":\"-1.00\",\"bookingDate\":\"2026-10-06\",\"version\":1}"))

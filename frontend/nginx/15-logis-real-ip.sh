@@ -1,6 +1,6 @@
 #!/bin/sh
-# Erzeugt set_real_ip_from-Zeilen aus LOGIS_TRUSTED_PROXIES (komma-getrennt).
-# Nur von diesen Adressen wird X-Forwarded-For als echte Client-IP uebernommen.
+# Generates set_real_ip_from lines from LOGIS_TRUSTED_PROXIES (comma-separated).
+# X-Forwarded-For is accepted as the real client IP only from these addresses.
 set -eu
 
 conf=/etc/nginx/conf.d/00-real-ip.conf
@@ -13,4 +13,4 @@ cat >> "$conf" <<'CONF'
 real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 CONF
-echo "logis: vertrauenswuerdige Proxys: ${LOGIS_TRUSTED_PROXIES:-<keine>}"
+echo "logis: trusted proxies: ${LOGIS_TRUSTED_PROXIES:-<none>}"

@@ -2,69 +2,69 @@
 
 ## Why
 
-Logis soll eine selbst gehostete Plattform für Übersicht und Steuer werden. Sie deckt die eigenen Finanzen, Immobilien, Ferienvermietung und Beteiligungen ab. Mehrere Benutzer greifen über das Internet darauf zu. Das Repo enthält bisher keinen Code. Bevor das erste Fachmodul (Ferienvermietung) entstehen kann, braucht es einen tragfähigen und abgesicherten Rahmen: einen modularen Monolithen mit festen Modulgrenzen, eine App-Shell, in die sich Module einklinken, eine Anmeldung mit mehreren Benutzern und Zwei-Faktor-Schutz sowie ein Docker-Setup, das auf dem Mini-PC (amd64) hinter einem vorhandenen Reverse Proxy läuft.
+Logis is meant to become a self-hosted platform for overview and taxes. It covers one's own finances, real estate, vacation rental and investments. Several users access it over the internet. The repo contains no code yet. Before the first domain module (vacation rental) can be built, it needs a solid and secured frame: a modular monolith with fixed module boundaries, an app shell that modules plug into, sign-in for multiple users with two-factor protection, and a Docker setup that runs on the mini PC (amd64) behind an existing reverse proxy.
 
-Leitentscheidungen aus der Erkundung, die über dieses Change hinaus gelten:
+Guiding decisions from exploration that apply beyond this change:
 
-- Logis dient Übersicht und Steuer (Anlage V, EÜR, Auszüge für Gesellschafter) und ist **keine** doppelte Buchführung.
-- Architektur: **modularer Monolith**, eine Anwendung mit hart getrennten Modulen, die per Konfiguration an- und abschaltbar sind. Ein Plugin-System zur Laufzeit gibt es nicht.
-- Basis-Package `app.logis`.
-- Frontend: React, TypeScript, Tailwind und shadcn/ui im **hellen Design**, mit einer linken, einklappbaren Sidebar, die eine Gruppe pro Modul enthält.
-- Betrieb: drei Container (nginx mit React-Build, Spring Boot, Postgres) plus ein Backup-Container. Gebaut wird zunächst direkt auf dem Mini-PC.
-- **Erreichbar aus dem Internet** über einen vorhandenen Reverse Proxy, der TLS übernimmt.
-- **Mehrere Benutzer** mit Rollen. Zwei-Faktor-Anmeldung (TOTP) ist für alle Pflicht.
-- **Freigaben pro Objekt:** Wer ein freigebbares Objekt anlegt (z. B. ein Konto oder eine Immobilie), ist dessen Owner. Er kann bestehende Benutzer lesend (`VIEWER`) oder schreibend (`EDITOR`) einladen. Untergeordnete Daten wie Transaktionen oder Buchungen erben die Rechte. Die Systemrolle `ADMIN` gibt keinen automatischen Zugriff auf fachliche Daten. Einladungen per Link oder E-Mail sind vorerst nicht vorgesehen. Das Rechtemodell entsteht mit `core-ledger`.
+- Logis serves overview and taxes (Anlage V, EÜR, statements for partners) and is **not** double-entry bookkeeping.
+- Architecture: **modular monolith**, one application with strictly separated modules that can be switched on and off via configuration. There is no runtime plugin system.
+- Base package `app.logis`.
+- Frontend: React, TypeScript, Tailwind and shadcn/ui in a **light design**, with a collapsible sidebar on the left that contains one group per module.
+- Operations: three containers (nginx with the React build, Spring Boot, Postgres) plus a backup container. Builds run directly on the mini PC for now.
+- **Reachable from the internet** through an existing reverse proxy that handles TLS.
+- **Multiple users** with roles. Two-factor sign-in (TOTP) is mandatory for everyone.
+- **Sharing per object:** Whoever creates a shareable object (e.g. an account or a property) is its owner. They can invite existing users with read access (`VIEWER`) or write access (`EDITOR`). Subordinate data such as transactions or bookings inherit the rights. The system role `ADMIN` grants no automatic access to domain data. Invitations by link or email are not planned for now. The permission model arrives with `core-ledger`.
 
-Roadmap, in der dieses Change der erste Schritt ist:
+Roadmap in which this change is the first step:
 
-1. `project-scaffold` (dieses Change)
-2. `core-ledger`: Rechtsträger, Konten, Kategorien, Transaktionen
-3. `core-bank-import`: CSV/CAMT-Import, Duplikaterkennung
-4. `realestate-minimal`: Objekte und Einheiten
-5. `vacation-rental`: Buchungen (manuelle Erfassung, mehrere Kanäle), Belegungskalender
+1. `project-scaffold` (this change)
+2. `core-ledger`: legal entities, accounts, categories, transactions
+3. `core-bank-import`: CSV/CAMT import, duplicate detection
+4. `realestate-minimal`: properties and units
+5. `vacation-rental`: bookings (manual entry, multiple channels), occupancy calendar
 
-Später folgen KI-Inbox, Berichte, Beteiligungen, Privatfinanzen, Dauermiete und NK-Abrechnung.
+Later: AI inbox, reports, investments, private finances, long-term rentals and utility cost statements.
 
 ## What Changes
 
-- Neues Monorepo-Layout mit `backend/` (Spring Boot 3, Java 21, Maven), `frontend/` (Vite, React, TypeScript, Tailwind, shadcn/ui) sowie Compose-Dateien für Produktion und Entwicklung.
-- Ein Backend-Gerüst als modularer Monolith: ein Kernbereich `app.logis.core` und Module unter `app.logis.modules.*`. Die Modulgrenzen werden durch einen automatisierten Test erzwungen.
-- Mechanismus, um Module an- und abzuschalten. Das Backend liefert die Liste der aktiven Module an das Frontend.
-- Ein leeres Platzhaltermodul `vacationrental`, das den Mechanismus von Anfang bis Ende nachweist und Ausgangspunkt für Change 5 ist.
-- Datenbankmigrationen mit einem eigenen Postgres-Schema pro Modul.
-- App-Shell im Frontend: eine Modul-Registry, eine linke Sidebar mit einer Gruppe pro aktivem Modul, im Icon-Modus einklappbar, dazu ein Übersicht-Platzhalter, „Mein Konto“ und eine Benutzerverwaltung für Admins.
-- Anmeldung für mehrere Benutzer:
-  - Login mit Passwort und **verpflichtendem TOTP**, das beim ersten Login eingerichtet wird, mit Wiederherstellungscodes.
-  - Schutz vor Brute-Force (Rate-Limit und Sperrzeit nach Fehlversuchen).
-  - Begrenzte Sitzungsdauer, CSRF-Schutz und sichere Cookies.
-  - Der erste Admin wird beim ersten Start aus der Umgebung angelegt.
-- Benutzerverwaltung durch Admins: Benutzer anlegen, deaktivieren, Passwort und 2FA zurücksetzen. Rollen `ADMIN` und `USER`. Eine Selbstregistrierung gibt es nicht.
-- Docker-Setup für Produktion hinter einem Reverse Proxy:
-  - nginx ist der einzige Einstiegspunkt und leitet `/api` an das Backend weiter. Backend und Datenbank sind nur intern erreichbar.
-  - Security-Header, Healthchecks und ein täglicher Datenbank-Backup-Container.
-- Docker-Setup für die Entwicklung, das nur Postgres startet. Backend und Vite laufen lokal mit Hot Reload.
+- New monorepo layout with `backend/` (Spring Boot 3, Java 21, Maven), `frontend/` (Vite, React, TypeScript, Tailwind, shadcn/ui) and Compose files for production and development.
+- A backend scaffold as a modular monolith: a core area `app.logis.core` and modules under `app.logis.modules.*`. Module boundaries are enforced by an automated test.
+- A mechanism to switch modules on and off. The backend delivers the list of active modules to the frontend.
+- An empty placeholder module `vacationrental` that proves the mechanism end to end and is the starting point for change 5.
+- Database migrations with a separate Postgres schema per module.
+- App shell in the frontend: a module registry, a left sidebar with one group per active module, collapsible to icon mode, plus an overview placeholder, „Mein Konto“ and user management for admins.
+- Sign-in for multiple users:
+  - Sign-in with password and **mandatory TOTP**, set up at first sign-in, with recovery codes.
+  - Brute-force protection (rate limit and lockout after failed attempts).
+  - Limited session duration, CSRF protection and secure cookies.
+  - The first admin is created from the environment at first startup.
+- User management by admins: create users, disable them, reset password and 2FA. Roles `ADMIN` and `USER`. There is no self-registration.
+- Docker setup for production behind a reverse proxy:
+  - nginx is the only entry point and forwards `/api` to the backend. Backend and database are reachable internally only.
+  - Security headers, health checks and a daily database backup container.
+- Docker setup for development that starts only Postgres. Backend and Vite run locally with hot reload.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `module-system`: Module lassen sich per Konfiguration aktivieren und deaktivieren. Das System macht die aktiven Module abrufbar, und deaktivierte Module sind nicht erreichbar.
-- `app-shell`: Der Rahmen der Weboberfläche mit Sidebar-Navigation, gruppiert nach aktiven Modulen. Die Sidebar ist einklappbar und hat Routing für Modulseiten.
-- `authentication`: Anmeldung mit Passwort und TOTP, Wiederherstellungscodes, Schutz vor Brute-Force, Sitzungsdauer, Abmeldung, Schutz aller fachlichen Endpunkte, eigene Passwortänderung und Anlage des initialen Admins.
-- `user-management`: Admins verwalten Benutzer und Rollen, deaktivieren Benutzer und setzen Passwort oder 2FA zurück.
-- `deployment`: Betriebsverhalten des Container-Stacks hinter einem Reverse Proxy. Dazu gehören der einzige Einstiegspunkt, interne Dienste, Security-Header, Healthchecks und automatische Datenbank-Backups.
+- `module-system`: Modules can be enabled and disabled via configuration. The system exposes the active modules, and disabled modules are unreachable.
+- `app-shell`: The frame of the web interface with sidebar navigation, grouped by active modules. The sidebar is collapsible and has routing for module pages.
+- `authentication`: Sign-in with password and TOTP, recovery codes, brute-force protection, session duration, sign-out, protection of all domain endpoints, changing one's own password and creation of the initial admin.
+- `user-management`: Admins manage users and roles, disable users and reset password or 2FA.
+- `deployment`: Operational behavior of the container stack behind a reverse proxy. This includes the single entry point, internal services, security headers, health checks and automatic database backups.
 
 ### Modified Capabilities
 
-Keine. Es existieren noch keine Specs.
+None. No specs exist yet.
 
 ## Impact
 
-- **Code:** Neu sind `backend/`, `frontend/`, `ops/`, `compose.yml`, `compose.dev.yml`, `.env.example` und `README.md`.
-- **Abhängigkeiten:**
-  - Backend: Spring Boot 3 (Web, Security, Data JPA, Validation, Actuator), Spring Modulith, Flyway, PostgreSQL, eine TOTP-Bibliothek, Testcontainers.
-  - Frontend: Vite, React, React Router, TanStack Query, Tailwind CSS, shadcn/ui und ein QR-Code-Renderer.
-- **Betrieb:**
-  - Auf dem Mini-PC werden Docker und Docker Compose sowie ein vorhandener Reverse Proxy mit TLS vorausgesetzt.
-  - Secrets wie DB-Passwort, Admin-Passwort und der Schlüssel zur Verschlüsselung der TOTP-Secrets kommen aus `.env` und nicht aus den Images.
-- **Vorgabe für `core-ledger`:** Freigaben pro Objekt (siehe oben). Das Scaffold legt nur die Systemrollen `ADMIN`/`USER` fest. Die Rechte auf fachliche Daten kommen mit dem ersten freigebbaren Objekt hinzu.
+- **Code:** New are `backend/`, `frontend/`, `ops/`, `compose.yml`, `compose.dev.yml`, `.env.example` and `README.md`.
+- **Dependencies:**
+  - Backend: Spring Boot 3 (Web, Security, Data JPA, Validation, Actuator), Spring Modulith, Flyway, PostgreSQL, a TOTP library, Testcontainers.
+  - Frontend: Vite, React, React Router, TanStack Query, Tailwind CSS, shadcn/ui and a QR code renderer.
+- **Operations:**
+  - The mini PC needs Docker and Docker Compose as well as an existing reverse proxy with TLS.
+  - Secrets such as the DB password, admin password and the key for encrypting the TOTP secrets come from `.env`, not from the images.
+- **Requirement for `core-ledger`:** Sharing per object (see above). The scaffold only defines the system roles `ADMIN`/`USER`. Rights on domain data are added with the first shareable object.
