@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CategorySelect } from '@/components/CategorySelect'
+import { TargetSelect } from '@/components/TargetSelect'
+import { NO_TARGET, type Target } from '@/core/realestate/api'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { useAccounts, useTransactions, writableAccounts, type TransactionFilter } from '../api'
@@ -21,6 +23,7 @@ const ALL = 'all'
 export function TransactionsPage() {
   const { data: accounts = [] } = useAccounts(true)
   const [accountId, setAccountId] = useState<string>(ALL)
+  const [target, setTarget] = useState<Target>(NO_TARGET)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
@@ -32,6 +35,8 @@ export function TransactionsPage() {
 
   const filter: TransactionFilter = {
     accountId: accountId === ALL ? undefined : Number(accountId),
+    propertyId: target.propertyId ?? undefined,
+    unitId: target.unitId ?? undefined,
     from: from || undefined,
     to: to || undefined,
     categoryId: uncategorized ? undefined : (categoryId ?? undefined),
@@ -52,7 +57,7 @@ export function TransactionsPage() {
     <>
       <PageHeader
         title="Transaktionen"
-        description="Alle Buchungen der Konten, die du sehen darfst."
+        description="Alle Buchungen der Konten, die du sehen darfst, und der Objekte, die für dich freigegeben sind."
         actions={
           writable.length > 0 && (
             <div className="flex gap-2">
@@ -86,6 +91,10 @@ export function TransactionsPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1 lg:col-span-2">
+          <Label htmlFor="f-target">Objekt</Label>
+          <TargetSelect id="f-target" mode="filter" value={target} onChange={reset(setTarget)} />
+        </div>
         <div className="space-y-1">
           <Label htmlFor="f-from">Von</Label>
           <Input id="f-from" type="date" value={from} onChange={(e) => reset(setFrom)(e.target.value)} />
@@ -98,7 +107,7 @@ export function TransactionsPage() {
           <Label htmlFor="f-category">Kategorie</Label>
           <CategorySelect id="f-category" value={categoryId} onChange={reset(setCategoryId)} noneLabel="Alle Kategorien" />
         </div>
-        <div className="space-y-1 sm:col-span-2 lg:col-span-4">
+        <div className="space-y-1 sm:col-span-2 lg:col-span-2">
           <Label htmlFor="f-search">Suche</Label>
           <Input id="f-search" placeholder="Gegenpartei, Zweck oder Notiz" value={search} onChange={(e) => reset(setSearch)(e.target.value)} />
         </div>

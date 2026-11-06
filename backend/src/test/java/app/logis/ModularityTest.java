@@ -16,6 +16,13 @@ class ModularityTest {
     }
 
     @Test
+    void coreExposesNamedInterfacesForModules() {
+        var core = modules.getModuleByName("core").orElseThrow();
+        assertThat(core.getNamedInterfaces().stream().map(i -> i.getName()))
+                .contains("modules", "sharing", "realestate");
+    }
+
+    @Test
     void verifiesModuleBoundaries() {
         modules.verify();
     }

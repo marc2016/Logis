@@ -34,7 +34,8 @@ class SharesController {
         this.types = shareableTypes.stream().map(ShareableType::type).collect(Collectors.toSet());
     }
 
-    record SharesResponse(ShareRole myRole, List<SharingService.ShareView> shares) {
+    /** {@code myRole} is the effective role; {@code canManage} says whether the user may change the shares. */
+    record SharesResponse(ShareRole myRole, boolean canManage, List<SharingService.ShareView> shares) {
     }
 
     record InviteRequest(@NotNull(message = "Bitte einen Benutzer wählen.") Long userId,
@@ -49,7 +50,8 @@ class SharesController {
             @AuthenticationPrincipal LogisPrincipal me) {
         requireType(type);
         var shares = sharing.list(type, objectId, me.userId());
-        return new SharesResponse(sharing.roleOf(type, objectId, me.userId()).orElseThrow(), shares);
+        return new SharesResponse(sharing.roleOf(type, objectId, me.userId()).orElseThrow(),
+                sharing.canManage(type, objectId, me.userId()), shares);
     }
 
     @PostMapping

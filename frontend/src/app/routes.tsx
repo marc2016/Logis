@@ -9,6 +9,8 @@ import { AccountsPage } from '@/core/ledger/accounts/AccountsPage'
 import { AccountDetailPage } from '@/core/ledger/accounts/AccountDetailPage'
 import { TransactionsPage } from '@/core/ledger/transactions/TransactionsPage'
 import { LegalEntitiesPage } from '@/core/ledger/legal-entities/LegalEntitiesPage'
+import { PropertiesPage } from '@/core/realestate/PropertiesPage'
+import { PropertyDetailPage } from '@/core/realestate/PropertyDetailPage'
 import { AppShell } from './layout/AppShell'
 import { ModuleGuard, RequireAdmin } from './guards'
 import { NotFound } from './NotFound'
@@ -28,6 +30,8 @@ export const routes: RouteObject[] = [
           { path: 'finanzen/konten/:accountId', element: <AccountDetailPage /> },
           { path: 'finanzen/transaktionen', element: <TransactionsPage /> },
           { path: 'finanzen/eigentuemer', element: <LegalEntitiesPage /> },
+          { path: 'immobilien', element: <PropertiesPage /> },
+          { path: 'immobilien/:propertyId', element: <PropertyDetailPage /> },
           {
             path: 'einstellungen/kategorien',
             element: (

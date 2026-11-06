@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { ArrowLeftRightIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftRightIcon, HouseIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ export function TransactionTable({ items, accounts, showAccount = true, isLoadin
   const [editing, setEditing] = useState<Transaction | null>(null)
   const invalidate = useInvalidateLedger()
   const writable = writableAccounts(accounts)
-  const canEdit = (t: Transaction) => writable.some((a) => a.id === t.accountId)
+  const canEdit = (t: Transaction) => t.access === 'FULL' && writable.some((a) => a.id === t.accountId)
 
   const remove = useMutation({
     mutationFn: (t: Transaction) =>
@@ -72,7 +72,11 @@ export function TransactionTable({ items, accounts, showAccount = true, isLoadin
             {items.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="tabular-nums">{formatDate(t.bookingDate)}</TableCell>
-                {showAccount && <TableCell className="hidden md:table-cell">{t.accountName}</TableCell>}
+                {showAccount && (
+                  <TableCell className="hidden md:table-cell">
+                    {t.access === 'TARGET' ? <span className="text-muted-foreground">über {t.targetName}</span> : t.accountName}
+                  </TableCell>
+                )}
                 <TableCell>
                   {t.transferId ? (
                     <span className="flex items-center gap-2">
@@ -88,6 +92,12 @@ export function TransactionTable({ items, accounts, showAccount = true, isLoadin
                     <>
                       <div className="font-medium">{t.counterparty ?? '–'}</div>
                       {t.purpose && <div className="text-xs text-muted-foreground">{t.purpose}</div>}
+                      {t.targetName && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <HouseIcon className="size-3" />
+                          {t.targetName}
+                        </div>
+                      )}
                     </>
                   )}
                 </TableCell>

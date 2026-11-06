@@ -55,10 +55,13 @@ export interface Category {
   children: Category[]
 }
 
+/** FULL: the account is visible; TARGET: only through its property or unit, read-only and without account data. */
+export type TransactionAccess = 'FULL' | 'TARGET'
+
 export interface Transaction {
   id: number
-  accountId: number
-  accountName: string
+  accountId: number | null
+  accountName: string | null
   bookingDate: string
   amount: string
   categoryId: number | null
@@ -69,6 +72,10 @@ export interface Transaction {
   transferId: string | null
   counterAccountId: number | null
   counterAccountName: string | null
+  propertyId: number | null
+  unitId: number | null
+  targetName: string | null
+  access: TransactionAccess
   version: number
 }
 
@@ -83,6 +90,8 @@ export interface TransactionPage {
 
 export interface TransactionFilter {
   accountId?: number
+  propertyId?: number
+  unitId?: number
   from?: string
   to?: string
   categoryId?: number
@@ -100,7 +109,9 @@ export interface ShareEntry {
 }
 
 export interface Shares {
+  /** Effective role; for units including the property role. */
   myRole: ShareRole
+  canManage: boolean
   shares: ShareEntry[]
 }
 

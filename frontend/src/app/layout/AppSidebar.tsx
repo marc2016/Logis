@@ -4,6 +4,7 @@ import {
   ArrowLeftRightIcon,
   BuildingIcon,
   ChevronsUpDownIcon,
+  HouseIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -153,6 +154,7 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
             { label: 'Eigentümer', to: '/finanzen/eigentuemer', icon: BuildingIcon },
           ]}
         />
+        <NavGroup label="Immobilien" items={[{ label: 'Objekte', to: '/immobilien', icon: HouseIcon }]} />
         {modules.map((module) => (
           <NavGroup
             key={module.id}

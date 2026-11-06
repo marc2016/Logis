@@ -38,11 +38,11 @@ class TransactionController {
     }
 
     record TransactionRequest(Long accountId, LocalDate bookingDate, BigDecimal amount, Long categoryId,
-            String counterparty, String purpose, String note, Integer version) {
+            String counterparty, String purpose, String note, Long propertyId, Long unitId, Integer version) {
 
         TransactionService.TransactionInput input() {
             return new TransactionService.TransactionInput(accountId, bookingDate, amount, categoryId, counterparty,
-                    purpose, note);
+                    purpose, note, propertyId, unitId);
         }
     }
 
@@ -56,6 +56,8 @@ class TransactionController {
 
     @GetMapping("/api/transactions")
     TransactionPage list(@RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) Long propertyId,
+            @RequestParam(required = false) Long unitId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long categoryId,
@@ -64,7 +66,7 @@ class TransactionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal LogisPrincipal me) {
-        var filter = new TransactionFilter(accountId, from, to, categoryId, uncategorized, q);
+        var filter = new TransactionFilter(accountId, propertyId, unitId, from, to, categoryId, uncategorized, q);
         var result = service.list(me.userId(), filter, page, size);
         return new TransactionPage(views.of(result.page().getContent(), me.userId()), result.page().getNumber(),
                 result.page().getSize(), result.page().getTotalElements(), result.income(), result.expense());

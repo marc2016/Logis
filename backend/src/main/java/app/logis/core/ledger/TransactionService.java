@@ -29,27 +29,31 @@ import java.util.UUID;
 class TransactionService {
 
     static final String STALE = "Die Transaktion wurde inzwischen geändert";
+    static final String TRANSFER_TARGET = "Umbuchungen können keinem Objekt zugeordnet werden";
     static final int MAX_PAGE_SIZE = 100;
 
     private final TransactionRepository transactions;
     private final AccountService accounts;
     private final CategoryService categories;
     private final SharingService sharing;
+    private final TransactionTargets targets;
     private final EntityManager em;
     private final Clock clock;
 
     TransactionService(TransactionRepository transactions, AccountService accounts, CategoryService categories,
-            SharingService sharing, EntityManager em, Clock clock) {
+            SharingService sharing, TransactionTargets targets, EntityManager em, Clock clock) {
         this.transactions = transactions;
         this.accounts = accounts;
         this.categories = categories;
         this.sharing = sharing;
+        this.targets = targets;
         this.em = em;
         this.clock = clock;
     }
 
+    /** {@code propertyId}/{@code unitId}: the target, at most one of both; {@code null} for none. */
     record TransactionInput(Long accountId, LocalDate bookingDate, BigDecimal amount, Long categoryId,
-            String counterparty, String purpose, String note) {
+            String counterparty, String purpose, String note, Long propertyId, Long unitId) {
     }
 
     record TransferInput(Long fromAccountId, Long toAccountId, LocalDate bookingDate, BigDecimal amount,
@@ -65,12 +69,16 @@ class TransactionService {
         accounts.requireWritable(userId, requireAccountId(input.accountId()));
         var t = new Transaction(input.accountId(), null, userId, clock.instant());
         apply(t, input, true);
+        applyTarget(userId, t, input);
         return transactions.save(t);
     }
 
     Transaction update(Long userId, Long id, TransactionInput input, Integer version) {
         var t = load(userId, id);
         if (t.isTransfer()) {
+            if (input.propertyId() != null || input.unitId() != null) {
+                throw ApiException.badRequest(TRANSFER_TARGET);
+            }
             throw ApiException.badRequest("Umbuchungen werden über die Umbuchung bearbeitet.");
         }
         accounts.requireWritable(userId, t.getAccountId());
@@ -80,6 +88,7 @@ class TransactionService {
         }
         requireVersion(t, version);
         apply(t, input, !Objects.equals(input.categoryId(), t.getCategoryId()));
+        applyTarget(userId, t, input);
         t.setAccountId(targetAccount);
         t.touch(userId, clock.instant());
         return t;
@@ -136,24 +145,32 @@ class TransactionService {
 
     @Transactional(readOnly = true)
     ListResult list(Long userId, TransactionFilter filter, int page, int size) {
-        Set<Long> accountIds;
-        if (filter.accountId() != null) {
-            sharing.requireRole(Account.SHARE_TYPE, filter.accountId(), userId, ShareRole.VIEWER);
-            accountIds = Set.of(filter.accountId());
-        } else {
-            accountIds = sharing.accessibleIds(Account.SHARE_TYPE, userId, ShareRole.VIEWER);
-        }
+        var visibility = visibility(userId, filter);
         var pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE),
                 Sort.by(Sort.Order.desc("bookingDate"), Sort.Order.desc("id")));
-        if (accountIds.isEmpty()) {
+        if (visibility.isEmpty()) {
             return new ListResult(new PageImpl<>(List.of(), pageable, 0), BigDecimal.ZERO.setScale(2),
                     BigDecimal.ZERO.setScale(2));
         }
         var categoryIds = filter.categoryId() == null ? null : categories.withChildren(filter.categoryId());
-        var spec = filter.toSpecification(accountIds, categoryIds);
+        var propertyUnits = filter.propertyId() == null ? null : targets.unitsOf(filter.propertyId());
+        var spec = filter.toSpecification(visibility, categoryIds, propertyUnits);
         var result = transactions.findAll(spec, pageable);
         var sums = sums(spec);
         return new ListResult(result, sums[0], sums[1]);
+    }
+
+    /**
+     * Which rows the user may see: whole accounts, plus rows attributed to visible units and properties.
+     * With an account filter only that account counts.
+     */
+    private TransactionFilter.Visibility visibility(Long userId, TransactionFilter filter) {
+        if (filter.accountId() != null) {
+            sharing.requireRole(Account.SHARE_TYPE, filter.accountId(), userId, ShareRole.VIEWER);
+            return new TransactionFilter.Visibility(Set.of(filter.accountId()), Set.of(), Set.of());
+        }
+        return new TransactionFilter.Visibility(sharing.accessibleIds(Account.SHARE_TYPE, userId, ShareRole.VIEWER),
+                targets.visibleUnits(userId), targets.visibleProperties(userId));
     }
 
     /** Income and expenses across all hits, excluding transfers. */
@@ -240,6 +257,20 @@ class TransactionService {
         t.setCounterparty(limit(input.counterparty(), 255, "Gegenpartei"));
         t.setPurpose(limit(input.purpose(), 500, "Verwendungszweck"));
         t.setNote(limit(input.note(), 10_000, "Notiz"));
+    }
+
+    /** Sets, changes or removes the target; a new target needs EDITOR on it, an unchanged one is kept. */
+    private void applyTarget(Long userId, Transaction t, TransactionInput input) {
+        if (input.propertyId() != null && input.unitId() != null) {
+            throw ApiException.badRequest("Bitte entweder ein Objekt oder eine Einheit wählen.");
+        }
+        if (Objects.equals(input.propertyId(), t.getPropertyId()) && Objects.equals(input.unitId(), t.getUnitId())) {
+            return;
+        }
+        if (input.propertyId() != null || input.unitId() != null) {
+            targets.requireAssignable(input.propertyId(), input.unitId(), userId);
+        }
+        t.setTarget(input.propertyId(), input.unitId());
     }
 
     private static void requireVersion(Transaction t, Integer version) {

@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { CategorySelect } from '@/components/CategorySelect'
+import { TargetSelect } from '@/components/TargetSelect'
+import type { Target } from '@/core/realestate/api'
 import { FormError } from '@/components/FormError'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
@@ -37,6 +39,7 @@ export function TransactionDialog({ transaction, accounts, defaultAccountId, onC
   const [counterparty, setCounterparty] = useState(transaction?.counterparty ?? '')
   const [purpose, setPurpose] = useState(transaction?.purpose ?? '')
   const [note, setNote] = useState(transaction?.note ?? '')
+  const [target, setTarget] = useState<Target>({ propertyId: transaction?.propertyId ?? null, unitId: transaction?.unitId ?? null })
   const [error, setError] = useState<string | null>(null)
   const invalidate = useInvalidateLedger()
 
@@ -50,6 +53,8 @@ export function TransactionDialog({ transaction, accounts, defaultAccountId, onC
         counterparty,
         purpose,
         note,
+        propertyId: target.propertyId,
+        unitId: target.unitId,
         version: transaction?.version,
       }
       return isNew
@@ -125,6 +130,10 @@ export function TransactionDialog({ transaction, accounts, defaultAccountId, onC
           <div className="space-y-2">
             <Label htmlFor="tx-category">Kategorie</Label>
             <CategorySelect id="tx-category" value={categoryId} onChange={setCategoryId} currentName={transaction?.categoryName} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tx-target">Objekt</Label>
+            <TargetSelect id="tx-target" mode="assign" value={target} onChange={setTarget} currentName={transaction?.targetName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="tx-counterparty">Gegenpartei</Label>

@@ -25,19 +25,29 @@ class TransactionViews {
     private final TransactionRepository transactions;
     private final CategoryService categories;
     private final SharingService sharing;
+    private final TransactionTargets targets;
 
     TransactionViews(AccountRepository accounts, TransactionRepository transactions, CategoryService categories,
-            SharingService sharing) {
+            SharingService sharing, TransactionTargets targets) {
         this.accounts = accounts;
         this.transactions = transactions;
         this.categories = categories;
         this.sharing = sharing;
+        this.targets = targets;
     }
 
+    /** FULL: the user sees the account; TARGET: only through the property or unit, read-only. */
+    enum Access {
+        FULL,
+        TARGET
+    }
+
+    /** For {@link Access#TARGET} rows, account ID, account name and note are {@code null}. */
     record TransactionView(Long id, Long accountId, String accountName, LocalDate bookingDate,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal amount, Long categoryId, String categoryName,
             String counterparty, String purpose, String note, UUID transferId, Long counterAccountId,
-            String counterAccountName, int version) {
+            String counterAccountName, Long propertyId, Long unitId, String targetName, Access access,
+            int version) {
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +73,10 @@ class TransactionViews {
         var categoryNames = categories.byIds(categoryIds).values().stream()
                 .collect(Collectors.toMap(Category::getId, Category::getName));
         var byId = counterparts.stream().collect(Collectors.toMap(Transaction::getId, Function.identity()));
+        var propertyNames = targets.propertyNames(list.stream().map(Transaction::getPropertyId)
+                .filter(Objects::nonNull).collect(Collectors.toSet()));
+        var unitNames = targets.unitNames(list.stream().map(Transaction::getUnitId)
+                .filter(Objects::nonNull).collect(Collectors.toSet()));
 
         return list.stream().map(t -> {
             Long counterId = null;
@@ -76,9 +90,16 @@ class TransactionViews {
                     counterName = visible.contains(counterId) ? names.get(counterId) : "anderes Konto";
                 }
             }
+            var targetName = t.getUnitId() != null ? unitNames.get(t.getUnitId()) : propertyNames.get(t.getPropertyId());
+            if (!visible.contains(t.getAccountId())) {
+                return new TransactionView(t.getId(), null, null, t.getBookingDate(), t.getAmount(), t.getCategoryId(),
+                        categoryNames.get(t.getCategoryId()), t.getCounterparty(), t.getPurpose(), null, null, null,
+                        null, t.getPropertyId(), t.getUnitId(), targetName, Access.TARGET, t.getVersion());
+            }
             return new TransactionView(t.getId(), t.getAccountId(), names.get(t.getAccountId()), t.getBookingDate(),
                     t.getAmount(), t.getCategoryId(), categoryNames.get(t.getCategoryId()), t.getCounterparty(),
-                    t.getPurpose(), t.getNote(), t.getTransferId(), counterId, counterName, t.getVersion());
+                    t.getPurpose(), t.getNote(), t.getTransferId(), counterId, counterName, t.getPropertyId(),
+                    t.getUnitId(), targetName, Access.FULL, t.getVersion());
         }).toList();
     }
 }

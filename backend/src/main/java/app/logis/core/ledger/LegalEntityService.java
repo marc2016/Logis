@@ -21,11 +21,14 @@ class LegalEntityService {
     private final LegalEntityRepository entities;
     private final AccountRepository accounts;
     private final Clock clock;
+    private final List<LegalEntityUsage> usages;
 
-    LegalEntityService(LegalEntityRepository entities, AccountRepository accounts, Clock clock) {
+    LegalEntityService(LegalEntityRepository entities, AccountRepository accounts, Clock clock,
+            List<LegalEntityUsage> usages) {
         this.entities = entities;
         this.accounts = accounts;
         this.clock = clock;
+        this.usages = usages;
     }
 
     /** Creates the private legal entity when a user is created (same transaction). */
@@ -76,6 +79,12 @@ class LegalEntityService {
         }
         if (accounts.countByLegalEntityId(id) > 0) {
             throw ApiException.conflict("Der Rechtsträger hat noch Konten");
+        }
+        for (var usage : usages) {
+            var reason = usage.blockingReason(id);
+            if (reason != null) {
+                throw ApiException.conflict(reason);
+            }
         }
         entities.delete(entity);
     }

@@ -31,6 +31,10 @@ export function transaction(overrides: Partial<Transaction> = {}): Transaction {
     transferId: null,
     counterAccountId: null,
     counterAccountName: null,
+    propertyId: null,
+    unitId: null,
+    targetName: null,
+    access: 'FULL',
     version: 0,
     ...overrides,
   }

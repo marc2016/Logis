@@ -14,17 +14,19 @@ import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { useCurrentUser } from '@/core/auth/session'
 import { ledgerKeys, roleLabel, useShares, useUserSearch, type DirectoryUser, type ShareRole } from '@/core/ledger/api'
+import { realestateKeys } from '@/core/realestate/api'
 
 const ROLES: ShareRole[] = ['VIEWER', 'EDITOR', 'OWNER']
+const DESCRIPTION = 'Lesen: nur ansehen. Bearbeiten: Buchungen erfassen und ändern. Owner: zusätzlich Konto und Freigaben verwalten.'
 
-function RoleSelect({ value, onChange, id, label }: { value: ShareRole; onChange: (r: ShareRole) => void; id?: string; label?: string }) {
+function RoleSelect({ value, onChange, roles, id, label }: { value: ShareRole; onChange: (r: ShareRole) => void; roles: ShareRole[]; id?: string; label?: string }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as ShareRole)}>
       <SelectTrigger id={id} className="w-36" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {ROLES.map((role) => (
+        {roles.map((role) => (
           <SelectItem key={role} value={role}>
             {roleLabel[role]}
           </SelectItem>
@@ -80,23 +82,27 @@ interface Props {
   objectName: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Roles that may be granted; units only allow reading and editing. */
+  roles?: ShareRole[]
+  description?: string
 }
 
 /** Shows an object's shares and - as owner - manages them. For all shareable types. */
-export function ShareDialog({ objectType, objectId, objectName, open, onOpenChange }: Props) {
+export function ShareDialog({ objectType, objectId, objectName, open, onOpenChange, roles = ROLES, description = DESCRIPTION }: Props) {
   const me = useCurrentUser()
   const queryClient = useQueryClient()
   const { data } = useShares(objectType, objectId, open)
   const [target, setTarget] = useState<DirectoryUser | null>(null)
   const [role, setRole] = useState<ShareRole>('VIEWER')
   const [error, setError] = useState<string | null>(null)
-  const canManage = data?.myRole === 'OWNER'
+  const canManage = data?.canManage === true
   const base = `/api/shares/${objectType}/${objectId}`
 
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ledgerKeys.shares(objectType, objectId) }),
       queryClient.invalidateQueries({ queryKey: ledgerKeys.accounts }),
+      queryClient.invalidateQueries({ queryKey: realestateKeys.properties }),
     ])
 
   const mutation = useMutation({
@@ -130,9 +136,7 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Freigaben: {objectName}</DialogTitle>
-          <DialogDescription>
-            Lesen: nur ansehen. Bearbeiten: Buchungen erfassen und ändern. Owner: zusätzlich Konto und Freigaben verwalten.
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <ul className="divide-y rounded-lg border" aria-label="Freigaben">
@@ -148,6 +152,7 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
                 <>
                   <RoleSelect
                     value={share.role}
+                    roles={roles}
                     label={`Rolle von ${share.displayName}`}
                     onChange={(r) => mutation.mutate(() => api(`${base}/${share.userId}`, { method: 'PATCH', json: { role: r } }))}
                   />
@@ -174,7 +179,7 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
               <div className="flex-1">
                 <UserPicker value={target} onChange={setTarget} />
               </div>
-              <RoleSelect value={role} onChange={setRole} label="Rolle für Einladung" />
+              <RoleSelect value={role} onChange={setRole} roles={roles} label="Rolle für Einladung" />
               <Button onClick={invite} disabled={!target || mutation.isPending}>
                 Einladen
               </Button>

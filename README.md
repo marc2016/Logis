@@ -118,6 +118,20 @@ http:
 - **Categories** are one shared tree for all users and are maintained by admins under *Einstellungen > Kategorien*. Categories in use can only be archived.
 - **Transfers** between own accounts change the balances but do not count as income or expense.
 
+## Real estate
+
+- **Properties** (*Immobilien > Objekte*) belong to exactly one owner (legal entity), like accounts. Whoever creates a property is its **owner**.
+- **Units:** Every property has at least one unit. A holiday home is created as a property with one unit; Logis creates that unit automatically and does not show a separate unit level. A house with several apartments gets one unit per apartment.
+- **Shares** work on two levels:
+
+  | Shared | Roles | Who manages it |
+  |---|---|---|
+  | Property | Lesen, Bearbeiten, Owner | owners of the property |
+  | Single unit (only for properties with several units) | Lesen, Bearbeiten | owners of the property |
+
+  The effective role on a unit is the higher of the property role and the unit role. Whoever only has a share on a unit sees the property's name and address and that unit, but no other units and nothing attributed to the property as a whole.
+- **Attributed transactions:** A transaction can be attributed to a property or a unit (field *Objekt* in the transaction dialog). This needs *Bearbeiten* on the account and on the property or unit. People who see the property or unit but not the account can read these transactions without account name, balance or note; changing them still requires rights on the account. Transfers cannot be attributed.
+
 ## Backup and restore
 
 The `backup` service writes a backup to `./backups/logis_<YYYYMMDD_HHMMSS>.dump` every day at `BACKUP_TIME` and deletes backups older than `BACKUP_RETENTION_DAYS`.

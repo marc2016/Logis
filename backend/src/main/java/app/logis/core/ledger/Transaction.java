@@ -42,6 +42,13 @@ class Transaction {
     @Column
     private String note;
 
+    /** Target: a property, or a unit of one (at most one of both). */
+    @Column(name = "property_id")
+    private Long propertyId;
+
+    @Column(name = "unit_id")
+    private Long unitId;
+
     /** Both sides of a transfer share this ID. */
     @Column(name = "transfer_id", updatable = false)
     private UUID transferId;
@@ -72,6 +79,19 @@ class Transaction {
         this.createdAt = now;
         this.updatedBy = userId;
         this.updatedAt = now;
+    }
+
+    Long getPropertyId() {
+        return propertyId;
+    }
+
+    Long getUnitId() {
+        return unitId;
+    }
+
+    void setTarget(Long propertyId, Long unitId) {
+        this.propertyId = propertyId;
+        this.unitId = unitId;
     }
 
     void touch(Long userId, Instant now) {

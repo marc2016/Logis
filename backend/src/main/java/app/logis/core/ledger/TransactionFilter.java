@@ -7,17 +7,51 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Set;
 
 /**
- * Filter of the transaction list. The set of accounts always comes from the user's shares.
+ * Filter of the transaction list. The visible rows always come from the user's shares.
  */
-record TransactionFilter(Long accountId, LocalDate from, LocalDate to, Long categoryId, boolean uncategorized,
-        String query) {
+record TransactionFilter(Long accountId, Long propertyId, Long unitId, LocalDate from, LocalDate to,
+        Long categoryId, boolean uncategorized, String query) {
 
-    Specification<Transaction> toSpecification(Collection<Long> accountIds, Collection<Long> categoryIds) {
+    /**
+     * Rows a user may see: all rows of {@code accountIds} (full access), and rows attributed to
+     * {@code unitIds} or {@code propertyIds} (read-only through the target).
+     */
+    record Visibility(Set<Long> accountIds, Set<Long> unitIds, Set<Long> propertyIds) {
+
+        boolean isEmpty() {
+            return accountIds.isEmpty() && unitIds.isEmpty() && propertyIds.isEmpty();
+        }
+    }
+
+    /**
+     * @param propertyUnits all units of the filtered property, or {@code null} without a property filter
+     */
+    Specification<Transaction> toSpecification(Visibility visibility, Collection<Long> categoryIds,
+            Collection<Long> propertyUnits) {
         return (root, cq, cb) -> {
             var predicates = new ArrayList<Predicate>();
-            predicates.add(root.get("accountId").in(accountIds));
+            var visible = new ArrayList<Predicate>();
+            if (!visibility.accountIds().isEmpty()) {
+                visible.add(root.get("accountId").in(visibility.accountIds()));
+            }
+            if (!visibility.unitIds().isEmpty()) {
+                visible.add(root.get("unitId").in(visibility.unitIds()));
+            }
+            if (!visibility.propertyIds().isEmpty()) {
+                visible.add(root.get("propertyId").in(visibility.propertyIds()));
+            }
+            predicates.add(cb.or(visible.toArray(Predicate[]::new)));
+            if (unitId != null) {
+                predicates.add(cb.equal(root.get("unitId"), unitId));
+            }
+            if (propertyId != null) {
+                var byProperty = cb.equal(root.get("propertyId"), propertyId);
+                predicates.add(propertyUnits.isEmpty() ? byProperty
+                        : cb.or(byProperty, root.get("unitId").in(propertyUnits)));
+            }
             if (from != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("bookingDate"), from));
             }
@@ -34,10 +68,15 @@ record TransactionFilter(Long accountId, LocalDate from, LocalDate to, Long cate
             if (query != null && !query.isBlank()) {
                 var pattern = "%" + query.trim().toLowerCase(Locale.ROOT)
                         .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("counterparty")), pattern, '\\'),
-                        cb.like(cb.lower(root.get("purpose")), pattern, '\\'),
-                        cb.like(cb.lower(root.get("note")), pattern, '\\')));
+                var text = new ArrayList<Predicate>();
+                text.add(cb.like(cb.lower(root.get("counterparty")), pattern, '\\'));
+                text.add(cb.like(cb.lower(root.get("purpose")), pattern, '\\'));
+                // The note is only searched where the user sees the whole account.
+                if (!visibility.accountIds().isEmpty()) {
+                    text.add(cb.and(root.get("accountId").in(visibility.accountIds()),
+                            cb.like(cb.lower(root.get("note")), pattern, '\\')));
+                }
+                predicates.add(cb.or(text.toArray(Predicate[]::new)));
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };

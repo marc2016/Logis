@@ -193,10 +193,10 @@ describe('Sharing', () => {
     'GET /api/accounts': { body: [account({ myRole })] },
     'GET /api/transactions': { body: page([]) },
     'GET /api/shares/account/1': {
-      body: { myRole, shares: [{ userId: 1, username: 'admin', displayName: 'Anna Admin', role: myRole === 'OWNER' ? 'OWNER' : 'VIEWER' }] },
+      body: { myRole, canManage: myRole === 'OWNER', shares: [{ userId: 1, username: 'admin', displayName: 'Anna Admin', role: myRole === 'OWNER' ? 'OWNER' : 'VIEWER' }] },
     },
     'GET /api/users/search': { body: [{ id: 2, username: 'bert', displayName: 'Bert Benutzer' }] },
-    'POST /api/shares/account/1': { body: { myRole, shares: [] } },
+    'POST /api/shares/account/1': { body: { myRole, canManage: myRole === 'OWNER', shares: [] } },
     ...(patch ? { 'PATCH /api/shares/account/1/1': patch } : {}),
   })
 
