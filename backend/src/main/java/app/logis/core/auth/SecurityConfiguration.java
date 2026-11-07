@@ -6,6 +6,7 @@ import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -40,6 +41,8 @@ class SecurityConfiguration {
                         AnonymousAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+                        // Calendar feeds for calendar apps: the secret token in the path is the credential.
+                        .requestMatchers(HttpMethod.GET, "/api/ical/**").permitAll()
                         // Only on the internal management port 8081 (Docker health check), never via nginx.
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

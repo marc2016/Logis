@@ -26,11 +26,11 @@ Table `vacationrental.calendar_links`: `id`, `unit_id`, `created_by` (user id), 
 ### D2: Endpoints
 
 - `GET /api/vacationrental/calendar-links?unitId=` lists the caller's links of the unit (without token).
-- `POST /api/vacationrental/calendar-links` `{unitId, name, withGuests}` checks that the caller can see the unit and returns the link with its full `url` once.
+- `POST /api/vacationrental/calendar-links` `{unitId, name, withGuests}` checks that the caller can see the unit and returns the link with its feed `path` once (the frontend prefixes its own origin).
 - `DELETE /api/vacationrental/calendar-links/{id}` only for the creator.
-- `GET /ical/{token}.ics` is public: permitted in `SecurityConfiguration` outside `/api/**`, no session, no CSRF. It hashes the token, loads the link, checks the creator's current effective role on the unit through the sharing model, and returns `text/calendar; charset=utf-8`. Any failure returns `404` with an empty body.
+- `GET /api/ical/{token}.ics` is public: permitted for `GET` in `SecurityConfiguration` before the `/api/**` rule, no session, no CSRF. It hashes the token, loads the link, checks the creator's current effective role on the unit through the sharing model, and returns `text/calendar; charset=utf-8`. Any failure returns `404` with an empty body.
 
-The feed path lives outside `/api/` so that the session filter and the SPA fallback do not interfere; the reverse proxy forwards `/ical/` to the backend like `/api/`.
+The feed path lives under `/api/` because nginx already forwards it to the backend; no proxy change is needed. The session filter leaves requests without a session alone, as for `/api/auth/**`.
 
 ### D3: Feed format
 
