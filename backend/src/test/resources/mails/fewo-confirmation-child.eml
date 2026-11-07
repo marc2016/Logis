@@ -1,0 +1,28 @@
+From: "Fewo & Meer" <buchung@fewoundmeer.de>
+To: vermieter@example.org
+Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Date: Sat, 07 Nov 2026 09:00:00 +0100
+Message-ID: <fewo-275031@fewoundmeer.de>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body>
+<p>Sehr geehrte(r) Muster GbR,</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 23.12.2026 bis 27.12.2026.</p>
+<table>
+<tr><td>Buchungsnummer</td><td>275031</td></tr>
+<tr><td>Anzahl Gäste</td><td>2 Erwachsene, 1 Kind</td></tr>
+<tr><td>Anreise</td><td>23.12.2026</td></tr>
+<tr><td>Abreise</td><td>27.12.2026</td></tr>
+<tr><td>Mietpreis</td><td>559,00 EUR</td></tr>
+</table>
+<p>Informationen zum Gast:</p>
+<table>
+<tr><td>Name</td><td>Jonas Beispiel</td></tr>
+<tr><td>Adresse</td><td>Probeweg 6<br>34497 Probestadt<br>Deutschland</td></tr>
+<tr><td>Telefon</td><td></td></tr>
+<tr><td>Telefon (mobil)</td><td>0172 0000002</td></tr>
+<tr><td>Email</td><td>jonas@example.org</td></tr>
+</table>
+</body></html>

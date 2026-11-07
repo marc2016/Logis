@@ -1,0 +1,29 @@
+From: "Fewo & Meer" <buchung@fewoundmeer.de>
+To: vermieter@example.org
+Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Date: Fri, 06 Nov 2026 12:15:00 +0100
+Message-ID: <fewo-275505@fewoundmeer.de>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body>
+<p>Sehr geehrte(r) Muster GbR,</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 06.11.2026 bis 08.11.2026.</p>
+<table>
+<tr><td><b>Buchungsnummer</b></td><td>275505</td></tr>
+<tr><td><b>Anzahl Gäste</b></td><td>4 Erwachsene</td></tr>
+<tr><td><b>Anreise</b></td><td>06.11.2026</td></tr>
+<tr><td><b>Abreise</b></td><td>08.11.2026</td></tr>
+<tr><td><b>Mietpreis</b></td><td>248,58 EUR</td></tr>
+</table>
+<p><b>Informationen zum Gast:</b></p>
+<table>
+<tr><td><b>Name</b></td><td>Erika Musterfrau</td></tr>
+<tr><td><b>Adresse</b></td><td>Musterweg 1<br>12345 Musterstadt<br>Deutschland</td></tr>
+<tr><td><b>Telefon</b></td><td>0151 0000001</td></tr>
+<tr><td><b>Telefon (mobil)</b></td><td>0151 0000001</td></tr>
+<tr><td><b>Email</b></td><td>erika@example.org</td></tr>
+</table>
+<p>Mit freundlichen Grüßen<br>P. Beispiel</p>
+</body></html>
