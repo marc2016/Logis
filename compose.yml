@@ -35,7 +35,11 @@ services:
       LOGIS_ADMIN_PASSWORD: ${LOGIS_ADMIN_PASSWORD:-}
       LOGIS_ENCRYPTION_KEY: ${LOGIS_ENCRYPTION_KEY:?LOGIS_ENCRYPTION_KEY is missing}
       LOGIS_MODULES_VACATIONRENTAL_ENABLED: ${LOGIS_MODULES_VACATIONRENTAL_ENABLED:-true}
-    networks: [internal]
+      LOGIS_AI_ENABLED: ${LOGIS_AI_ENABLED:-false}
+      LOGIS_ANTHROPIC_API_KEY: ${LOGIS_ANTHROPIC_API_KEY:-}
+      LOGIS_AI_MODEL: ${LOGIS_AI_MODEL:-claude-opus-5-5}
+    # egress: outbound only (mail import via IMAP, optional AI); no published ports.
+    networks: [internal, egress]
     depends_on:
       db:
         condition: service_healthy
@@ -86,9 +90,11 @@ services:
 networks:
   # Only frontend is attached here; the published port runs through it.
   edge: {}
-  # No outside connection: backend, db and backup are reachable internally only.
+  # No outside connection: db and backup are reachable internally only; the backend also uses egress.
   internal:
     internal: true
+  # Outbound connections of the backend only (IMAP, optional Claude API). Nothing is published on it.
+  egress: {}
 
 volumes:
   pgdata:

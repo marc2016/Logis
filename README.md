@@ -53,6 +53,7 @@ Then set up an HTTPS route to `LOGIS_BIND:LOGIS_PORT` in the reverse proxy (see 
 | `LOGIS_ENCRYPTION_KEY` | Key for the TOTP secrets, 32 bytes in Base64. **Back it up separately from the backups!** |
 | `LOGIS_ADMIN_USERNAME`, `LOGIS_ADMIN_PASSWORD` | Initial admin, used only at the very first start. At least 12 characters. |
 | `LOGIS_MODULES_<MODULE>_ENABLED` | Switch a module on or off, e.g. `LOGIS_MODULES_VACATIONRENTAL_ENABLED=false` |
+| `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY`, `LOGIS_AI_MODEL` | Optional AI fallback of the mail import (see Vacation rental > Mail import). Off by default; model default `claude-opus-5-5`. |
 | `BACKUP_TIME`, `BACKUP_RETENTION_DAYS` | Time of the daily backup and retention in days |
 
 > **Key lost?** Without `LOGIS_ENCRYPTION_KEY` the stored TOTP secrets can no longer be decrypted. All users then have to set up 2FA again (see Emergency).
@@ -145,6 +146,17 @@ The module *Ferienvermietung* records stays in units with the usage *Ferienvermi
 - **Statements** (*Abrechnungen*): one per unit and statement of the service provider. Assign the bookings with gross, commission and cleaning; net and payout are computed. A booking on a statement counts as settled; a cancelled booking can carry a cancellation payout.
 - **Auswertung:** booked nights and occupancy per month (stays across a month boundary are split by night), settled net income on the statement date and planned rent in the month of arrival.
 - **Guest data:** Name, address, phone and email are stored. Only people with *Bearbeiten* see the contact data and the documents; *Lesen* shows the guest name only. Guest data is never deleted automatically: *Gastdaten löschen* in the booking removes name and contact data for good and keeps the booking and its amounts. Documents stay and have to be deleted one by one, because they usually contain guest data too.
+
+### Mail import
+
+Logis can read the booking mails of the rental agencies (confirmations, short-notice notices, changes, cancellations) from an IMAP mailbox and prepare bookings for you to confirm.
+
+- **Set up** under *Ferienvermietung > Posteingang*: IMAP server, port, user, password, folder and a cut-off date. Best use a separate folder or address that only receives the agency mails (a filter rule or forwarding in your mail account). The password is stored encrypted with `LOGIS_ENCRYPTION_KEY`. Logis polls every 5 minutes, only mails from the cut-off date on, and never changes or deletes anything in the mailbox. Older mails can be fetched once from a chosen date.
+- **Recognised by rules:** Fewo & Meer (confirmation, Last-Minute, cancellation) and Holidu/DS Destination Solutions (confirmation). For the first mail of a property, assign its unit once; Logis remembers it per agency.
+- **Result:** A new booking number becomes a booking marked *zu prüfen* (it already blocks the calendar); a change or cancellation is proposed on the existing booking. Confirm, apply or discard it in the booking dialog. The original mail is attached to the booking as `.eml`.
+- **AI fallback (optional):** With `LOGIS_AI_ENABLED=true` and `LOGIS_ANTHROPIC_API_KEY`, mails no rule recognises are read by Claude (`LOGIS_AI_MODEL`). **The mail text, including guest data, is then sent to Anthropic.** Without AI, such mails stay in the inbox as *Nicht erkannt*.
+- **Privacy:** The inbox is visible only to its owner. Deleting a mail there removes its content and guest data; the copy attached to a booking stays until you delete that document.
+- **Network:** The backend reaches the IMAP server (and the Claude API) through the compose network `egress`, which only allows outbound connections; database and backup have no access to the outside.
 
 ## Backup and restore
 

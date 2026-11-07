@@ -13,8 +13,17 @@ const column = createColumnHelper<InboxItem>()
 
 const columns = [
   column.accessor('receivedAt', { header: 'Eingang', cell: (c) => dateTime.format(new Date(c.getValue())), meta: { label: 'Eingang' } }),
-  column.accessor('agency', { header: 'Vermittler', cell: (c) => c.getValue() ?? c.row.original.sender ?? '–', meta: { label: 'Vermittler' } }),
-  column.accessor('subject', { header: 'Betreff', cell: (c) => <span className="line-clamp-2">{c.getValue() ?? '–'}</span>, meta: { label: 'Betreff' } }),
+  column.accessor('agency', {
+    header: 'Vermittler',
+    cell: (c) => c.getValue() ?? c.row.original.sender ?? '–',
+    meta: { label: 'Vermittler', className: 'whitespace-normal break-all' },
+  }),
+  column.accessor('subject', {
+    header: 'Betreff',
+    cell: (c) => <span className="line-clamp-2">{c.getValue() ?? '–'}</span>,
+    // Long subjects wrap instead of widening the page.
+    meta: { label: 'Betreff', className: 'min-w-48 whitespace-normal break-words' },
+  }),
   column.accessor('mailType', { header: 'Art', cell: (c) => (c.getValue() ? mailTypeLabel[c.getValue()!] : '–'), meta: { label: 'Art' } }),
   column.accessor('result', {
     header: 'Ergebnis',

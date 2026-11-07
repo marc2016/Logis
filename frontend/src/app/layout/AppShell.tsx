@@ -16,7 +16,7 @@ export function AppShell() {
   return (
     <SidebarProvider defaultOpen={initialSidebarOpen()}>
       <AppSidebar modules={modules} />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger aria-label="Menü umschalten" />
           <Separator orientation="vertical" className="mx-1 h-4" />

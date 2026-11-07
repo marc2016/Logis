@@ -30,6 +30,6 @@
 
 ## 6. Acceptance
 
-- [ ] 6.1 Run `./mvnw verify` and `npm test && npm run lint && npm run build`. Verify: everything is green.
-- [ ] 6.2 Manual run against a GreenMail or real test mailbox: deliver the five sample mails (anonymised), assign "Haus Seeufer - Nordhorn" and "Ferienhaus Seeufer" to the same unit, confirm a booking, apply a cancellation, and check the inbox results. Verify: all steps behave as described in the specs.
-- [ ] 6.3 Document the mailbox setup, the AI settings and the privacy notice in the README. Verify: the section names `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY` and `LOGIS_AI_MODEL` and that AI is off by default.
+- [x] 6.1 Run `./mvnw verify` and `npm test && npm run lint && npm run build`. Verify: everything is green.
+- [x] 6.2 Manual run against a GreenMail or real test mailbox: deliver the five sample mails (anonymised), assign "Haus Seeufer - Nordhorn" and "Ferienhaus Seeufer" to the same unit, confirm a booking, apply a cancellation, and check the inbox results. Verify: all steps behave as described in the specs.
+- [x] 6.3 Document the mailbox setup, the AI settings and the privacy notice in the README. Verify: the section names `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY` and `LOGIS_AI_MODEL` and that AI is off by default.

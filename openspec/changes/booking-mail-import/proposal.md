@@ -36,6 +36,7 @@ Guiding decisions from exploration:
 
 ### Modified Capabilities
 
+- `deployment`: Outbound connections are allowed for the backend only; database and backup stay isolated.
 - `bookings`: Bookings and changes awaiting review, confirmation and discarding, the agency and pets fields, and booking numbers that are unique per unit and agency.
 
 ## Impact
@@ -45,7 +46,7 @@ Guiding decisions from exploration:
   - A trusted store method in `core.documents` for `.eml` files created by the server.
   - Scheduling gets enabled.
 - **Dependencies:** `spring-boot-starter-mail` (IMAP), `jsoup` (HTML to text), the Anthropic Java SDK (optional AI fallback), and GreenMail for tests.
-- **Configuration:** `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY` and `LOGIS_AI_MODEL`, with AI off by default. Outbound network to the IMAP host and, with AI, to `api.anthropic.com`.
+- **Configuration:** `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY` and `LOGIS_AI_MODEL`, with AI off by default. The backend gets outbound network access through a new compose network `egress`, to the IMAP host and, with AI, to `api.anthropic.com`. Database and backup stay isolated.
 - **Frontend:**
   - A new page „Posteingang“ with mailbox settings.
   - „zu prüfen“ markers and actions in the grid, the calendar and `BookingDialog`.

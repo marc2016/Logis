@@ -123,11 +123,12 @@ same Message-ID again    -> skipped before parsing (unique constraint)
 - [Guest data in stored mails] → Same visibility as booking documents (only the mailbox owner sees the inbox; booking documents need `EDITOR`). „Ignorieren“ followed by „Löschen“ removes the raw mail. Manual deletion as for guest data.
 - [AI sends personal data to a third party] → Off by default, explicit notice, only for mails no rule recognises.
 - [IMAP password in the database] → Encrypted with `SecretCipher`; never returned by the API; a new password must be entered to change host or user.
+- [The backend can now reach the internet] → Only outbound, through the separate `egress` network; no port is published there, and db and backup stay isolated. Without it, mail import cannot work in the container stack.
 - [Duplicate bookings from manual entry plus mail] → Lookup by booking number also matches bookings without agency (D3).
 
 ## Migration Plan
 
-`V20261108.1200__vacationrental_mail_import.sql`: new tables, new booking columns with defaults, replaced unique index. Existing bookings keep `agency = NULL`, `review_state = 'NONE'`. New dependencies are added to `pom.xml`. No changes to compose files; outbound IMAP must be allowed in the deployment network.
+`V20261108.1200__vacationrental_mail_import.sql`: new tables, new booking columns with defaults, replaced unique index. Existing bookings keep `agency = NULL`, `review_state = 'NONE'`. New dependencies are added to `pom.xml`. In `compose.yml` the backend joins a new network `egress` (not internal, nothing published) for outbound IMAP and the optional Claude API, and receives the `LOGIS_AI_*` variables; db and backup stay on `internal` only.
 
 ## Open Questions
 
