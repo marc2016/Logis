@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test as base, type APIRequestContext, type Page } from '@playwright/test'
-import { call, signIn, unique, type Credentials } from './api'
+import { call, clientIp, signIn, unique, type Credentials } from './api'
 import { ADMIN_STATE } from './global-setup'
 
 export interface TestUser extends Credentials {
@@ -24,6 +24,10 @@ type Fixtures = {
 }
 
 export const test = base.extend<Fixtures>({
+  // Own client IP per test (and retry): the sign-in rate limit of nginx counts per IP.
+  extraHTTPHeaders: async ({ extraHTTPHeaders }, use) => {
+    await use({ ...extraHTTPHeaders, 'X-Forwarded-For': clientIp() })
+  },
   user: async ({ page, baseURL }, use) => {
     const user = await createUser(baseURL!)
     await signIn(page.context().request, user)

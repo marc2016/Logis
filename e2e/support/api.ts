@@ -56,6 +56,15 @@ export async function signIn(request: APIRequestContext, credentials: Credential
   if (r.stage !== 'AUTHENTICATED') throw new Error(`Sign-in of ${credentials.username} did not finish`)
 }
 
+/**
+ * A random client IP from the benchmarking range 198.18.0.0/15, sent as X-Forwarded-For.
+ * nginx trusts the Docker networks in e2e.env, so every test gets its own sign-in rate limit.
+ */
+export function clientIp() {
+  const n = Math.floor(Math.random() * 2 ** 17)
+  return `198.${18 + (n >> 16)}.${(n >> 8) & 0xff}.${n & 0xff}`
+}
+
 /** Short random suffix for names, so tests never collide. */
 export function unique(prefix: string) {
   return `${prefix}${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`

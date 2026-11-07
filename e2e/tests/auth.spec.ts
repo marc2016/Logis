@@ -1,5 +1,5 @@
-import { test, type Page } from '@playwright/test'
-import { createUser, expect, openNavigation } from '../support/fixtures'
+import type { Page } from '@playwright/test'
+import { createUser, expect, openNavigation, test } from '../support/fixtures'
 import { freshTotp } from '../support/totp'
 
 async function firstStep(page: Page, username: string, password: string) {

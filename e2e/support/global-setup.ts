@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { request, type FullConfig } from '@playwright/test'
-import { signIn, type Credentials } from './api'
+import { clientIp, signIn, type Credentials } from './api'
 
 export const AUTH_DIR = path.join(import.meta.dirname, '..', '.auth')
 export const ADMIN_FILE = path.join(AUTH_DIR, 'admin.json')
@@ -17,7 +17,7 @@ export default async function globalSetup(config: FullConfig) {
   const admin: Credentials = fs.existsSync(ADMIN_FILE)
     ? JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8'))
     : { username: process.env.LOGIS_E2E_ADMIN_USERNAME ?? 'admin', password: process.env.LOGIS_E2E_ADMIN_PASSWORD ?? 'e2e-admin-passwort' }
-  const context = await request.newContext({ baseURL })
+  const context = await request.newContext({ baseURL, extraHTTPHeaders: { 'X-Forwarded-For': clientIp() } })
   try {
     await signIn(context, admin)
   } finally {
