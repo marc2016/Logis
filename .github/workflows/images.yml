@@ -50,7 +50,8 @@ jobs:
 
   e2e:
     needs: [test-backend, test-frontend]
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.56 has no browser builds for ubuntu-latest (26.04). Raise together with Playwright.
+    runs-on: ubuntu-24.04
     env:
       COMPOSE: docker compose --env-file e2e/e2e.env -f compose.yml -f e2e/compose.e2e.yml
     steps:
