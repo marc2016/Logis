@@ -12,6 +12,7 @@ Guiding decisions from exploration:
 - **Cancellations** keep the booking with the status cancelled. A cancelled booking frees the calendar and can still appear on a statement with a cancellation payout.
 - **Guest data includes contact details** (address, phone, email). Only users with at least `EDITOR` on the unit see them, and they are deleted by hand. There is no automatic retention period.
 - **Rights come from the unit:** bookings and statements use the effective role on the unit from `core.realestate`, with no shares of their own.
+- **The property is the financial overview:** Income from bookings, deductions such as commission and cleaning, and other costs such as repairs all appear on the property, together with the result. There are no bank accounts in Logis yet, so costs are recorded directly on the property or unit, without an account. Once bank accounts exist, each cost and each statement can be linked to its bank transaction (later change), so nothing is counted twice.
 
 ## What Changes
 
@@ -27,9 +28,12 @@ Guiding decisions from exploration:
   - Removing a booking from a statement makes it planned again.
 - **Occupancy:**
   - A monthly calendar per property with one row per vacation rental unit.
-  - A yearly overview per unit with booked nights, occupancy rate, net income, expenses and result per month. Settled and planned amounts are shown separately, and stays across a month boundary are split by night.
-  - Expenses are the transactions attributed to the unit with a negative amount, for example paid repair invoices.
-- **Costs on the property:** The property page gets „Kosten erfassen“. It opens the transaction dialog with the property or unit preselected as the target, so costs are recorded as ordinary transactions on the bank account. A later bank import can match them instead of creating duplicates.
+  - A yearly overview per unit with booked nights, occupancy rate, settled net and planned rent per month. Stays across a month boundary are split by night.
+- **Property finances (core, all properties):**
+  - Costs are recorded on a property or one of its units: date, amount, category, counterparty, note and receipts (documents).
+  - The property page gets a „Finanzen“ section: a yearly table per month with income, expenses and result, and a sortable list of all items, with „+ Kosten“ at the top right.
+  - Modules contribute items. `vacationrental` contributes per settled statement line: the gross as income, and commission and cleaning as expenses.
+- **Documents (core):** One shared file storage for receipts on costs and documents on bookings.
 - **Real estate core:**
   - Modules can report that they still reference a unit. A property is then not deletable, as is already the case with attributed transactions.
   - `UnitAccess` returns display data for units (name, property, usage, archived).
@@ -42,18 +46,20 @@ Guiding decisions from exploration:
 - `bookings`: Bookings on vacation rental units, with planned/settled/cancelled status, the overlap rule, the external booking number, and guest data with restricted visibility and manual deletion.
 - `rental-statements`: Statements of a rental service provider per unit: booking lines with gross, commission, cleaning and net, the computed payout, and the effect on booking status.
 - `occupancy`: The occupancy calendar per property and the yearly overview per unit (nights, occupancy rate, settled and planned net income per month).
+- `property-finances`: Costs recorded on properties and units with receipts, the items modules contribute, and the yearly income/expense/result overview on the property.
 
 ### Modified Capabilities
 
-- `properties`: A property is also not deletable while a module still references one of its units, for example through bookings. Costs can be recorded from the property page as transactions attributed to it.
+- `properties`: A property is also not deletable while costs or module data such as bookings still refer to it or its units.
 
 ## Impact
 
 - **Backend:**
   - Module `app.logis.modules.vacationrental` with bookings, statements, the calendar and overview queries, and controllers under `/api/vacationrental/…`.
-  - Flyway migrations in the schema `vacationrental`.
-  - `core.realestate` gets a public interface for unit references and unit summaries in `UnitAccess`. Its named interface grows accordingly.
-- **Frontend:** `src/modules/vacationrental/` gets pages, dialogs and query hooks. The placeholder `BelegungPage` is replaced.
+  - `core.realestate` gets costs, the finance overview, and public interfaces for unit references and finance contributions, plus unit summaries in `UnitAccess`.
+  - A new core package `core.documents` provides file storage for any owner type.
+  - Flyway migrations in the schemas `core` and `vacationrental`.
+- **Frontend:** `src/modules/vacationrental/` gets pages, dialogs and query hooks. The placeholder `BelegungPage` is replaced. `PropertyDetailPage` gets the „Finanzen“ section and the cost dialog.
 - **Privacy:** This is the first place where Logis stores personal data of third parties (guests). Visibility is restricted and deletion is manual. Booking documents usually contain guest data too, and they deliberately stay when guest data is deleted. They have to be deleted one by one.
 - **Files:** This is the first file upload in Logis. Files are stored in the database, so the existing backup covers them.
 - **Assumptions** (proposed during exploration, not explicitly confirmed; easy to change):
@@ -65,5 +71,7 @@ Guiding decisions from exploration:
   - Children are recorded separately from adults. Infants get no special treatment.
   - Documents: PDF, JPEG, PNG, WebP and HEIC, at most 10 MB each, any number per booking. They are visible only to users with at least `EDITOR`, like the contact details.
   - The booking list is sorted by arrival, newest first, by default.
-  - In the overview, income comes only from statements. Positive transactions attributed to the unit (e.g. the provider's payout) are not counted again. Expenses of a single-unit property also include transactions attributed to the property itself. For multi-unit properties, property-wide costs are not split across units.
-- **Decision on accounts:** An account stays a bank account of a legal entity, and nothing ties it to a property. The connection to the holiday home is made per transaction through its target. There is no separate cost type on properties.
+  - Property finances count settled money only: statement lines on the statement date, costs on their date. Planned bookings are not included.
+  - Costs are entered as positive amounts and need at least `EDITOR` on their target. Costs on the property itself are visible only to users with a role on the property.
+  - Transactions attributed to a property (from `realestate-minimal`) stay listed separately and do not count in the result until the later linking change.
+- **Decision on accounts:** An account stays a bank account of a legal entity, and nothing ties it to a property. Costs do not need an account. They are linked to bank transactions later.

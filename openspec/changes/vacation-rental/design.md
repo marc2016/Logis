@@ -4,22 +4,24 @@
 
 `vacationrental` is a placeholder module today: `VacationRentalConfiguration` (module descriptor, `@ConditionalOnLogisModule`), a status controller, an empty migration folder `db/migration/vacationrental` (Flyway already manages the schema `vacationrental`), and a frontend module `src/modules/vacationrental` with the page `BelegungPage`.
 
-From `core.realestate`, modules may use only the named interface `realestate`, and today that is only `UnitAccess` (`roleOn(unitId, userId)`, `units(userId, minimum)`). The core already has a "who still uses this?" pattern: `LegalEntityUsage.blockingReason(id)`, implemented in `core.realestate`. `PropertyService.delete` checks only transactions.
+From `core.realestate`, modules may use only the named interface `realestate`, and today that is only `UnitAccess` (`roleOn(unitId, userId)`, `units(userId, minimum)`). `PropertyDetailPage` shows units, shares and attributed transactions. There are no file uploads anywhere yet. Expense categories exist in `core.ledger` (`CategoryKind`). The core already has a "who still uses this?" pattern: `LegalEntityUsage.blockingReason(id)`, implemented in `core.realestate`. `PropertyService.delete` checks only transactions.
 
 The motivation is in proposal.md, and the requirements are in `specs/`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- The module depends only on `core.realestate` (named interface) and `core.sharing` (`ShareRole`). The core does not know about bookings.
+- The module depends only on `core.realestate`, `core.documents` (named interfaces) and `core.sharing` (`ShareRole`). The core does not know about bookings. It only knows about contributed finance items.
+- Property finances are a core feature for every property. Vacation rental is only one contributor, and later long-term rentals use the same mechanism.
 - Guest contact data is removed on the server for `VIEWER`s, never only hidden in the UI.
 - Figures are computed in one place (backend) with exact decimal arithmetic.
 
 **Non-Goals:**
-- Linking statements or bookings to transactions (comes with `core-bank-import`).
+- Linking costs, statements or bookings to bank transactions (later change; costs get a nullable `transaction_id` then).
+- Splitting property-wide costs across units.
 - Importing booking confirmations from email (later, AI inbox).
 - Tourist tax, VAT, registration forms, invoices to guests.
-- Module categories (no transactions are created here).
+- Module categories (contributed items carry fixed labels instead).
 
 ## Decisions
 
@@ -28,31 +30,38 @@ The motivation is in proposal.md, and the requirements are in `specs/`.
 ```
 app.logis.modules.vacationrental
   Booking, BookingRepository, BookingService, BookingController      /api/vacationrental/bookings
-  BookingDocument, BookingDocumentRepository, BookingDocumentService,
-  BookingDocumentController                                           /api/vacationrental/documents
+  BookingDocumentOwner   implements core.documents.DocumentOwnerType ("vacationrental.booking")
   Statement, StatementLine, StatementRepository, StatementService,
   StatementController                                                 /api/vacationrental/statements
   OccupancyService, OccupancyController                               /api/vacationrental/occupancy
   BookingUnitReferences  implements core.realestate.UnitReferences
+  StatementFinanceSource implements core.realestate.FinanceSource
 
 app.logis.core.realestate          (named interface "realestate")
   + UnitReferences   public interface: String blockingReason(Collection<Long> unitIds)
   + UnitAccess.summaries(Collection<Long> unitIds) -> Map<Long, UnitSummary>
   + UnitSummary      record(id, name, propertyId, propertyName, usage, archived)
-  + UnitFinances     public: monthlyExpenses(unitId, year, userId) -> Map<YearMonth, BigDecimal>
+  + FinanceSource    public interface: List<FinanceItem> items(Collection<Long> unitIds, LocalDate from, LocalDate to)
+  + FinanceItem      record(date, unitId, kind INCOME|EXPENSE, label, amount, sourceType, sourceId)
+  + PropertyCost, PropertyCostService, PropertyFinanceService, PropertyFinanceController
+  + PropertyCostDocumentOwner implements DocumentOwnerType ("realestate.cost")
 
-app.logis.core.ledger
-  + TransactionAttributions.monthlyExpenses(propertyId|null, unitId, year)   (public, used by realestate)
+app.logis.core.documents          NEW (named interface "documents")
+  Document, DocumentRepository, DocumentService, DocumentController   /api/documents
+  DocumentOwnerType  public interface: type(), canRead(ownerId, userId), canWrite(ownerId, userId)
+  Documents          public API: deleteAll(ownerType, ownerId)
 ```
 
-- **Expenses go through `core.realestate`, not directly to `core.ledger`:** Modules may only use the named interfaces, and `ledger` has none. `UnitFinances` checks the user's role (the unit role for the unit's own transactions, the property role for property-level ones, and the property-level part only for single-unit properties) and then delegates to `TransactionAttributions`. That keeps the dependency direction `module → realestate → ledger`. The query sums `amount < 0`, excludes transfers and groups by month of the booking date.
-  - *Alternative:* a named interface `ledger` for modules. It was rejected for now because it would open the whole financial core to modules for one sum.
+- **Finance items come from sources:** `PropertyFinanceService` determines the units the user can see (`UnitAccess`) and whether they have a role on the property, then merges its own costs with the items of all `FinanceSource` beans for these units. Module sources are `@ConditionalOnLogisModule`, so a disabled module contributes nothing. The core passes only visible unit IDs, so a source never has to check rights itself.
+  - *Alternative:* modules write their figures into a core table. It was rejected because it duplicates data and needs keeping in sync on every statement change.
+- **Documents are generic, like sharing:** Each owner type registers a `DocumentOwnerType` bean that answers the access questions. `DocumentController` (`GET/POST /api/documents?ownerType=&ownerId=`, `GET/DELETE /api/documents/{id}`) asks the owner type and answers 404 if the type is unknown (module disabled) or `canRead` is false. Booking documents require `EDITOR` on the unit to read (contact data), and cost receipts require a role on the target.
+  - *Alternative:* a document table per owner (as planned before). It was rejected because receipts on costs now need the same upload, type check and download path.
 
 - `PropertyService.delete` asks all `UnitReferences` beans after the transaction check and throws the first reason as a 409. `BookingUnitReferences` returns „Zum Objekt gibt es noch Buchungen und es kann nur archiviert werden“. This mirrors `LegalEntityUsage`. The interface takes unit IDs, so the core passes all units of the property in one call.
 - `UnitSummary` gives the module names, the property for grouping in the calendar, and the usage and archive checks for new bookings. The module never reads `core.units` directly.
 - *Alternative:* a database foreign key from `vacationrental.bookings` to `core.units`. It was rejected because a module schema would then constrain core deletes with a raw SQL error instead of a message, and because migrations of disabled modules would still couple the schemas. The module stores `unit_id` without a foreign key, and the delete check covers integrity.
 
-### D2: Data model (schema `vacationrental`)
+### D2: Data model
 
 ```
 bookings
@@ -73,28 +82,43 @@ statement_lines
   booking_id PK -> bookings (one statement per booking), statement_id -> statements ON DELETE CASCADE,
   gross NUMERIC(12,2), commission NUMERIC(12,2) >= 0, cleaning NUMERIC(12,2) >= 0
 
-booking_documents
-  id, booking_id -> bookings ON DELETE CASCADE, file_name VARCHAR(255), content_type VARCHAR(64),
-  size_bytes INTEGER, content BYTEA, created_at
 ```
+
+Schema `core`:
+
+```
+property_costs
+  id, property_id -> properties, unit_id -> units NULL, cost_date DATE, amount NUMERIC(12,2) > 0,
+  category_id -> categories NULL, counterparty VARCHAR(128) NULL, note TEXT NULL, version, created_at
+  INDEX (property_id, cost_date)
+
+documents
+  id, owner_type VARCHAR(64), owner_id BIGINT, file_name VARCHAR(255), content_type VARCHAR(64),
+  size_bytes INTEGER, content BYTEA, created_at
+  INDEX (owner_type, owner_id)
+```
+
+- **Cost target:** `unit_id` set means the cost belongs to that unit, `NULL` means the property itself. For single-unit properties, the dialog stores costs on the property, because the interface hides the unit level there.
+- **Deletes:** Deleting a cost or a booking calls `Documents.deleteAll` in the same transaction. A property with costs cannot be deleted (409), so costs never lose their property.
 
 - **Status is derived, not stored:** `CANCELLED` if `cancelled`, else `SETTLED` if a line exists, else `PLANNED`. This avoids a status column that can disagree with the lines.
 - **Overlap** is enforced by the exclusion constraint (needs `btree_gist`, created in the migration) and checked in the service first so that the user gets the German message. The constraint catches races. `daterange(arrival, departure)` is half-open, which gives the changeover rule for free.
 - **Net and payout** are computed (`gross − commission − cleaning`, sum per statement) and not stored.
 - **Same unit** for line and statement is checked in the service, because `bookings.unit_id` and `statements.unit_id` are in different rows.
 - **Guest data deletion** sets all `guest_*` fields to `NULL` and `guest_deleted = true` in one update, so the UI can show „Gastdaten gelöscht“ instead of an empty guest.
-- **Documents in the database (`BYTEA`):** The nightly `pg_dump` backup then covers them without a second volume or backup path. Booking lists never select `content`; a separate `BookingDocumentRepository` loads it only for downloads. The type is checked by content type and file signature (magic bytes), not by the file name alone. The size limit is enforced in the service, and `spring.servlet.multipart.max-file-size` is set to `10MB`.
+- **Documents in the database (`BYTEA`, table `core.documents`):** The nightly `pg_dump` backup then covers them without a second volume or backup path. Listings never select `content`. A projection loads it only for downloads. The type is checked by content type and file signature (magic bytes), not by the file name alone. The size limit is enforced in the service, and `spring.servlet.multipart.max-file-size` is set to `10MB`.
   - *Alternative:* files on a volume (`/data/documents`). It was rejected because it needs a new volume in `compose.yml`, a second backup path, and consistency handling between files and rows. That becomes worth it only with much larger amounts of data.
 - *Alternative:* a separate `guests` table for returning guests. It was rejected because there is no requirement to reuse guests yet, and a separate table makes per-booking deletion harder.
 
 ### D3: Access checks
 
-Every service method starts from the unit: `UnitAccess.roleOn(unitId, user)` gives 404 if empty and 403 if below `EDITOR` for writes. Lists use `UnitAccess.units(user, VIEWER)` as an `IN` filter. Each DTO takes the role of its row's unit: below `EDITOR`, the mapper sets `guest_street … guest_email` to `null` (the name stays) and omits `documents`. The same mapper serves bookings inside statement lines, so there is no second path that could leak. Document endpoints require `EDITOR` and answer 404 below it, so a `VIEWER` cannot tell whether a document exists. Text search adds the contact fields only for rows of units with `EDITOR`. In the current model it only searches the booking number and guest name, so there is nothing to restrict yet, but a test pins the rule.
+Every service method starts from the unit: `UnitAccess.roleOn(unitId, user)` gives 404 if empty and 403 if below `EDITOR` for writes. Lists use `UnitAccess.units(user, VIEWER)` as an `IN` filter. Each DTO takes the role of its row's unit: below `EDITOR`, the mapper sets `guest_street … guest_email` to `null` (the name stays) and omits `documents`. The same mapper serves bookings inside statement lines, so there is no second path that could leak. `BookingDocumentOwner.canRead` requires `EDITOR`, so `/api/documents` answers 404 below it and a `VIEWER` cannot tell whether a document exists. Text search adds the contact fields only for rows of units with `EDITOR`. In the current model it only searches the booking number and guest name, so there is nothing to restrict yet, but a test pins the rule.
 
 ### D4: API
 
 - `GET /api/vacationrental/bookings?unitId=&propertyId=&from=&to=&status=&q=&sort=arrival,desc&page=` and `POST`, `PUT /{id}`, `DELETE /{id}`, `POST /{id}/cancel|reinstate`, `DELETE /{id}/guest`. Sort keys are whitelisted, and the page size is at most 100, as for transactions.
-- `POST /api/vacationrental/bookings/{id}/documents` (multipart, one file per request), `GET /api/vacationrental/documents/{docId}` (download with `Content-Disposition: attachment`), `DELETE /api/vacationrental/documents/{docId}`
+- Documents through the generic `/api/documents` (D1): `POST` multipart with `ownerType`/`ownerId`, one file per request; `GET /{id}` downloads with `Content-Disposition: attachment`.
+- Core: `GET /api/properties/{id}/finances?year=&unitId=&kind=&sort=` (monthly table, totals and items), `POST /api/properties/{id}/costs`, `PUT/DELETE /api/costs/{id}`
 - `GET /api/vacationrental/units`: vacation rental units visible to the user with `myRole`, for pickers and the calendar
 - `GET /api/vacationrental/statements?unitId=`, `GET /{id}` (with lines), `POST`, `PUT /{id}`, `DELETE /{id}`, `PUT /{id}/lines/{bookingId}` (assign or update), `DELETE /{id}/lines/{bookingId}`, `GET /providers?unitId=` (distinct names, most recent first)
 - `GET /api/vacationrental/occupancy/calendar?propertyId=&month=2026-11`
@@ -113,11 +137,9 @@ month.settledNet  += net share   (bookings with a line, not cancelled)
 month.plannedRent += rent share  (planned bookings with expected_rent)
 cancelled with line: whole net -> month of arrival
 occupancy = nights / daysInMonth, shown as a whole percentage
-month.expenses    = -UnitFinances.monthlyExpenses(...)[month]   (shown positive)
-month.result      = settledNet - expenses
 ```
 
-The planned rent is deliberately left out of the result, so the result only shows settled money.
+The occupancy overview splits money by night, while property finances date items on the statement date (closer to when the money flows). Both labels say so in the interface („nach Nächten“, „nach Abrechnungsdatum“), so different monthly figures are explainable.
 
 Stays that reach into the year from December or out of it into January are clipped, but their shares are still computed over the whole stay.
 
@@ -140,7 +162,8 @@ src/modules/vacationrental/
 - **Grid:** TanStack Table (`@tanstack/react-table`, new dependency), rendered with the existing shadcn `table` as in shadcn's "Data Table" pattern. A reusable `components/DataTable.tsx` takes the column definitions and supports sortable headers, a column visibility menu (in the shadcn `dropdown-menu`, stored per table in `localStorage`) and paging controls. Sorting, filtering and paging run on the server (`manualSorting`, `manualPagination`), so totals and pages stay correct for large lists. `sort`, the filters and the page are kept in the URL query, so they survive a reload and can be shared as links. A row click opens `BookingDialog` in edit mode.
   - *Alternatives:* a hand-built sortable `table` (no dependency, but every further feature would be custom code), or AG Grid (feature-complete, but its own look and heavy). TanStack Table is headless and fits shadcn. `DataTable` can later replace the transaction table too, which is not part of this change.
 - **Add button:** `PageHeader` action at the top right on both pages. Both open the same `BookingDialog`. In the calendar, the current property is preselected. After saving, the query cache of bookings and calendar is invalidated.
-- **„Kosten erfassen“ (core, `PropertyDetailPage`):** The button opens the existing `TransactionDialog` with the target preset (the unit for single-unit properties, otherwise the property, changeable in `TargetSelect`). The account select offers only accounts with `EDITOR`. If there are none, the dialog shows „Kein Konto mit Schreibrechten vorhanden“ and disables saving. There are no backend changes: attribution rules from `realestate-minimal` apply.
+- **„Finanzen“ on `PropertyDetailPage` (core):** a year picker, the 12-month table (Einnahmen, Ausgaben, Ergebnis) and the item list on `DataTable` with filters (Einheit, Art) and „+ Kosten“ at the top right. `CostDialog` has date, amount, category (expense categories via `CategorySelect`), unit (multi-unit properties only), counterparty, note and receipts (`DocumentList`). Contributed items are read-only and link to their source (e.g. the statement). Attributed transactions stay in their own section below, marked „nicht im Ergebnis“.
+- `DocumentList` and the upload logic live in `src/components/`, shared by bookings and costs.
 - **Documents in the dialog:** On create, files are kept in the dialog and uploaded right after the booking is saved. On edit, they are uploaded immediately. A failed upload shows an error on that file without losing the booking.
 - Status labels: „Geplant“, „Abgerechnet“, „Storniert“. Channel labels: „Airbnb“, „Booking.com“, „Direkt“, „Sonstige“.
 - The calendar is a simple CSS grid (days as columns), with no new dependency. Planned bars are outlined, settled bars filled, and cancelled bookings are not shown.
@@ -148,8 +171,8 @@ src/modules/vacationrental/
 
 ### D7: Tests
 
-- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split and the yearly overview including the year boundary, expenses (unit-level, property-level only for single-unit properties and only with a property role, positive amounts and transfers ignored), property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
-- **Frontend:** component tests for the calendar row filtering and bar styles, `BookingDialog` without guest fields for a viewer, the statement payout display, and the overview table.
+- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split and the yearly overview including the year boundary, property finances (costs CRUD and rights, receipts, statement items on the statement date, totals including the -168.71 example, Carla seeing only unit items, disabled module contributing nothing), generic documents (unknown owner type → 404), property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
+- **Frontend:** component tests for the calendar row filtering and bar styles, `BookingDialog` without guest fields for a viewer, the statement payout display, the overview table, and the property finances section with `CostDialog`.
 
 ## Risks / Trade-offs
 
@@ -157,12 +180,13 @@ src/modules/vacationrental/
 - [Guest contact data without automatic deletion] → This was decided by the user. Deletion is one click per booking, and data minimisation can be added later as a scheduled job without a model change (`guest_deleted` already exists).
 - [`btree_gist` extension] → The migration runs `CREATE EXTENSION IF NOT EXISTS btree_gist`. This needs a role that is allowed to create the extension, which the app user is in the dev and prod compose setups. On failure, Flyway stops at startup with a clear error.
 - [Documents keep guest data after „Gastdaten löschen“] → The user decided this. The dialog shows a hint after deleting guest data when documents remain, so the user can delete them too.
-- [Database grows with files] → At a few documents of about 1 MB per booking, this stays in the range of hundreds of MB per year. The backup size grows the same way. Moving to a volume later only changes `BookingDocumentRepository` and a migration.
+- [Database grows with files] → At a few documents of about 1 MB per booking, this stays in the range of hundreds of MB per year. The backup size grows the same way. Moving to a volume later only changes `DocumentService` and a migration.
+- [Costs and attributed transactions describe the same money] → Until linking exists, only costs count in the result. Attributed transactions are shown separately and marked. The later linking change sets `transaction_id` on a cost and hides the linked transaction from the separate list.
 - [Rounding in the night split] → The last-night remainder keeps the yearly sums exact. Monthly values can differ by a cent from a manual calculation, which is acceptable for an overview.
 
 ## Migration Plan
 
-The first migration in `db/migration/vacationrental` (`V20261107.1200__vacationrental_bookings.sql`) creates `btree_gist`, `bookings`, `statements`, `statement_lines` and `booking_documents`. The reverse proxy in front of Logis must accept request bodies of 10 MB. The README section on deployment mentions this (e.g. `client_max_body_size` for nginx). No existing data is touched. Rollback works through a backup taken before the update (README: Restore).
+`V20261107.1200__core_documents_costs.sql` in `core` creates `documents` and `property_costs`. The first migration in `db/migration/vacationrental` (`V20261107.1210__vacationrental_bookings.sql`) creates `btree_gist`, `bookings`, `statements` and `statement_lines`. The reverse proxy in front of Logis must accept request bodies of 10 MB. The README section on deployment mentions this (e.g. `client_max_body_size` for nginx). No existing data is touched. Rollback works through a backup taken before the update (README: Restore).
 
 ## Open Questions
 

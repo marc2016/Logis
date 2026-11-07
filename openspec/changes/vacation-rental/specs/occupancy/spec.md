@@ -38,14 +38,3 @@ The system SHALL show, for a vacation rental unit and a year, per month: booked 
 #### Scenario: Viewer sees the overview
 - **WHEN** Dieter, as `VIEWER` of the property, opens the overview of one of its units
 - **THEN** they see the same figures as Anna
-### Requirement: Expenses and result in the overview
-The yearly overview SHALL show per month the expenses and the result (settled net − expenses). Expenses MUST be the transactions with a negative amount attributed to the unit, by booking date, plus, for a single-unit property, those attributed to the property itself if the user has a role on the property. Positive attributed transactions MUST NOT count as income. Transfers MUST NOT count.
-
-#### Scenario: Repair in November
-- **WHEN** a transaction of -320.00 "Handwerker" on 2026-11-12 is attributed to "Haus Seeufer" and November has a settled net of 540.00
-- **THEN** the overview shows expenses of 320.00 and a result of 220.00 for November
-
-#### Scenario: Payout not counted twice
-- **WHEN** the provider's payout of +540.00 is also attributed to the unit as a transaction
-- **THEN** the settled net for November stays 540.00
-
