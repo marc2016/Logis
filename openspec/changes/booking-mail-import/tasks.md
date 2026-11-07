@@ -2,9 +2,9 @@
 
 ## 1. Foundations
 
-- [ ] 1.1 Add `spring-boot-starter-mail`, `jsoup`, the Anthropic Java SDK and GreenMail (test) to `pom.xml`, and enable scheduling in `VacationRentalConfiguration` (D4). Verify: `./mvnw verify` stays green and `ModularityTest` passes.
-- [ ] 1.2 Create `V20261108.1200__vacationrental_mail_import.sql` according to D2, including the replaced booking number index. Verify: the backend starts with the `dev` profile on an existing dev database with bookings, and existing bookings have `review_state = 'NONE'`.
-- [ ] 1.3 Add `Documents.store` for server-created files with a type whitelist including `message/rfc822` (D5). Verify: a test stores and downloads an `.eml`, and uploading an `.eml` through `/api/documents` is still rejected.
+- [x] 1.1 Add `spring-boot-starter-mail`, `jsoup`, the Anthropic Java SDK and GreenMail (test) to `pom.xml`, and enable scheduling in `VacationRentalConfiguration` (D4). Verify: `./mvnw verify` stays green and `ModularityTest` passes.
+- [x] 1.2 Create `V20261108.1200__vacationrental_mail_import.sql` according to D2, including the replaced booking number index. Verify: the backend starts with the `dev` profile on an existing dev database with bookings, and existing bookings have `review_state = 'NONE'`.
+- [x] 1.3 Add `Documents.store` for server-created files with a type whitelist including `message/rfc822` (D5). Verify: a test stores and downloads an `.eml`, and uploading an `.eml` through `/api/documents` is still rejected.
 
 ## 2. Bookings
 

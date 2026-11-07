@@ -146,4 +146,22 @@ class DocumentsTest extends IntegrationTest {
     private static Long id(ResultActions result) throws Exception {
         return ((Number) JsonPath.read(result.andReturn().getResponse().getContentAsString(), "$.id")).longValue();
     }
+
+    @Test
+    void serverStoredMailCanBeDownloadedButNotUploaded() throws Exception {
+        var session = login(createUser(Role.USER, true));
+        var owner = owner(1);
+        var eml = "From: a@example.org\r\nSubject: Test\r\n\r\nHallo".getBytes(StandardCharsets.US_ASCII);
+        var id = documents.store("test.stub", owner, "Buchung 1.eml", "message/rfc822", eml);
+        getWith("/api/documents/" + id, session)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("message/rfc822"))
+                .andExpect(content().bytes(eml));
+        upload(session, "test.stub", owner, "Buchung 1.eml", eml)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Nur PDF- oder Bilddateien bis 10 MB"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> documents.store("test.stub", owner, "x.exe", "application/octet-stream", eml))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
