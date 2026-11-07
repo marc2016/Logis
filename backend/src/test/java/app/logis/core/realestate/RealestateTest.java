@@ -20,13 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Helpers for real estate tests: users with session, properties, units, shares, accounts and transactions.
  */
-abstract class RealestateTest extends IntegrationTest {
+public abstract class RealestateTest extends IntegrationTest {
 
     @Autowired
     protected JdbcTemplate jdbc;
 
-    record Actor(TestUser user, MockHttpSession session) {
-        Long id() {
+    public record Actor(TestUser user, MockHttpSession session) {
+        public Long id() {
             return user.id();
         }
     }

@@ -1,6 +1,11 @@
 spring:
   application:
     name: logis
+  servlet:
+    multipart:
+      # Documents: at most 10 MB per file (checked again in DocumentService).
+      max-file-size: 10MB
+      max-request-size: 11MB
   modulith:
     detection-strategy: explicitly-annotated
   datasource:

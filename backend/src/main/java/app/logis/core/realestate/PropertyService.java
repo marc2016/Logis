@@ -31,15 +31,20 @@ class PropertyService {
     private final SharingService sharing;
     private final LegalEntities legalEntities;
     private final TransactionAttributions attributions;
+    private final PropertyCostRepository costs;
+    private final List<UnitReferences> unitReferences;
     private final Clock clock;
 
     PropertyService(PropertyRepository properties, UnitRepository units, SharingService sharing,
-            LegalEntities legalEntities, TransactionAttributions attributions, Clock clock) {
+            LegalEntities legalEntities, TransactionAttributions attributions, PropertyCostRepository costs,
+            List<UnitReferences> unitReferences, Clock clock) {
         this.properties = properties;
         this.units = units;
         this.sharing = sharing;
         this.legalEntities = legalEntities;
         this.attributions = attributions;
+        this.costs = costs;
+        this.unitReferences = unitReferences;
         this.clock = clock;
     }
 
@@ -120,6 +125,15 @@ class PropertyService {
         var unitIds = units.findIdsByProperty(propertyId);
         if (attributions.count(propertyId, unitIds) > 0) {
             throw ApiException.conflict("Dem Objekt sind noch Transaktionen zugeordnet und es kann nur archiviert werden");
+        }
+        if (costs.existsByPropertyId(propertyId)) {
+            throw ApiException.conflict("Zum Objekt sind noch Kosten erfasst und es kann nur archiviert werden");
+        }
+        for (var references : unitReferences) {
+            var reason = references.blockingReason(unitIds);
+            if (reason != null) {
+                throw ApiException.conflict(reason);
+            }
         }
         unitIds.forEach(id -> sharing.deleteAll(Unit.SHARE_TYPE, id));
         sharing.deleteAll(Property.SHARE_TYPE, propertyId);
