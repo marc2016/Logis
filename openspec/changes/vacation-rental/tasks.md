@@ -10,13 +10,13 @@
 
 ## 2. Database
 
-- [ ] 2.1 Create `V20261107.1210__vacationrental_bookings.sql` with `btree_gist`, `bookings`, `statements` and `statement_lines` according to D2. Verify: The backend starts with the `dev` profile, and a direct SQL insert of an overlapping, not cancelled booking fails on the exclusion constraint.
+- [x] 2.1 Create `V20261107.1210__vacationrental_bookings.sql` with `btree_gist`, `bookings`, `statements` and `statement_lines` according to D2. Verify: The backend starts with the `dev` profile, and a direct SQL insert of an overlapping, not cancelled booking fails on the exclusion constraint.
 
 ## 3. Bookings (backend)
 
-- [ ] 3.1 Implement `Booking`, `BookingService` and `BookingController` (D3, D4): create, edit, cancel/reinstate, delete, delete guest data, the list with filters, text search, whitelisted sorting and paging, `GET /units`, the derived status and `nights`, and guest fields set to `null` below `EDITOR`. Verify: Integration tests cover every booking scenario of `specs/bookings` except documents, every sort key, and „Die Einheit wird nicht als Ferienwohnung genutzt“, „Die Einheit ist in diesem Zeitraum bereits belegt“, „Diese Buchungsnummer ist bereits erfasst“ and „Die Buchung ist abgerechnet und kann nur storniert werden“.
-- [ ] 3.2 Implement `BookingDocumentOwner` (read and write only with `EDITOR` on the unit) and delete documents with the booking. Verify: Integration tests cover the "Booking documents" scenarios, including 404 for Dieter on download, documents kept after deleting guest data, and documents gone after deleting the booking.
-- [ ] 3.3 Implement `BookingUnitReferences`. Verify: Deleting a property with bookings returns „Zum Objekt gibt es noch Buchungen und es kann nur archiviert werden“, and deleting it without bookings still works.
+- [x] 3.1 Implement `Booking`, `BookingService` and `BookingController` (D3, D4): create, edit, cancel/reinstate, delete, delete guest data, the list with filters, text search, whitelisted sorting and paging, `GET /units`, the derived status and `nights`, and guest fields set to `null` below `EDITOR`. Verify: Integration tests cover every booking scenario of `specs/bookings` except documents, every sort key, and „Die Einheit wird nicht als Ferienwohnung genutzt“, „Die Einheit ist in diesem Zeitraum bereits belegt“, „Diese Buchungsnummer ist bereits erfasst“ and „Die Buchung ist abgerechnet und kann nur storniert werden“.
+- [x] 3.2 Implement `BookingDocumentOwner` (read and write only with `EDITOR` on the unit) and delete documents with the booking. Verify: Integration tests cover the "Booking documents" scenarios, including 404 for Dieter on download, documents kept after deleting guest data, and documents gone after deleting the booking.
+- [x] 3.3 Implement `BookingUnitReferences`. Verify: Deleting a property with bookings returns „Zum Objekt gibt es noch Buchungen und es kann nur archiviert werden“, and deleting it without bookings still works.
 
 ## 4. Statements (backend)
 
