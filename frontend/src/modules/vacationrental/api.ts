@@ -288,3 +288,19 @@ export function useInvalidateRental() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: rentalKeys.all })
 }
+
+export interface CalendarLink {
+  id: number
+  unitId: number
+  name: string
+  withGuests: boolean
+  createdAt: string
+}
+
+export function useCalendarLinks(unitId: number | null) {
+  return useQuery({
+    queryKey: ['vacationrental', 'calendar-links', unitId ?? 0] as const,
+    queryFn: () => api<CalendarLink[]>(`/api/vacationrental/calendar-links?unitId=${unitId}`),
+    enabled: unitId !== null,
+  })
+}

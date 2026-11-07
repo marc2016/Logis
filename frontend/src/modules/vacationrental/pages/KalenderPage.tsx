@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from 'lucide-react'
+import { CalendarPlusIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
 import { todayIso } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
 import { CalendarGrid } from '../CalendarGrid'
 import { IdSelect } from '../RentalFilters'
+import { SubscriptionDialog } from '../SubscriptionDialog'
 import { unitLabel, useBooking, useCalendarMonths, useRentalUnits } from '../api'
 
 /** Months shown right away: the start month and the two after it. */
@@ -46,6 +47,7 @@ export function KalenderPage() {
   const startMonth = params.get('month') ?? currentMonth
   const months = useCalendarMonths(propertyId, startMonth)
   const [dialog, setDialog] = useState<{ bookingId: number | null } | null>(null)
+  const [subscribing, setSubscribing] = useState(false)
   const { data: openBooking } = useBooking(dialog?.bookingId ?? null)
   const canRecord = !!unit && !unit.archived && unit.myRole !== 'VIEWER'
   const pages = months.data?.pages ?? []
@@ -139,6 +141,12 @@ export function KalenderPage() {
             <Button variant="outline" onClick={today} disabled={startMonth === currentMonth && pages[0]?.month === currentMonth}>
               Heute
             </Button>
+            {unit && (
+              <Button variant="outline" onClick={() => setSubscribing(true)}>
+                <CalendarPlusIcon />
+                Abonnieren
+              </Button>
+            )}
           </div>
           <p className="mb-3 flex gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -170,6 +178,9 @@ export function KalenderPage() {
             </div>
           )}
         </>
+      )}
+      {subscribing && unit && (
+        <SubscriptionDialog unitId={unit.id} unitName={unitLabel(unit)} onClose={() => setSubscribing(false)} />
       )}
       {dialog && (dialog.bookingId === null || openBooking) && (
         <BookingDialog

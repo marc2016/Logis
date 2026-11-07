@@ -9,9 +9,9 @@
 
 ## 2. Frontend
 
-- [ ] 2.1 Add the button „Abonnieren“ and the dialog with list, creation, one-time URL with „Kopieren“ and „Widerrufen“ (D4). Verify: component tests cover creating a link without guest data, showing its URL, and revoking it.
-- [ ] 2.2 Run `npm test && npm run lint && npm run build`. Verify: everything is green.
+- [x] 2.1 Add the button „Abonnieren“ and the dialog with list, creation, one-time URL with „Kopieren“ and „Widerrufen“ (D4). Verify: component tests cover creating a link without guest data, showing its URL, and revoking it.
+- [x] 2.2 Run `npm test && npm run lint && npm run build`. Verify: everything is green.
 
 ## 3. Acceptance
 
-- [ ] 3.1 Fetch a feed from the running app and check it with an iCalendar parser (e.g. `ical.js`), and take a phone screenshot (390 px) of the dialog. Verify: the parser reads all events with the expected dates and titles, and the screenshot shows the link once.
+- [x] 3.1 Fetch a feed from the running app and check it with an iCalendar parser (e.g. `ical.js`), and take a phone screenshot (390 px) of the dialog. Verify: the parser reads all events with the expected dates and titles, and the screenshot shows the link once.
