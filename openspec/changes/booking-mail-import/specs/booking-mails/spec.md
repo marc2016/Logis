@@ -17,6 +17,17 @@ The system SHALL recognise the mail type and read its fields with fixed rules fo
 - **WHEN** a "Buchungsmitteilung (Buchungsnummer: 6a31h227wy)" with "REISEPREIS: 309,08 EUR" for "Ferienhaus Seeufer" arrives
 - **THEN** it is read as a confirmation of Holidu with booking number "6a31h227wy" and an expected rent of 309.08
 
+### Requirement: Forwarded mails
+Forwarded booking mails MUST be recognised like the originals, whether forwarded inline (with „WG:“ or „Fwd:“ and quoted text) or as an attachment.
+
+#### Scenario: Forwarded by the user
+- **WHEN** Anna forwards the confirmation of booking 275505 to the mailbox with the subject "WG: Neue Buchung für Haus Seeufer - Nordhorn"
+- **THEN** it is read as a confirmation of Fewo & Meer like the original
+
+#### Scenario: Forwarded as attachment
+- **WHEN** the Holidu confirmation arrives as an attachment of a forwarded mail
+- **THEN** the attached original is read, and the inbox shows its subject
+
 ### Requirement: AI fallback
 If AI is enabled by the administrator, mails that no rule recognises SHALL be read by an AI model into the same fields, including the mail type. If AI is disabled or the result is incomplete, the mail MUST be listed as not recognised. Mails recognised by a rule MUST NOT be sent to the AI.
 

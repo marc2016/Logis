@@ -99,6 +99,37 @@ class MailParsersTest {
     }
 
     @Test
+    void forwardedInlineHtmlConfirmation() throws Exception {
+        var mail = mail("fewo-forward-inline-html.eml");
+        assertThat(mail.sender()).isEqualTo("anna@example.org");
+        assertThat(mail.businessSubject()).isEqualTo("Neue Buchung für Haus Seeufer - Nordhorn");
+        var p = fewo.parse(mail).orElseThrow();
+        assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
+        assertThat(p.bookingRef()).isEqualTo("275505");
+        assertThat(p.expectedRent()).isEqualByComparingTo("248.58");
+        assertThat(p.guest().email()).isEqualTo("erika@example.org");
+    }
+
+    @Test
+    void forwardedQuotedCancellation() throws Exception {
+        var mail = mail("fewo-forward-quoted-cancellation.eml");
+        assertThat(mail.text()).contains("Sehr geehrter Gast").doesNotContain("> Sehr");
+        var p = fewo.parse(mail).orElseThrow();
+        assertThat(p.type()).isEqualTo(ParsedMail.MailType.CANCELLATION);
+        assertThat(p.bookingRef()).isEqualTo("275505");
+    }
+
+    @Test
+    void confirmationForwardedAsAttachment() throws Exception {
+        var mail = mail("holidu-forward-attachment.eml");
+        assertThat(mail.messageId()).isEqualTo("<fwd-attachment-6a31h227wy@example.org>");
+        assertThat(mail.sender()).isEqualTo("buchungsservice@ds-destinationsolutions.com");
+        var p = holidu.parse(mail).orElseThrow();
+        assertThat(p.bookingRef()).isEqualTo("6a31h227wy");
+        assertThat(p.expectedRent()).isEqualByComparingTo("309.08");
+    }
+
+    @Test
     void germanAmounts() {
         assertThat(GermanText.amount("1.559,00")).isEqualByComparingTo(new BigDecimal("1559.00"));
         assertThat(GermanText.amount("abc")).isNull();

@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * What parsers see of a mail: sender, subject and the text. HTML is turned into text with one line per row and
@@ -42,16 +43,47 @@ public record MailContent(String messageId, Instant receivedAt, String sender, S
     }
 
     static MailContent of(Message message) throws MessagingException, IOException {
-        var from = message.getFrom() != null && message.getFrom().length > 0 ? message.getFrom()[0] : null;
-        var sender = from instanceof InternetAddress a ? a.getAddress() : from == null ? null : from.toString();
         var ids = message.getHeader("Message-ID");
         var messageId = ids != null && ids.length > 0 ? ids[0].trim() : null;
         var date = message.getReceivedDate() != null ? message.getReceivedDate() : message.getSentDate();
+        // Forwarded as attachment: the attached original is the mail that matters.
+        var attached = attachedMessage(message);
+        var content = read(attached != null ? attached : message);
+        return new MailContent(messageId, date == null ? null : date.toInstant(), content.sender(),
+                content.subject(), content.text());
+    }
+
+    private static MailContent read(Message message) throws MessagingException, IOException {
+        var from = message.getFrom() != null && message.getFrom().length > 0 ? message.getFrom()[0] : null;
+        var sender = from instanceof InternetAddress a ? a.getAddress() : from == null ? null : from.toString();
         var html = find(message, "text/html");
         var plain = find(message, "text/plain");
         var text = html != null ? htmlToText(html) : plain != null ? plain : "";
-        return new MailContent(messageId, date == null ? null : date.toInstant(), sender,
+        return new MailContent(null, null, sender,
                 message.getSubject() == null ? "" : message.getSubject().trim(), normalize(text));
+    }
+
+    private static Message attachedMessage(Part part) throws MessagingException, IOException {
+        if (part.isMimeType("message/rfc822") && part.getContent() instanceof Message inner) {
+            return inner;
+        }
+        if (part.isMimeType("multipart/*") && part.getContent() instanceof Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                var found = attachedMessage(multipart.getBodyPart(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final Pattern FORWARD_PREFIX = Pattern.compile(
+            "^(?:(?:WG|Fwd|FW|Wtr|Weitergeleitet)\\s*:\\s*)+", Pattern.CASE_INSENSITIVE);
+
+    /** The subject without forward prefixes such as "WG:" or "Fwd:". */
+    public String businessSubject() {
+        return FORWARD_PREFIX.matcher(subject).replaceFirst("").strip();
     }
 
     private static String find(Part part, String type) throws MessagingException, IOException {
@@ -108,7 +140,8 @@ public record MailContent(String messageId, Instant receivedAt, String sender, S
         var out = new StringBuilder();
         var blank = false;
         for (var line : lines) {
-            var trimmed = line.strip();
+            // Quoted lines of an inline forward ("> text").
+            var trimmed = line.strip().replaceFirst("^(?:>\\s?)+", "").strip();
             if (trimmed.isEmpty()) {
                 if (!blank && !out.isEmpty()) {
                     out.append('\n');

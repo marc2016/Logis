@@ -231,4 +231,26 @@ class MailImportTest extends VacationRentalTest {
                 .andExpect(status().isNoContent());
         getWith("/api/mail/inbox", anna.session()).andExpect(jsonPath("$[0].result").value("BOOKING_CREATED"));
     }
+
+    @Test
+    void forwardedMailsWorkLikeOriginals() throws Exception {
+        deliver("fewo-forward-inline-html.eml", "2026-11-06T11:30:00Z");
+        deliver("holidu-forward-attachment.eml", "2026-11-02T13:30:00Z");
+        imports.pollNow(anna.id());
+        assign("WG: Neue Buchung");
+        assign("Buchungsmitteilung 6a31h227wy");
+        var fewo = inboxItem(anna, "WG: Neue Buchung");
+        assertThat(fewo.get("result")).isEqualTo("BOOKING_CREATED");
+        assertThat(fewo.get("source")).isEqualTo("Fewo & Meer");
+        assertThat(inboxItem(anna, "Buchungsmitteilung 6a31h227wy").get("result")).isEqualTo("BOOKING_CREATED");
+        var bookingId = ((Number) fewo.get("linkId")).longValue();
+        postJson("/api/vacationrental/bookings/" + bookingId + "/confirm", Map.of(), anna.session())
+                .andExpect(status().isOk());
+
+        deliver("fewo-forward-quoted-cancellation.eml", null);
+        imports.pollNow(anna.id());
+        assertThat(inboxItem(anna, "Fwd: Stornierung").get("result")).isEqualTo("CHANGE_PROPOSED");
+        getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
+                .andExpect(jsonPath("$.proposal.type").value("CANCELLATION"));
+    }
 }

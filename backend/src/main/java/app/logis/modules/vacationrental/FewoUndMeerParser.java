@@ -34,7 +34,7 @@ class FewoUndMeerParser implements MailParser {
         if (!fromAgency(mail)) {
             return Optional.empty();
         }
-        var subject = mail.subject();
+        var subject = mail.businessSubject();
         var m = CONFIRMATION_SUBJECT.matcher(subject);
         if (m.find()) {
             return Optional.of(confirmation(m.group(1).strip(), mail.text()));
@@ -53,7 +53,9 @@ class FewoUndMeerParser implements MailParser {
 
     private static boolean fromAgency(MailContent mail) {
         var sender = mail.sender() == null ? "" : mail.sender().toLowerCase(Locale.ROOT);
-        return sender.endsWith("fewoundmeer.de") || mail.text().contains("Fewo & Meer");
+        // Forwarded mails come from the user: then the agency shows in the forwarded text.
+        return sender.endsWith("fewoundmeer.de") || mail.text().contains("Fewo & Meer")
+                || mail.text().contains("fewoundmeer.de");
     }
 
     /** "Label\tValue" lines from the HTML table. */
