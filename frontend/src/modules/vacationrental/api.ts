@@ -208,7 +208,6 @@ export const rentalKeys = {
   statements: (unitId?: number) => ['vacationrental', 'statements', unitId ?? null] as const,
   statement: (id: number) => ['vacationrental', 'statement', id] as const,
   providers: (unitId: number) => ['vacationrental', 'providers', unitId] as const,
-  calendar: (propertyId: number, month: string) => ['vacationrental', 'calendar', propertyId, month] as const,
   overview: (unitId: number, year: number) => ['vacationrental', 'overview', unitId, year] as const,
 }
 
@@ -260,14 +259,6 @@ export function useProviders(unitId: number | null) {
     queryKey: rentalKeys.providers(unitId ?? 0),
     queryFn: () => api<string[]>(`/api/vacationrental/statements/providers?unitId=${unitId}`),
     enabled: unitId !== null,
-  })
-}
-
-export function useCalendar(propertyId: number | null, month: string) {
-  return useQuery({
-    queryKey: rentalKeys.calendar(propertyId ?? 0, month),
-    queryFn: () => api<Calendar>(`/api/vacationrental/occupancy/calendar?propertyId=${propertyId}&month=${month}`),
-    enabled: propertyId !== null,
   })
 }
 

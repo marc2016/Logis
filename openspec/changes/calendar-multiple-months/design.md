@@ -12,6 +12,7 @@
 
 **Non-Goals:**
 - One long timeline with months side by side (variant A) or month tiles with a week grid (variant C) from exploration.
+- Several units in one calendar.
 - Virtualising (unmounting) months that are far away; a few dozen months of a few rows each are cheap.
 
 ## Decisions
@@ -28,22 +29,26 @@ Two sentinel elements (top and bottom) observed with `IntersectionObserver` (`ro
 
 When earlier months are inserted above, the scroll position is kept: the page stores `scrollHeight` before `fetchPreviousPage` and restores `scrollTop += newHeight - oldHeight` after the pages change, because CSS scroll anchoring is not reliable in every browser.
 
-### D3: Layout
+### D3: Layout: one row per month for one unit
 
 ```
-[+ Buchung]                        Objekt [Haus Seeufer v]  [Heute]
+[+ Buchung]                     Einheit [Haus Seeufer v]  [Heute]
 [ Frühere Monate ]
-November 2026           <- month heading (sticky under the page header on scroll)
-  Einheit | 1 2 3 ... 30
-  Whg. 1  |   ####
-Dezember 2026
-  ...
++----------+--+--+--+--+--+-- ... --+--+
+| Nov 2026 | 1| 2| 3| 4| 5|[Erika==]  30|   <- day numbers inside the cells,
+| Dez 2026 |=Anna]| 3| 4| ...       | 31|      weekends shaded
+| Jan 2027 | ...                         |
++----------+--------------------------- -+
 [ Spätere Monate ]
 ```
 
-- `CalendarGrid` stays per month and gets the month heading from the page; each month keeps its own day columns, so months of different lengths align by day number.
-- „Heute“ resets `?month=` to the current month (new query key, so the list starts fresh) and scrolls to its heading.
-- `?month=` remains the start month for deep links and existing links.
+- The page chooses one unit (`?unitId=`, default: the first unit that is not archived, sorted by label). The calendar of its property is fetched as before and reduced to that unit in the frontend.
+- `CalendarGrid` renders all loaded months in one CSS grid: a sticky month column (`role="rowheader"`) and 31 day columns. Days a month does not have stay empty and greyed. Day numbers sit in each cell, because weekdays differ per month and a header row would scroll away.
+- The whole table scrolls sideways in one container, so all months stay aligned by day number.
+- „Heute“ resets `?month=` to the current month (new query key, so the list starts fresh) and scrolls to the top.
+- `?month=` remains the start month for deep links.
+- *Later:* several units at once, each in its own colour. Not part of this change.
+- *Alternative:* a box per month with a unit column (first implementation). Dropped as too bulky on the phone.
 
 ### D4: Updates
 

@@ -7,16 +7,10 @@ import { todayIso } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
 import { CalendarGrid } from '../CalendarGrid'
 import { IdSelect } from '../RentalFilters'
-import { rentalProperties, useBooking, useCalendarMonths, useRentalUnits } from '../api'
+import { unitLabel, useBooking, useCalendarMonths, useRentalUnits } from '../api'
 
-const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 /** Months shown right away: the start month and the two after it. */
 const INITIAL_MONTHS = 3
-
-function monthTitle(month: string) {
-  const [y, m] = month.split('-').map(Number)
-  return monthName.format(new Date(Date.UTC(y, m - 1, 1)))
-}
 
 /**
  * Whether the element is near the viewport (400px margin); always false without IntersectionObserver.
@@ -38,18 +32,22 @@ function useNearViewport(version: number) {
   return [setElement, nearAt === version] as const
 }
 
-/** Months of one property one below the other, loading further months while scrolling in both directions. */
+/** One unit, one row per month, loading further months while scrolling in both directions. */
 export function KalenderPage() {
   const [params, setParams] = useSearchParams()
   const { data: units = [], isLoading: unitsLoading } = useRentalUnits()
-  const properties = useMemo(() => rentalProperties(units), [units])
-  const propertyId = params.get('propertyId') ? Number(params.get('propertyId')) : (properties[0]?.id ?? null)
+  const options = useMemo(
+    () => [...units].sort((a, b) => Number(a.archived) - Number(b.archived) || unitLabel(a).localeCompare(unitLabel(b), 'de')),
+    [units],
+  )
+  const unit = options.find((u) => u.id === Number(params.get('unitId'))) ?? options[0]
+  const propertyId = unit?.propertyId ?? null
   const currentMonth = todayIso().slice(0, 7)
   const startMonth = params.get('month') ?? currentMonth
   const months = useCalendarMonths(propertyId, startMonth)
   const [dialog, setDialog] = useState<{ bookingId: number | null } | null>(null)
   const { data: openBooking } = useBooking(dialog?.bookingId ?? null)
-  const canRecord = units.some((u) => u.propertyId === propertyId && !u.archived && u.myRole !== 'VIEWER')
+  const canRecord = !!unit && !unit.archived && unit.myRole !== 'VIEWER'
   const pages = months.data?.pages ?? []
 
   // Fill the screen: the start month and the next two.
@@ -123,19 +121,19 @@ export function KalenderPage() {
           )
         }
       />
-      {!unitsLoading && properties.length === 0 ? (
+      {!unitsLoading && options.length === 0 ? (
         <p className="text-muted-foreground">Es gibt noch keine Ferienwohnung. Lege unter „Immobilien“ ein Objekt mit der Nutzung Ferienvermietung an.</p>
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <div className="w-64">
               <IdSelect
-                id="cal-property"
-                label="Objekt"
-                value={propertyId ?? undefined}
-                options={properties}
-                onChange={(v) => update({ propertyId: v })}
-                allLabel="Objekt wählen"
+                id="cal-unit"
+                label="Einheit"
+                value={unit?.id}
+                options={options.map((u) => ({ id: u.id, name: unitLabel(u) }))}
+                onChange={(v) => update({ unitId: v })}
+                allLabel="Einheit wählen"
               />
             </div>
             <Button variant="outline" onClick={today} disabled={startMonth === currentMonth && pages[0]?.month === currentMonth}>
@@ -160,14 +158,9 @@ export function KalenderPage() {
             </div>
           )}
           {months.isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
-          <div className="space-y-8">
-            {pages.map((calendar) => (
-              <section key={calendar.month} aria-label={monthTitle(calendar.month)}>
-                <h2 className="mb-2 text-lg font-semibold">{monthTitle(calendar.month)}</h2>
-                <CalendarGrid calendar={calendar} onOpen={(bookingId) => setDialog({ bookingId })} />
-              </section>
-            ))}
-          </div>
+          {unit && pages.length > 0 && (
+            <CalendarGrid months={pages} unitId={unit.id} onOpen={(bookingId) => setDialog({ bookingId })} />
+          )}
           {pages.length > 0 && (
             <div ref={bottomRef} className="mt-4">
               <Button variant="ghost" size="sm" disabled={months.isFetchingNextPage} onClick={loadLater}>
@@ -182,7 +175,7 @@ export function KalenderPage() {
         <BookingDialog
           key={dialog.bookingId ?? 'new'}
           booking={dialog.bookingId === null ? null : openBooking!}
-          defaultPropertyId={propertyId ?? undefined}
+          defaultUnitId={unit?.id}
           onClose={() => setDialog(null)}
         />
       )}

@@ -10,3 +10,9 @@
 
 - [x] 2.1 Run `npm test && npm run lint && npm run build`. Verify: everything is green.
 - [x] 2.2 Check on a phone-sized screen (Playwright, 390 px wide) that scrolling loads months in both directions without jumps. Verify: screenshots show several months one below the other.
+
+## 3. Slim table with one row per month
+
+- [x] 3.1 Choose one unit at the top instead of the property (`?unitId=`) and reduce each month to that unit (D3). Verify: a component test with two units shows only the bookings of the chosen one, and a unit-only user can choose only their unit.
+- [x] 3.2 Render all loaded months as rows of one table with a sticky month column and 31 day columns, day numbers in the cells (D3). Verify: component tests find the rows November 2026 to January 2027, a bar across the month boundary in two rows, and update the other calendar tests to rows.
+- [x] 3.3 Run `npm test && npm run lint && npm run build` and check the phone layout (Playwright, 390 px wide). Verify: everything is green and a screenshot shows months as slim rows.
