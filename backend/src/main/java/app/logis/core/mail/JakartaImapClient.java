@@ -1,6 +1,5 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
-import app.logis.core.modules.ConditionalOnLogisModule;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -22,7 +21,6 @@ import java.util.function.Predicate;
 
 /** IMAP via Jakarta Mail; the folder is opened read-only and bodies are read with PEEK, so nothing changes. */
 @Component
-@ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
 class JakartaImapClient implements ImapClient {
 
     private static final int TIMEOUT_MS = 20_000;

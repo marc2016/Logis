@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.core.mail.MailContent;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;

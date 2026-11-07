@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.core.mail.MailContent;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +11,7 @@ import java.time.LocalDate;
 
 /** One IMAP mailbox per user; the password is stored encrypted. */
 @Entity
-@Table(name = "mailboxes", schema = "vacationrental")
+@Table(name = "mailboxes", schema = "core")
 class Mailbox {
 
     @Id

@@ -1,4 +1,4 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
 import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
@@ -22,7 +22,7 @@ import java.util.Properties;
  * What parsers see of a mail: sender, subject and the text. HTML is turned into text with one line per row and
  * table cells separated by a tab, so "Label\tValue" lines read the same in HTML and plain text mails.
  */
-record MailContent(String messageId, Instant receivedAt, String sender, String subject, String text) {
+public record MailContent(String messageId, Instant receivedAt, String sender, String subject, String text) {
 
     private static final Session SESSION = Session.getInstance(utf8());
 
@@ -32,7 +32,7 @@ record MailContent(String messageId, Instant receivedAt, String sender, String s
         return p;
     }
 
-    static MailContent parse(byte[] raw) {
+    public static MailContent parse(byte[] raw) {
         try {
             var message = new MimeMessage(SESSION, new ByteArrayInputStream(raw));
             return of(message);
@@ -70,7 +70,7 @@ record MailContent(String messageId, Instant receivedAt, String sender, String s
         return null;
     }
 
-    static String htmlToText(String html) {
+    public static String htmlToText(String html) {
         var body = Jsoup.parse(html).body();
         var out = new StringBuilder();
         render(body, out);

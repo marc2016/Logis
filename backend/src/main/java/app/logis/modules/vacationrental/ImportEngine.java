@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
 class ImportEngine {
 
-    record Outcome(ImportedMail.Result result, Long bookingId, String detail) {
+    record Outcome(BookingMailResult result, Long bookingId, String detail) {
     }
 
     private final BookingService bookings;
@@ -42,15 +42,15 @@ class ImportEngine {
                         : create(ownerId, mail, raw);
                 case CHANGE -> existing.isPresent()
                         ? update(ownerId, existing.get(), mail, raw)
-                        : new Outcome(ImportedMail.Result.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
+                        : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
                 case CANCELLATION -> existing.isPresent()
                         ? cancel(ownerId, existing.get(), mail, raw)
-                        : new Outcome(ImportedMail.Result.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
+                        : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
             };
         } catch (ApiException e) {
-            return new Outcome(ImportedMail.Result.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
+            return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
         }
     }
 
@@ -58,21 +58,21 @@ class ImportEngine {
         var mapping = mail.propertyName() == null ? null
                 : mappings.find(ownerId, mail.agency(), mail.propertyName()).orElse(null);
         if (mapping == null) {
-            return new Outcome(ImportedMail.Result.UNASSIGNED_UNIT, null,
+            return new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
                     "Einheit für „" + Objects.toString(mail.propertyName(), "?") + "“ zuordnen");
         }
         var role = access.role(mapping.getUnitId(), ownerId).orElse(null);
         if (!RentalAccess.canEdit(role)) {
-            return new Outcome(ImportedMail.Result.UNASSIGNED_UNIT, null,
+            return new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
                     "Keine Bearbeitungsrechte für die zugeordnete Einheit");
         }
         try {
             var created = bookings.createImported(ownerId, input(mapping.getUnitId(), mail, null));
             attach(created.booking().getId(), mail, raw);
-            return new Outcome(ImportedMail.Result.BOOKING_CREATED, created.booking().getId(), null);
+            return new Outcome(BookingMailResult.BOOKING_CREATED, created.booking().getId(), null);
         } catch (ApiException e) {
             if (BookingService.OVERLAP.equals(e.getMessage())) {
-                return new Outcome(ImportedMail.Result.PERIOD_TAKEN, null, e.getMessage());
+                return new Outcome(BookingMailResult.PERIOD_TAKEN, null, e.getMessage());
             }
             throw e;
         }
@@ -84,17 +84,17 @@ class ImportEngine {
         var proposal = differences(booking, mail);
         if (proposal == null) {
             attach(id, mail, raw);
-            return new Outcome(ImportedMail.Result.ATTACHED, id, null);
+            return new Outcome(BookingMailResult.ATTACHED, id, null);
         }
         if (booking.getReviewState() == ReviewState.NEW) {
             // Not confirmed yet: the mail simply completes the prepared booking.
             bookings.updateImported(ownerId, id, input(booking.getUnitId(), merged(booking, proposal), booking));
             attach(id, mail, raw);
-            return new Outcome(ImportedMail.Result.ATTACHED, id, "Angaben ergänzt");
+            return new Outcome(BookingMailResult.ATTACHED, id, "Angaben ergänzt");
         }
         bookings.propose(ownerId, id, proposal);
         attach(id, mail, raw);
-        return new Outcome(ImportedMail.Result.CHANGE_PROPOSED, id, null);
+        return new Outcome(BookingMailResult.CHANGE_PROPOSED, id, null);
     }
 
     private Outcome cancel(Long ownerId, Booking booking, ParsedMail mail, byte[] raw) {
@@ -102,10 +102,10 @@ class ImportEngine {
         bookings.adoptAgency(ownerId, id, mail.agency());
         attach(id, mail, raw);
         if (booking.isCancelled()) {
-            return new Outcome(ImportedMail.Result.ATTACHED, id, "Bereits storniert");
+            return new Outcome(BookingMailResult.ATTACHED, id, "Bereits storniert");
         }
         bookings.propose(ownerId, id, BookingProposal.cancellation(null));
-        return new Outcome(ImportedMail.Result.CHANGE_PROPOSED, id, "Stornierung");
+        return new Outcome(BookingMailResult.CHANGE_PROPOSED, id, "Stornierung");
     }
 
     private void attach(Long bookingId, ParsedMail mail, byte[] raw) {

@@ -1,4 +1,4 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
 import java.time.Instant;
 import java.time.LocalDate;

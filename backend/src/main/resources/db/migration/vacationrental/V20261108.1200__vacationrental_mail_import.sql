@@ -1,45 +1,4 @@
--- Mail import: one IMAP mailbox per user, fetched mails with their result, and unit mappings per agency.
-CREATE TABLE vacationrental.mailboxes
-(
-    owner_user_id BIGINT PRIMARY KEY,
-    host          VARCHAR(255) NOT NULL,
-    port          INTEGER      NOT NULL CHECK (port BETWEEN 1 AND 65535),
-    username      VARCHAR(255) NOT NULL,
-    -- Encrypted with SecretCipher; never returned by the API.
-    password_enc  TEXT         NOT NULL,
-    folder        VARCHAR(255) NOT NULL DEFAULT 'INBOX',
-    use_tls       BOOLEAN      NOT NULL DEFAULT TRUE,
-    cutoff_date   DATE         NOT NULL,
-    enabled       BOOLEAN      NOT NULL DEFAULT TRUE,
-    last_poll_at  TIMESTAMPTZ,
-    last_error    VARCHAR(255),
-    version       BIGINT       NOT NULL DEFAULT 0
-);
-
-CREATE TABLE vacationrental.imported_mails
-(
-    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    owner_user_id BIGINT       NOT NULL,
-    message_id    VARCHAR(512) NOT NULL,
-    received_at   TIMESTAMPTZ  NOT NULL,
-    sender        VARCHAR(255),
-    subject       VARCHAR(998),
-    raw           BYTEA        NOT NULL,
-    text_preview  TEXT,
-    agency        VARCHAR(64),
-    mail_type     VARCHAR(16) CHECK (mail_type IN ('CONFIRMATION', 'SHORT_NOTICE', 'CHANGE', 'CANCELLATION')),
-    parsed        JSONB,
-    parsed_by     VARCHAR(8)   NOT NULL DEFAULT 'NONE' CHECK (parsed_by IN ('RULE', 'AI', 'NONE')),
-    result        VARCHAR(24)  NOT NULL,
-    result_detail VARCHAR(255),
-    booking_id    BIGINT,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    UNIQUE (owner_user_id, message_id)
-);
-
-CREATE INDEX imported_mails_owner_idx ON vacationrental.imported_mails (owner_user_id, received_at DESC);
-CREATE INDEX imported_mails_booking_idx ON vacationrental.imported_mails (booking_id);
-
+-- Booking mails: unit mappings per agency (mail inbox itself lives in the core).
 CREATE TABLE vacationrental.unit_mappings
 (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

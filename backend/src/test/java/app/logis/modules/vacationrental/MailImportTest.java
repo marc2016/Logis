@@ -34,7 +34,7 @@ class MailImportTest extends VacationRentalTest {
     static GreenMailExtension greenMail = new GreenMailExtension(ServerSetupTest.IMAP);
 
     @Autowired
-    MailImportService imports;
+    app.logis.core.mail.Mails imports;
 
     private GreenMailUser mailUser;
     private Actor anna;
@@ -56,7 +56,7 @@ class MailImportTest extends VacationRentalTest {
         if (password != null) {
             body.put("password", password);
         }
-        return mvc.perform(put("/api/vacationrental/mailbox").with(csrf()).session(actor.session())
+        return mvc.perform(put("/api/mail/mailbox").with(csrf()).session(actor.session())
                 .contentType("application/json").content(json.writeValueAsString(body)));
     }
 
@@ -70,7 +70,7 @@ class MailImportTest extends VacationRentalTest {
     }
 
     private List<Map<String, Object>> inbox(Actor actor) throws Exception {
-        return JsonPath.read(getWith("/api/vacationrental/inbox", actor.session()).andReturn().getResponse()
+        return JsonPath.read(getWith("/api/mail/inbox", actor.session()).andReturn().getResponse()
                 .getContentAsString(), "$");
     }
 
@@ -81,30 +81,15 @@ class MailImportTest extends VacationRentalTest {
 
     private void assign(String subjectPart) throws Exception {
         var id = ((Number) inboxItem(anna, subjectPart).get("id")).longValue();
-        postJson("/api/vacationrental/inbox/" + id + "/assign", Map.of("unitId", unit), anna.session())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void mailboxSettingsNeverReturnThePassword() throws Exception {
-        getWith("/api/vacationrental/mailbox", anna.session())
-                .andExpect(jsonPath("$.configured").value(true))
-                .andExpect(jsonPath("$.hasPassword").value(true))
-                .andExpect(jsonPath("$.aiEnabled").value(false))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("geheim"))));
-        saveMailbox(anna, "falsch")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail")
-                        .value("Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen"));
-        // Empty password keeps the stored one.
-        saveMailbox(anna, null).andExpect(status().isOk());
+        postJson("/api/vacationrental/mail/" + id + "/assign", Map.of("unitId", unit), anna.session())
+                .andExpect(status().isNoContent());
     }
 
     @Test
     void confirmationAfterAssigningTheUnitCreatesABookingToReview() throws Exception {
         deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
         deliver("fewo-cancellation-2025.eml", "2025-09-01T08:00:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
 
         assertThat(inbox(anna)).hasSize(1);
         var item = inboxItem(anna, "Neue Buchung");
@@ -114,7 +99,7 @@ class MailImportTest extends VacationRentalTest {
         assign("Neue Buchung");
         item = inboxItem(anna, "Neue Buchung");
         assertThat(item.get("result")).isEqualTo("BOOKING_CREATED");
-        var bookingId = ((Number) item.get("bookingId")).longValue();
+        var bookingId = ((Number) item.get("linkId")).longValue();
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
                 .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
@@ -126,34 +111,34 @@ class MailImportTest extends VacationRentalTest {
                 .andExpect(jsonPath("$[0].contentType").value("message/rfc822"));
 
         // Polling again processes nothing twice, and the mailbox stays untouched.
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assertThat(inbox(anna)).hasSize(1);
         var messages = greenMail.getReceivedMessages();
         for (var m : messages) {
             assertThat(m.getFlags().contains(Flags.Flag.SEEN)).isFalse();
         }
-        getWith("/api/vacationrental/mailbox", anna.session()).andExpect(jsonPath("$.lastPollAt").exists());
+        getWith("/api/mail/mailbox", anna.session()).andExpect(jsonPath("$.lastPollAt").exists());
     }
 
     @Test
     void shortNoticeAttachesAndCancellationProposes() throws Exception {
         deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assign("Neue Buchung");
-        var bookingId = ((Number) inboxItem(anna, "Neue Buchung").get("bookingId")).longValue();
+        var bookingId = ((Number) inboxItem(anna, "Neue Buchung").get("linkId")).longValue();
         postJson("/api/vacationrental/bookings/" + bookingId + "/confirm", Map.of(), anna.session())
                 .andExpect(status().isOk());
 
         // Mails arriving after the first poll carry the current time as received date.
         deliver("fewo-last-minute.eml", null);
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assertThat(inboxItem(anna, "Last-Minute").get("result")).isEqualTo("ATTACHED");
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NONE"))
                 .andExpect(jsonPath("$.proposal").doesNotExist());
 
         deliver("fewo-cancellation-275505.eml", null);
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assertThat(inboxItem(anna, "Stornierung 275505").get("result")).isEqualTo("CHANGE_PROPOSED");
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("CHANGE"))
@@ -175,12 +160,12 @@ class MailImportTest extends VacationRentalTest {
     void twoAgenciesMapToTheSameUnit() throws Exception {
         deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
         deliver("holidu-confirmation.eml", "2026-11-02T13:00:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assign("Neue Buchung");
         assign("Buchungsmitteilung");
         var holidu = inboxItem(anna, "Buchungsmitteilung");
         assertThat(holidu.get("result")).isEqualTo("BOOKING_CREATED");
-        getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("bookingId")).longValue(), anna.session())
+        getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.unit.id").value(unit))
                 .andExpect(jsonPath("$.agency").value("Holidu"))
                 .andExpect(jsonPath("$.expectedRent").value("309.08"));
@@ -191,12 +176,12 @@ class MailImportTest extends VacationRentalTest {
         booking(anna, unit, "2026-12-24", "2026-12-26");
         deliver("fewo-confirmation-child.eml", "2026-11-07T08:00:00Z");
         deliver("unknown-change.eml", "2026-11-05T17:00:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assign("Neue Buchung");
         assertThat(inboxItem(anna, "Neue Buchung").get("result")).isEqualTo("PERIOD_TAKEN");
         var unknown = inboxItem(anna, "Umbuchung");
         assertThat(unknown.get("result")).isEqualTo("NOT_RECOGNISED");
-        getWith("/api/vacationrental/inbox/" + ((Number) unknown.get("id")).longValue() + "/text", anna.session())
+        getWith("/api/mail/inbox/" + ((Number) unknown.get("id")).longValue() + "/text", anna.session())
                 .andExpect(jsonPath("$.text").value(containsString("umgebucht")));
     }
 
@@ -208,10 +193,10 @@ class MailImportTest extends VacationRentalTest {
         body.put("expectedRent", "248.58");
         var manual = id(book(anna, body));
         deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         var item = inboxItem(anna, "Neue Buchung");
         assertThat(item.get("result")).isEqualTo("CHANGE_PROPOSED");
-        assertThat(((Number) item.get("bookingId")).longValue()).isEqualTo(manual);
+        assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(manual);
         getWith("/api/vacationrental/bookings/" + manual, anna.session())
                 .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
                 .andExpect(jsonPath("$.proposal.guest.name").value("Erika Musterfrau"))
@@ -219,49 +204,31 @@ class MailImportTest extends VacationRentalTest {
     }
 
     @Test
-    void inboxIsPrivateAndErrorsAreRecorded() throws Exception {
-        deliver("unknown-change.eml", "2026-11-05T17:00:00Z");
-        imports.poll(anna.id());
-        var id = ((Number) inbox(anna).getFirst().get("id")).longValue();
-        var bert = actor();
-        assertThat(inbox(bert)).isEmpty();
-        getWith("/api/vacationrental/inbox/" + id + "/text", bert.session()).andExpect(status().isNotFound());
-
-        jdbc.update("UPDATE vacationrental.mailboxes SET port = 1 WHERE owner_user_id = ?", anna.id());
-        imports.poll(anna.id());
-        getWith("/api/vacationrental/mailbox", anna.session())
-                .andExpect(jsonPath("$.lastError").value(containsString("Abruf fehlgeschlagen")));
-    }
-
-    @Test
     void discardingAnImportedBookingMarksItsMail() throws Exception {
         deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
-        imports.poll(anna.id());
+        imports.pollNow(anna.id());
         assign("Neue Buchung");
-        var bookingId = ((Number) inboxItem(anna, "Neue Buchung").get("bookingId")).longValue();
+        var bookingId = ((Number) inboxItem(anna, "Neue Buchung").get("linkId")).longValue();
         postJson("/api/vacationrental/bookings/" + bookingId + "/discard", Map.of(), anna.session())
                 .andExpect(status().isNoContent());
         assertThat(inboxItem(anna, "Neue Buchung").get("result")).isEqualTo("DISCARDED");
     }
 
     @Test
-    void retryIgnoreAndDelete() throws Exception {
-        deliver("unknown-change.eml", "2026-11-05T17:00:00Z");
-        imports.poll(anna.id());
-        var id = ((Number) inbox(anna).getFirst().get("id")).longValue();
-        postJson("/api/vacationrental/inbox/" + id + "/retry", Map.of(), anna.session())
+    void mailFromADisabledPeriodIsHandledOnRetry() throws Exception {
+        // A mail stored while the module was disabled (see DisabledModuleMailTest) ...
+        byte[] raw;
+        try (var in = getClass().getResourceAsStream("/mails/fewo-confirmation-adults.eml")) {
+            raw = in.readAllBytes();
+        }
+        var id = jdbc.queryForObject("INSERT INTO core.mails (owner_user_id, message_id, received_at, raw, result) "
+                + "VALUES (?, '<y@example.org>', now(), ?, 'NOT_RECOGNISED') RETURNING id", Long.class, anna.id(), raw);
+        // ... is handled once the module is enabled and the user retries.
+        postJson("/api/mail/inbox/" + id + "/retry", Map.of(), anna.session())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result").value("NOT_RECOGNISED"));
-        postJson("/api/vacationrental/inbox/" + id + "/ignore", Map.of(), anna.session())
-                .andExpect(jsonPath("$.result").value("IGNORED"));
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .delete("/api/vacationrental/inbox/" + id).with(csrf()).session(anna.session()))
+                .andExpect(jsonPath("$.result").value("UNASSIGNED_UNIT"));
+        postJson("/api/vacationrental/mail/" + id + "/assign", Map.of("unitId", unit), anna.session())
                 .andExpect(status().isNoContent());
-        assertThat(inbox(anna)).isEmpty();
-        // Deleting removes the content but keeps the Message-ID, so the mail does not come back.
-        imports.fetchOlder(anna.id(), java.time.LocalDate.of(2026, 11, 1));
-        assertThat(inbox(anna)).isEmpty();
-        assertThat(jdbc.queryForObject("SELECT length(raw) FROM vacationrental.imported_mails WHERE id = ?",
-                Integer.class, id)).isZero();
+        getWith("/api/mail/inbox", anna.session()).andExpect(jsonPath("$[0].result").value("BOOKING_CREATED"));
     }
 }

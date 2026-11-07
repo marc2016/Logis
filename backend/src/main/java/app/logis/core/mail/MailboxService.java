@@ -1,6 +1,5 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
-import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.web.ApiException;
 import app.logis.shared.SecretCipher;
 import org.springframework.stereotype.Service;
@@ -12,7 +11,6 @@ import java.util.Optional;
 /** The user's own mailbox settings; the connection is tested before saving. */
 @Service
 @Transactional
-@ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
 class MailboxService {
 
     static final String UNREACHABLE = "Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen";

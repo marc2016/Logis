@@ -1,4 +1,4 @@
-package app.logis.modules.vacationrental;
+package app.logis.core.mail;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

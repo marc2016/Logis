@@ -25,6 +25,8 @@ class InitialAdminRunnerTest extends IntegrationTest {
         jdbc.update("DELETE FROM core.object_shares");
         jdbc.update("DELETE FROM core.transactions");
         jdbc.update("DELETE FROM core.accounts");
+        jdbc.update("DELETE FROM core.mails");
+        jdbc.update("DELETE FROM core.mailboxes");
         jdbc.update("DELETE FROM core.documents");
         jdbc.update("DELETE FROM core.property_costs");
         jdbc.update("DELETE FROM core.units");
