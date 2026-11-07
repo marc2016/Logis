@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -122,6 +123,12 @@ class BookingService {
                         .thenComparing(u -> u.name().toLowerCase()))
                 .map(u -> Map.entry(u, roles.get(u.id())))
                 .toList();
+    }
+
+    /** Details of the given bookings for a user who has the given roles on their units. */
+    @Transactional(readOnly = true)
+    List<BookingDetails> details(Collection<Long> bookingIds, Map<Long, ShareRole> roles) {
+        return details(bookings.findAllById(bookingIds), roles);
     }
 
     // --- Writing -------------------------------------------------------------------------------

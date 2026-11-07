@@ -18,6 +18,9 @@ class ModuleDataRetainedTest {
         var label = "erhalten-" + System.nanoTime();
         try (var ctx = start(true)) {
             ctx.getBean(JdbcTemplate.class).update("INSERT INTO vacationrental.test_record(label) VALUES (?)", label);
+            ctx.getBean(JdbcTemplate.class).update("INSERT INTO vacationrental.bookings "
+                    + "(unit_id, arrival, departure, adults, external_ref) VALUES (-1, DATE '2026-11-06', "
+                    + "DATE '2026-11-08', 2, ?)", label);
         }
         try (var ctx = start(false)) {
             assertThat(ctx.getBeansOfType(ModuleDescriptor.class)).isEmpty();
@@ -27,6 +30,10 @@ class ModuleDataRetainedTest {
             var count = ctx.getBean(JdbcTemplate.class)
                     .queryForObject("SELECT count(*) FROM vacationrental.test_record WHERE label = ?", Integer.class, label);
             assertThat(count).isEqualTo(1);
+            var bookings = ctx.getBean(JdbcTemplate.class)
+                    .queryForObject("SELECT count(*) FROM vacationrental.bookings WHERE external_ref = ?",
+                            Integer.class, label);
+            assertThat(bookings).isEqualTo(1);
         }
     }
 

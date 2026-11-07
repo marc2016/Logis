@@ -1,11 +1,13 @@
 package app.logis.core.web;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Domain error with a (German) message intended for users.
  * The message is returned as {@code detail} in the ProblemDetail.
  */
+@NamedInterface("web")
 public class ApiException extends RuntimeException {
 
     private final HttpStatus status;

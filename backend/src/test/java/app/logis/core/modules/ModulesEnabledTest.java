@@ -19,8 +19,8 @@ class ModulesEnabledTest extends IntegrationTest {
 
     @Test
     void activeModuleEndpointIsReachable() throws Exception {
-        mvc.perform(get("/api/vacationrental/status").with(user("u").roles("USER")))
-                .andExpect(status().isOk());
+        var session = login(createUser(app.logis.core.users.Role.USER, true));
+        getWith("/api/vacationrental/bookings", session).andExpect(status().isOk());
     }
 
     @Test
