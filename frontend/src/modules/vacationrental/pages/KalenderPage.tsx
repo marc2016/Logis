@@ -18,23 +18,24 @@ function monthTitle(month: string) {
   return monthName.format(new Date(Date.UTC(y, m - 1, 1)))
 }
 
-/** Calls {@code onVisible} when the element comes near the viewport; does nothing without IntersectionObserver. */
-function useNearViewport(onVisible: () => void) {
+/**
+ * Whether the element is near the viewport (400px margin); always false without IntersectionObserver.
+ * A new `version` (the number of loaded months) observes afresh, so a result from before the last
+ * render never counts and loading stops as soon as the element has moved out of reach.
+ */
+function useNearViewport(version: number) {
   // A callback ref: the element only appears once the first month has loaded.
   const [element, setElement] = useState<HTMLDivElement | null>(null)
-  const callback = useRef(onVisible)
-  useEffect(() => {
-    callback.current = onVisible
-  })
+  const [nearAt, setNearAt] = useState<number | null>(null)
   useEffect(() => {
     if (!element || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && callback.current(), {
+    const observer = new IntersectionObserver((entries) => setNearAt(entries.some((e) => e.isIntersecting) ? version : null), {
       rootMargin: '400px',
     })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [element])
-  return setElement
+  }, [element, version])
+  return [setElement, nearAt === version] as const
 }
 
 /** Months of one property one below the other, loading further months while scrolling in both directions. */
@@ -81,8 +82,21 @@ export function KalenderPage() {
     void months.fetchNextPage()
   }
 
-  const topRef = useNearViewport(() => pages.length >= INITIAL_MONTHS && loadEarlier())
-  const bottomRef = useNearViewport(() => pages.length >= INITIAL_MONTHS && loadLater())
+  // Keep loading while the end is in view; the start only after the user scrolled, so the start month stays on top.
+  const [topRef, topNear] = useNearViewport(pages.length)
+  const [bottomRef, bottomNear] = useNearViewport(pages.length)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(true)
+    window.addEventListener('scroll', onScroll, { passive: true, once: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [startMonth])
+  // A failed request stops automatic loading; the buttons still allow retrying.
+  const ready = pages.length >= INITIAL_MONTHS && !months.isFetching && !months.isError
+  useEffect(() => {
+    if (ready && bottomNear) loadLater()
+    else if (ready && topNear && scrolled) loadEarlier()
+  })
 
   function update(changes: Record<string, string | number | undefined>) {
     const next = new URLSearchParams(params)

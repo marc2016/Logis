@@ -9,4 +9,4 @@
 ## 2. Acceptance
 
 - [x] 2.1 Run `npm test && npm run lint && npm run build`. Verify: everything is green.
-- [ ] 2.2 Check on a phone-sized screen (Playwright, 390 px wide) that scrolling loads months in both directions without jumps. Verify: screenshots show several months one below the other.
+- [x] 2.2 Check on a phone-sized screen (Playwright, 390 px wide) that scrolling loads months in both directions without jumps. Verify: screenshots show several months one below the other.

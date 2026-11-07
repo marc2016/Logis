@@ -80,7 +80,7 @@ describe('Calendar over several months', () => {
     mockApi({ ...base, ...months() })
     renderApp('/ferienvermietung/kalender?propertyId=7&month=2026-11')
     await waitFor(() => expect(headings()).toHaveLength(3))
-    const bottom = observers.find((o) => o.element?.textContent?.includes('Spätere Monate'))!
+    const bottom = observers.findLast((o) => o.element?.textContent?.includes('Spätere Monate'))!
     bottom.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
     await waitFor(() => expect(headings()).toContain('Februar 2027'))
   })
