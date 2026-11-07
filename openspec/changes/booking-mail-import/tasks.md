@@ -25,8 +25,8 @@
 
 ## 5. Frontend
 
-- [ ] 5.1 Show agency, pets and „zu prüfen“ in the grid (filter and column), calendar (dashed bars) and `BookingDialog` with confirm/discard and the proposal diff (D7). Verify: component tests cover confirm, discard, applying a cancellation proposal and the review filter.
-- [ ] 5.2 Add the page „Posteingang“ with the settings card and the inbox table and actions. Verify: component tests cover saving the mailbox without showing the password, assigning a unit and retrying, and the AI notice when AI is active.
+- [x] 5.1 Show agency, pets and „zu prüfen“ in the grid (filter and column), calendar (dashed bars) and `BookingDialog` with confirm/discard and the proposal diff (D7). Verify: component tests cover confirm, discard, applying a cancellation proposal and the review filter.
+- [x] 5.2 Add the page „Posteingang“ with the settings card and the inbox table and actions. Verify: component tests cover saving the mailbox without showing the password, assigning a unit and retrying, and the AI notice when AI is active.
 
 ## 6. Acceptance
 

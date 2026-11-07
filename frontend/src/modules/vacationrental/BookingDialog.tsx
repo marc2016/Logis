@@ -12,6 +12,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { DocumentList, PendingDocuments } from '@/components/DocumentList'
 import { uploadDocument } from '@/components/documents'
 import { FormError } from '@/components/FormError'
+import { ReviewPanel } from './ReviewPanel'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { parseAmount, toInputValue } from '@/lib/money'
@@ -63,6 +64,8 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
   const [channel, setChannel] = useState<string>(initial?.channel ?? NO_CHANNEL)
   const [adults, setAdults] = useState(String(initial?.adults ?? 2))
   const [children, setChildren] = useState(String(initial?.children ?? 0))
+  const [agency, setAgency] = useState(initial?.agency ?? '')
+  const [pets, setPets] = useState(String(initial?.pets ?? 0))
   const [rent, setRent] = useState(initial?.expectedRent ? toInputValue(initial.expectedRent) : '')
   const [guest, setGuest] = useState<Guest>(initial?.guest ?? EMPTY_GUEST)
   const [pending, setPending] = useState<File[]>([])
@@ -83,6 +86,8 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
         channel: channel === NO_CHANNEL ? null : channel,
         adults: Number(adults),
         children: Number(children || 0),
+        agency,
+        pets: Number(pets || 0),
         expectedRent,
         guest,
         version: booking?.version,
@@ -162,10 +167,30 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
             {booking && (
               <DialogDescription className="flex flex-wrap items-center gap-2">
                 <Badge variant={booking.status === 'CANCELLED' ? 'secondary' : 'outline'}>{statusLabel[booking.status]}</Badge>
+                {booking.reviewState !== 'NONE' && <Badge>zu prüfen</Badge>}
                 {formatDate(booking.arrival)} – {formatDate(booking.departure)} · {booking.nights} {booking.nights === 1 ? 'Nacht' : 'Nächte'}
               </DialogDescription>
             )}
           </DialogHeader>
+
+          {booking && canEdit && booking.reviewState !== 'NONE' && (
+            <ReviewPanel
+              booking={booking}
+              onChanged={(next) => {
+                if (!next) onClose()
+                else {
+                  setBooking(next)
+                  setArrival(next.arrival)
+                  setDeparture(next.departure)
+                  setAdults(String(next.adults))
+                  setChildren(String(next.children))
+                  setPets(String(next.pets))
+                  setRent(next.expectedRent ? toInputValue(next.expectedRent) : '')
+                  setGuest(next.guest ?? EMPTY_GUEST)
+                }
+              }}
+            />
+          )}
 
           <fieldset disabled={!canEdit} className="space-y-4">
             <legend className="sr-only">Aufenthalt</legend>
@@ -223,6 +248,14 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
               <div className="space-y-2">
                 <Label htmlFor="bk-children">Kinder</Label>
                 <Input id="bk-children" type="number" min={0} max={99} value={children} onChange={(e) => setChildren(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bk-pets">Haustiere</Label>
+                <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bk-agency">Vermittler</Label>
+                <Input id="bk-agency" value={agency} onChange={(e) => setAgency(e.target.value)} placeholder="z. B. Fewo & Meer" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bk-rent">Mietpreis (€)</Label>

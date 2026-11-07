@@ -59,8 +59,10 @@ export function CalendarGrid({ calendar, onOpen }: Props) {
                   className={cn(
                     'z-0 my-1 truncate rounded px-1.5 text-left leading-6',
                     b.status === 'SETTLED' ? 'bg-primary text-primary-foreground' : 'border-2 border-primary bg-background',
+                    b.reviewState !== 'NONE' && 'border-2 border-dashed border-amber-600',
                   )}
-                  aria-label={`${label}, ${statusLabel[b.status]}`}
+                  aria-label={`${label}, ${statusLabel[b.status]}${b.reviewState !== 'NONE' ? ', zu prüfen' : ''}`}
+                  data-review={b.reviewState}
                   data-status={b.status}
                   title={`${label} (${statusLabel[b.status]})`}
                 >

@@ -4,6 +4,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { PlusIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -39,9 +40,15 @@ const columns = [
   }),
   column.accessor('status', {
     header: 'Status',
-    cell: (c) => <Badge variant={c.getValue() === 'CANCELLED' ? 'secondary' : 'outline'}>{statusLabel[c.getValue()]}</Badge>,
+    cell: (c) => (
+      <span className="inline-flex flex-wrap gap-1">
+        <Badge variant={c.getValue() === 'CANCELLED' ? 'secondary' : 'outline'}>{statusLabel[c.getValue()]}</Badge>
+        {c.row.original.reviewState !== 'NONE' && <Badge>zu prüfen</Badge>}
+      </span>
+    ),
     meta: { label: 'Status', sortable: true },
   }),
+  column.accessor('agency', { header: 'Vermittler', cell: (c) => c.getValue() ?? '–', meta: { label: 'Vermittler', sortable: true } }),
   column.accessor('externalRef', { header: 'Buchungsnr.', cell: (c) => c.getValue() ?? '–', meta: { label: 'Buchungsnummer' } }),
   column.accessor('channel', { header: 'Kanal', cell: (c) => (c.getValue() ? channelLabel[c.getValue()!] : '–'), meta: { label: 'Kanal' } }),
 ]
@@ -65,6 +72,7 @@ export function BuchungenPage() {
     from: params.get('from') ?? undefined,
     to: params.get('to') ?? undefined,
     q: params.get('q') ?? undefined,
+    review: params.get('review') === 'true',
     sort: params.get('sort') ?? DEFAULT_SORT,
     page: num('page') ?? 0,
     size: PAGE_SIZE,
@@ -98,6 +106,10 @@ export function BuchungenPage() {
           )
         }
       />
+      <label className="mb-2 inline-flex items-center gap-2 text-sm">
+        <Checkbox checked={filter.review} onCheckedChange={(v) => update({ review: v === true ? 'true' : undefined })} aria-label="Nur zu prüfen" />
+        Nur „zu prüfen“
+      </label>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <IdSelect id="flt-property" label="Objekt" value={filter.propertyId} options={properties} onChange={(v) => update({ propertyId: v, unitId: undefined })} />
         <IdSelect id="flt-unit" label="Einheit" value={filter.unitId} options={unitOptions} onChange={(v) => update({ unitId: v })} />

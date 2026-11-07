@@ -38,7 +38,7 @@ class OccupancyService {
     }
 
     record CalendarBooking(Long id, LocalDate arrival, LocalDate departure, BookingStatus status, String guestName,
-            String externalRef) {
+            String externalRef, ReviewState reviewState) {
     }
 
     record CalendarUnit(Long id, String name, boolean archived, boolean canEdit, List<CalendarBooking> bookings) {
@@ -79,7 +79,7 @@ class OccupancyService {
                                 .sorted(Comparator.comparing(d -> d.booking().getArrival()))
                                 .map(d -> new CalendarBooking(d.booking().getId(), d.booking().getArrival(),
                                         d.booking().getDeparture(), d.status(), d.guest().name(),
-                                        d.booking().getExternalRef()))
+                                        d.booking().getExternalRef(), d.booking().getReviewState()))
                                 .toList()))
                 .toList();
         return new Calendar(propertyId, units.getFirst().propertyName(), month, rows);

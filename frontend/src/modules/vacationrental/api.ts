@@ -4,6 +4,7 @@ import type { ShareRole } from '@/core/ledger/api'
 
 export type Channel = 'AIRBNB' | 'BOOKING_COM' | 'DIRECT' | 'OTHER'
 export type BookingStatus = 'PLANNED' | 'SETTLED' | 'CANCELLED'
+export type ReviewState = 'NONE' | 'NEW' | 'CHANGE'
 
 export const channelLabel: Record<Channel, string> = {
   AIRBNB: 'Airbnb',
@@ -39,6 +40,18 @@ export interface UnitRef {
   propertyMultiUnit: boolean
 }
 
+/** A change proposed by a mail; null fields stay as they are. */
+export interface BookingProposal {
+  type: 'CHANGE' | 'CANCELLATION'
+  arrival: string | null
+  departure: string | null
+  adults: number | null
+  children: number | null
+  pets: number | null
+  expectedRent: string | null
+  guest: Guest | null
+}
+
 export interface Booking {
   id: number
   unit: UnitRef
@@ -56,6 +69,10 @@ export interface Booking {
   guestDeleted: boolean
   canEdit: boolean
   version: number
+  agency: string | null
+  pets: number
+  reviewState: ReviewState
+  proposal: BookingProposal | null
 }
 
 export interface BookingPage {
@@ -104,6 +121,7 @@ export interface CalendarBooking {
   status: BookingStatus
   guestName: string | null
   externalRef: string | null
+  reviewState: ReviewState
 }
 
 export interface CalendarUnit {
@@ -143,9 +161,89 @@ export interface BookingFilter {
   from?: string
   to?: string
   q?: string
+  /** Only bookings and changes awaiting review. */
+  review?: boolean
   sort?: string
   page?: number
   size?: number
+}
+
+// --- Mail import ---------------------------------------------------------------------------------
+
+export type MailType = 'CONFIRMATION' | 'SHORT_NOTICE' | 'CHANGE' | 'CANCELLATION'
+export type ImportResult =
+  | 'BOOKING_CREATED'
+  | 'CHANGE_PROPOSED'
+  | 'ATTACHED'
+  | 'DUPLICATE'
+  | 'UNASSIGNED_UNIT'
+  | 'NOT_MATCHED'
+  | 'PERIOD_TAKEN'
+  | 'NOT_RECOGNISED'
+  | 'IGNORED'
+  | 'DISCARDED'
+  | 'FAILED'
+
+export const mailTypeLabel: Record<MailType, string> = {
+  CONFIRMATION: 'Bestätigung',
+  SHORT_NOTICE: 'Last-Minute',
+  CHANGE: 'Änderung',
+  CANCELLATION: 'Stornierung',
+}
+
+export const importResultLabel: Record<ImportResult, string> = {
+  BOOKING_CREATED: 'Buchung angelegt',
+  CHANGE_PROPOSED: 'Änderung vorgeschlagen',
+  ATTACHED: 'Angehängt',
+  DUPLICATE: 'Duplikat',
+  UNASSIGNED_UNIT: 'Einheit zuordnen',
+  NOT_MATCHED: 'Nicht zugeordnet',
+  PERIOD_TAKEN: 'Zeitraum belegt',
+  NOT_RECOGNISED: 'Nicht erkannt',
+  IGNORED: 'Ignoriert',
+  DISCARDED: 'Verworfen',
+  FAILED: 'Fehler',
+}
+
+/** Results the user can act on. */
+export const RETRYABLE: ImportResult[] = ['UNASSIGNED_UNIT', 'NOT_MATCHED', 'PERIOD_TAKEN', 'NOT_RECOGNISED', 'FAILED', 'IGNORED']
+
+export interface MailboxSettings {
+  configured: boolean
+  host: string | null
+  port: number | null
+  username: string | null
+  hasPassword: boolean
+  folder: string | null
+  useTls: boolean | null
+  cutoffDate: string | null
+  enabled: boolean | null
+  lastPollAt: string | null
+  lastError: string | null
+  aiEnabled: boolean
+}
+
+export interface InboxItem {
+  id: number
+  receivedAt: string
+  sender: string | null
+  subject: string | null
+  agency: string | null
+  mailType: MailType | null
+  propertyName: string | null
+  bookingRef: string | null
+  parsedBy: 'RULE' | 'AI' | 'NONE'
+  result: ImportResult
+  resultDetail: string | null
+  bookingId: number | null
+}
+
+export function useMailbox() {
+  return useQuery({ queryKey: ['vacationrental', 'mailbox'], queryFn: () => api<MailboxSettings>('/api/vacationrental/mailbox') })
+}
+
+export function useInbox() {
+  return useQuery({ queryKey: ['vacationrental', 'inbox'], queryFn: () => api<InboxItem[]>('/api/vacationrental/inbox') })
 }
 
 /** Display name of a unit: the property alone for single-unit properties. */
@@ -172,10 +270,10 @@ export const rentalKeys = {
   overview: (unitId: number, year: number) => ['vacationrental', 'overview', unitId, year] as const,
 }
 
-function query(params: Record<string, string | number | undefined | null>) {
+function query(params: Record<string, string | number | boolean | undefined | null>) {
   const search = new URLSearchParams()
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') search.set(k, String(v))
+    if (v !== undefined && v !== null && v !== '' && v !== false) search.set(k, String(v))
   })
   const text = search.toString()
   return text ? `?${text}` : ''

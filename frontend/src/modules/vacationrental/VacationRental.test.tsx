@@ -140,7 +140,7 @@ describe('Calendar', () => {
   it('shows a new booking after saving from the calendar', async () => {
     let saved = false
     const withNew = calendar({
-      units: [{ id: 70, name: 'Haus Seeufer', archived: false, canEdit: true, bookings: [{ id: 9, arrival: '2026-11-14', departure: '2026-11-16', status: 'PLANNED', guestName: 'Neuer Gast', externalRef: null }] }],
+      units: [{ id: 70, name: 'Haus Seeufer', archived: false, canEdit: true, bookings: [{ id: 9, arrival: '2026-11-14', departure: '2026-11-16', status: 'PLANNED', guestName: 'Neuer Gast', externalRef: null, reviewState: 'NONE' }] }],
     })
     mockApi({
       ...base,
