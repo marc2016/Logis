@@ -1,4 +1,5 @@
-# Tests on every push and pull request; images for amd64 and arm64 on main (edge) and version tags (latest).
+# Tests and end-to-end tests on every push and pull request; images for amd64 and arm64
+# on main (edge) and version tags (latest), only when all of them pass.
 name: Tests and images
 
 on:
@@ -47,9 +48,53 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  e2e:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE: docker compose --env-file e2e/e2e.env -f compose.yml -f e2e/compose.e2e.yml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Exposes the cache token to run steps, for type=gha in the bake call below.
+      - uses: crazy-max/ghaction-github-runtime@v3
+      # The images of this commit for amd64, from the same build cache as the image job.
+      - name: Build images
+        run: |
+          set -a; . e2e/e2e.env; set +a
+          docker buildx bake -f compose.yml -f e2e/compose.e2e.yml --load \
+            --set backend.cache-from=type=gha,scope=backend \
+            --set frontend.cache-from=type=gha,scope=frontend \
+            backend frontend
+      - name: Start stack
+        run: $COMPOSE up -d --no-build --wait
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install Playwright
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Run end-to-end tests
+        working-directory: e2e
+        run: npx playwright test
+      - name: Stack logs
+        if: failure()
+        run: $COMPOSE logs --no-color > e2e/stack.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            e2e/stack.log
+          retention-days: 14
+
   images:
     if: github.event_name == 'push'
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read

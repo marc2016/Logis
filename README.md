@@ -268,6 +268,20 @@ export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
 export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 ```
 
+### End-to-end tests
+
+Playwright tests in `e2e/` check the main flows (sign-in with two-factor setup, booking to calendar and statement, mail import, calendar subscription) in a real browser, each on a desktop and a phone screen. They run in the GitHub workflow against the images of the commit; images are only published when they pass.
+
+Locally against the production stack with a test mail server (test settings from `e2e/e2e.env`):
+
+```sh
+docker compose --env-file e2e/e2e.env -f compose.yml -f e2e/compose.e2e.yml up -d --build --wait
+cd e2e && npm ci && npx playwright install chromium
+npx playwright test                 # npx playwright test --project=phone for one screen
+```
+
+`LOGIS_E2E_URL` points to another stack (default `http://localhost:8080`); `LOGIS_E2E_ADMIN_PASSWORD`, `LOGIS_E2E_IMAP_HOST` and `LOGIS_E2E_SMTP_HOST` match its admin and mail server. The suite keeps the admin's TOTP secret in `e2e/.auth/`; delete that folder together with the database. Against `npm run dev` the two-factor setup fails, because React runs the setup request twice in development mode; use `npm run build && npx vite preview` instead.
+
 ### Creating a new module
 
 1. Backend: Create the package `app.logis.modules.<id>` with a `package-info.java` (`@ApplicationModule(id = "<id>")`). Every component gets `@ConditionalOnLogisModule("<id>")`. The module provides a `ModuleDescriptor` bean, its migrations live under `db/migration/<id>`, and the schema is added to `spring.flyway.schemas`.
