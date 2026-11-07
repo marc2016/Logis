@@ -10,10 +10,12 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.mock.web.MockHttpSession;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -208,7 +210,8 @@ class LoginFlowTest extends IntegrationTest {
         postJson("/api/auth/login", Map.of("username", user.username(), "password", "falsch-falsch"), null)
                 .andExpect(status().isUnauthorized());
         var lockedUntil = users.findById(user.id()).orElseThrow().getLockedUntil();
-        assertThat(Duration.between(clock.instant(), lockedUntil)).isEqualTo(Duration.ofMinutes(15));
+        // The database keeps microseconds, the test clock nanoseconds.
+        assertThat(lockedUntil).isCloseTo(clock.instant().plus(Duration.ofMinutes(15)), within(1, ChronoUnit.MILLIS));
     }
 
     // --- 5.6 Session duration -----------------------------------------------------------------
