@@ -33,7 +33,7 @@
 ## 6. Acceptance
 
 - [x] 6.1 Run the full test suites: `./mvnw verify` and `npm test && npm run lint && npm run build`. Verify: Everything is green.
-- [ ] 6.2 Manual run with `./start.sh` and three users (admin as Anna, Carla, Dieter):
+- [x] 6.2 Manual run with `./start.sh` and three users (admin as Anna, Carla, Dieter):
   1. Create the single-unit property "Ferienhaus Ostsee" and check that no unit list appears.
   2. Create a property with two units and share one unit with Carla as `EDITOR`, the property with Dieter as `VIEWER`.
   3. Attribute two transactions to Carla's unit and one to the property.
