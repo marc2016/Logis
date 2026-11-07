@@ -8,4 +8,4 @@
 
 ## 2. Acceptance
 
-- [ ] 2.1 After the user has pushed: the workflow run on `main` is green and both packages show `latest` and `sha-…` for amd64 and arm64. Verify: the run and the package pages on GitHub.
+- [ ] 2.1 After the user has pushed: the workflow run on `main` is green and both packages show `edge` and `sha-…` for amd64 and arm64. Verify: the run and the package pages on GitHub.

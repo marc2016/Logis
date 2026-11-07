@@ -38,10 +38,11 @@ test-frontend (node 24, npm ci, lint, test, build)            --+--> images (mat
 ### D3: Tags with docker/metadata-action
 
 ```
-type=raw,value=latest,enable={{is_default_branch}}
+type=raw,value=edge,enable={{is_default_branch}}
 type=sha,prefix=sha-
 type=semver,pattern={{version}}
 type=semver,pattern={{major}}.{{minor}}
+type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 ```
 
 Images: `ghcr.io/marc2016/logis-backend`, `ghcr.io/marc2016/logis-frontend` (lowercase owner). OCI labels link the image to the repository.
@@ -55,4 +56,5 @@ Images: `ghcr.io/marc2016/logis-backend`, `ghcr.io/marc2016/logis-frontend` (low
 - [Public images] → They contain only code that is also needed to run logis; secrets come from `.env`. The repository's visibility is unchanged.
 - [GHCR packages start private] → One-time manual switch to public, documented in the README.
 - [Long CI run] → Maven and npm caches (`actions/setup-java` / `setup-node` cache) and the buildx GHA cache.
-- [`latest` moves with every push] → The mini PC can pin `LOGIS_VERSION` to a version tag.
+- [`latest` missing before the first release] → README: use `LOGIS_VERSION=edge` or push `v0.1.0` first.
+- [`edge` moves with every push] → Only for trying out; the default `latest` moves only with a version tag, and `LOGIS_VERSION` can pin a version.
