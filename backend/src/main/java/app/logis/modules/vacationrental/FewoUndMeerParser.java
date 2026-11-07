@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.core.modules.ConditionalOnLogisModule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import static app.logis.modules.vacationrental.GermanText.find;
 
 /** Rules for Fewo & Meer: confirmation, short-notice notice and cancellation. */
 @Component
+@ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
 @Order(1)
 class FewoUndMeerParser implements MailParser {
 

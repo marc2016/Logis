@@ -54,6 +54,11 @@ management:
       show-details: never
 
 logis:
+  # Optional AI fallback for mails no rule recognises (sends mail text including guest data to Anthropic).
+  ai:
+    enabled: ${LOGIS_AI_ENABLED:false}
+    api-key: ${LOGIS_ANTHROPIC_API_KEY:}
+    model: ${LOGIS_AI_MODEL:claude-opus-5-5}
   admin:
     username: ${LOGIS_ADMIN_USERNAME:}
     password: ${LOGIS_ADMIN_PASSWORD:}

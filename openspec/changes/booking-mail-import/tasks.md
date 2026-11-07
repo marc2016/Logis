@@ -14,7 +14,7 @@
 ## 3. Parsing
 
 - [x] 3.1 Add the anonymised sample mails as test resources and implement `ParsedMail`, `FewoUndMeerParser` and `HoliduDsParser` (D1). Verify: unit tests read all samples correctly, including "2 Erwachsene, 1 Kind", the multi-line address, German amounts and dates, and the Holidu total price 309.08.
-- [ ] 3.2 Implement `AiMailParser` with the configuration of D6 behind an interface. Verify: with a stub client, a fixed JSON becomes a `ParsedMail`; incomplete JSON gives `NOT_RECOGNISED`; with AI disabled the parser is not called.
+- [x] 3.2 Implement `AiMailParser` with the configuration of D6 behind an interface. Verify: with a stub client, a fixed JSON becomes a `ParsedMail`; incomplete JSON gives `NOT_RECOGNISED`; with AI disabled the parser is not called.
 
 ## 4. Import
 

@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.core.modules.ConditionalOnLogisModule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import static app.logis.modules.vacationrental.GermanText.find;
  * known so far; anything else is left to the AI fallback.
  */
 @Component
+@ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
 @Order(2)
 class HoliduDsParser implements MailParser {
 
