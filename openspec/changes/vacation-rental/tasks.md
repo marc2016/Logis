@@ -25,7 +25,7 @@
 
 ## 5. Occupancy (backend)
 
-- [ ] 5.1 Implement `OccupancyService` and `OccupancyController` with the calendar and the yearly overview (D5). Verify: Unit tests cover the night split (700.00 → 400.00/300.00), the rounding remainder, the year boundary and the cancellation payout in the arrival month. Integration tests cover the "Mixed month" scenario (11 nights, 37 %), and Carla seeing only "Whg. 2" in the calendar.
+- [ ] 5.1 Implement `OccupancyService` and `OccupancyController` with the calendar and the yearly overview (D5). Verify: Unit tests cover the night split (4 + 3 nights) with the 700.00 in April on the statement date, the year boundary, the cancellation payout on its statement date, and planned rent in the arrival month. Integration tests cover the "Mixed month" scenario (11 nights, 37 %), and Carla seeing only "Whg. 2" in the calendar.
 - [ ] 5.2 Remove `VacationRentalStatusController`. Verify: With the module disabled, `/api/vacationrental/bookings` returns 404, and after enabling it again the bookings are still there.
 
 ## 6. Frontend

@@ -28,7 +28,7 @@ Guiding decisions from exploration:
   - Removing a booking from a statement makes it planned again.
 - **Occupancy:**
   - A monthly calendar per property with one row per vacation rental unit.
-  - A yearly overview per unit with booked nights, occupancy rate, settled net and planned rent per month. Stays across a month boundary are split by night.
+  - A yearly overview per unit with booked nights, occupancy rate, settled net and planned rent per month. Nights of stays across a month boundary are split by night. Money counts on the statement date, the same as in the property finances.
 - **Property finances (core, all properties):**
   - Costs are recorded on a property or one of its units: date, amount, category, counterparty, note and receipts (documents).
   - The property page gets a „Finanzen“ section: a yearly table per month with income, expenses and result, and a sortable list of all items, with „+ Kosten“ at the top right.

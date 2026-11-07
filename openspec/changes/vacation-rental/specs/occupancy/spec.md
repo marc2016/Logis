@@ -21,18 +21,18 @@ The system SHALL show a monthly calendar per property with one row per vacation 
 - **WHEN** Carla, as `EDITOR` of "Whg. 2" only, opens the calendar of its property
 - **THEN** they see only the row of "Whg. 2"
 
-### Requirement: Night-based counting
-For all figures, a booking SHALL count its nights from arrival up to the night before departure. A stay across a month boundary MUST be split by night. Rent and net amounts MUST be distributed over the nights in proportion, with any rounding remainder on the last night. Cancelled bookings MUST NOT count as nights.
+### Requirement: Counting nights and money
+A booking SHALL count its nights from arrival up to the night before departure, and a stay across a month boundary MUST be split by night. Cancelled bookings MUST NOT count as nights. Money MUST NOT be split by night: settled amounts MUST count in the month of their statement date, the same as in the property finances, and planned rent in the month of arrival.
 
 #### Scenario: Stay across the month boundary
-- **WHEN** a settled booking from 2026-03-28 to 2026-04-04 has a net of 700.00
-- **THEN** March counts 4 nights and 400.00, April 3 nights and 300.00
+- **WHEN** a booking from 2026-03-28 to 2026-04-04 with a net of 700.00 is on a statement dated 2026-04-05
+- **THEN** March counts 4 nights and 0.00, April 3 nights and 700.00
 
 ### Requirement: Yearly overview per unit
-The system SHALL show, for a vacation rental unit and a year, per month: booked nights, occupancy rate (booked nights / days of the month), settled net and planned rent. Settled net SHALL come from statement lines and planned rent from the expected rent of planned bookings, so the two are never added up. A cancellation payout SHALL count as settled net in the month of its booking's arrival.
+The system SHALL show, for a vacation rental unit and a year, per month: booked nights, occupancy rate (booked nights / days of the month), settled net and planned rent. Settled net SHALL come from statement lines and planned rent from the expected rent of planned bookings, so the two are never added up. A cancellation payout SHALL count as settled net like any other statement line.
 
 #### Scenario: Mixed month
-- **WHEN** November 2026 has a settled stay of 9 nights with a net of 540.00 and a planned stay of 2 nights with an expected rent of 248.58
+- **WHEN** November 2026 has a settled stay of 9 nights with a net of 540.00 on a statement dated in November, and a planned stay of 2 nights with an expected rent of 248.58
 - **THEN** the overview shows 11 nights, an occupancy rate of 37 %, a settled net of 540.00 and a planned rent of 248.58
 
 #### Scenario: Viewer sees the overview

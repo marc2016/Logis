@@ -128,20 +128,17 @@ Booking DTOs carry `status`, `nights`, `statementId` and `canEdit`.
 
 ### D5: Figures
 
-`OccupancyService` loads the year's non-cancelled bookings of the unit, plus the cancelled bookings that have lines, with their lines in one query. It distributes per night in Java with `BigDecimal`:
+`OccupancyService` loads the bookings of the unit that overlap the year (for nights) and the statement lines of the unit whose statement date is in the year (for money):
 
 ```
-perNight = amount / nights  (scale 2, HALF_UP); last night = amount - perNight * (nights - 1)
-month.nights      += nights in month (not cancelled)
-month.settledNet  += net share   (bookings with a line, not cancelled)
-month.plannedRent += rent share  (planned bookings with expected_rent)
-cancelled with line: whole net -> month of arrival
+month.nights      += nights in month (not cancelled; stays across Dec/Jan are clipped to the year)
+month.settledNet  += net of each statement line in the month of its statement date (cancelled included)
+month.plannedRent += expected_rent of each planned booking in the month of its arrival
 occupancy = nights / daysInMonth, shown as a whole percentage
 ```
 
-The occupancy overview splits money by night, while property finances date items on the statement date (closer to when the money flows). Both labels say so in the interface („nach Nächten“, „nach Abrechnungsdatum“), so different monthly figures are explainable.
-
-Stays that reach into the year from December or out of it into January are clipped, but their shares are still computed over the whole stay.
+- **One money rule everywhere:** Settled money counts on the statement date, in the occupancy overview as well as in the property finances (`StatementFinanceSource`). That is close to when the money arrives, matches the cash principle for taxes, and later lines up with the bank transaction of the payout. Only nights are split across months.
+  - *Alternative:* splitting money by night, like nights. It was rejected by the user: two different monthly figures for the same money would be confusing.
 
 ### D6: Frontend
 
@@ -171,7 +168,7 @@ src/modules/vacationrental/
 
 ### D7: Tests
 
-- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split and the yearly overview including the year boundary, property finances (costs CRUD and rights, receipts, statement items on the statement date, totals including the -168.71 example, Carla seeing only unit items, disabled module contributing nothing), generic documents (unknown owner type → 404), property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
+- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split, money on the statement date and the yearly overview including the year boundary, property finances (costs CRUD and rights, receipts, statement items on the statement date, totals including the -168.71 example, Carla seeing only unit items, disabled module contributing nothing), generic documents (unknown owner type → 404), property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
 - **Frontend:** component tests for the calendar row filtering and bar styles, `BookingDialog` without guest fields for a viewer, the statement payout display, the overview table, and the property finances section with `CostDialog`.
 
 ## Risks / Trade-offs
@@ -182,7 +179,6 @@ src/modules/vacationrental/
 - [Documents keep guest data after „Gastdaten löschen“] → The user decided this. The dialog shows a hint after deleting guest data when documents remain, so the user can delete them too.
 - [Database grows with files] → At a few documents of about 1 MB per booking, this stays in the range of hundreds of MB per year. The backup size grows the same way. Moving to a volume later only changes `DocumentService` and a migration.
 - [Costs and attributed transactions describe the same money] → Until linking exists, only costs count in the result. Attributed transactions are shown separately and marked. The later linking change sets `transaction_id` on a cost and hides the linked transaction from the separate list.
-- [Rounding in the night split] → The last-night remainder keeps the yearly sums exact. Monthly values can differ by a cent from a manual calculation, which is acceptable for an overview.
 
 ## Migration Plan
 
