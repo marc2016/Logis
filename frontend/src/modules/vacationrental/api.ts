@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { ShareRole } from '@/core/ledger/api'
+import { shiftMonth } from './calendar'
 
 export type Channel = 'AIRBNB' | 'BOOKING_COM' | 'DIRECT' | 'OTHER'
 export type BookingStatus = 'PLANNED' | 'SETTLED' | 'CANCELLED'
@@ -266,6 +267,19 @@ export function useCalendar(propertyId: number | null, month: string) {
   return useQuery({
     queryKey: rentalKeys.calendar(propertyId ?? 0, month),
     queryFn: () => api<Calendar>(`/api/vacationrental/occupancy/calendar?propertyId=${propertyId}&month=${month}`),
+    enabled: propertyId !== null,
+  })
+}
+
+/** Consecutive months of the calendar from a start month, loaded one by one in both directions. */
+export function useCalendarMonths(propertyId: number | null, startMonth: string) {
+  return useInfiniteQuery({
+    queryKey: ['vacationrental', 'calendar-months', propertyId ?? 0, startMonth] as const,
+    queryFn: ({ pageParam }) =>
+      api<Calendar>(`/api/vacationrental/occupancy/calendar?propertyId=${propertyId}&month=${pageParam}`),
+    initialPageParam: startMonth,
+    getNextPageParam: (last) => shiftMonth(last.month, 1),
+    getPreviousPageParam: (first) => shiftMonth(first.month, -1),
     enabled: propertyId !== null,
   })
 }

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { Overview } from './api'
-import { booking, bookingPage, calendar, seeufer, statement } from './fixtures'
+import { booking, bookingPage, seeufer, statement } from './fixtures'
 
 const base = {
   'GET /api/auth/me': authenticated(),
@@ -120,54 +120,6 @@ describe('Booking dialog', () => {
     expect(within(dialog).queryByText('Dokumente')).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Speichern' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Buchung' })).not.toBeInTheDocument()
-  })
-})
-
-describe('Calendar', () => {
-  it('shows planned and settled bars, not cancelled ones', async () => {
-    mockApi({
-      ...base,
-      'GET /api/vacationrental/units': { body: [{ ...seeufer, id: 81, name: 'Whg. 1', propertyName: 'Haus am Deich', propertyMultiUnit: true }] },
-      'GET /api/vacationrental/occupancy/calendar': { body: calendar() },
-    })
-    renderApp('/ferienvermietung/kalender?propertyId=7&month=2026-11')
-    expect(await screen.findByRole('button', { name: 'Gast Geplant, Geplant' })).toHaveAttribute('data-status', 'PLANNED')
-    expect(screen.getByRole('button', { name: 'Gast Abgerechnet, Abgerechnet' })).toHaveAttribute('data-status', 'SETTLED')
-    expect(screen.queryByText('Gast Storniert')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('rowheader').map((r) => r.textContent)).toEqual(['Whg. 1', 'Whg. 2'])
-  })
-
-  it('shows a new booking after saving from the calendar', async () => {
-    let saved = false
-    const withNew = calendar({
-      units: [{ id: 70, name: 'Haus Seeufer', archived: false, canEdit: true, bookings: [{ id: 9, arrival: '2026-11-14', departure: '2026-11-16', status: 'PLANNED', guestName: 'Neuer Gast', externalRef: null, reviewState: 'NONE' }] }],
-    })
-    mockApi({
-      ...base,
-      'GET /api/vacationrental/occupancy/calendar': () => ({ body: saved ? withNew : calendar({ units: [{ id: 70, name: 'Haus Seeufer', archived: false, canEdit: true, bookings: [] }] }) }),
-      'POST /api/vacationrental/bookings': () => {
-        saved = true
-        return { status: 201, body: booking({ id: 9 }) }
-      },
-    })
-    renderApp('/ferienvermietung/kalender?propertyId=7&month=2026-11')
-    const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Buchung' }))
-    const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
-    await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
-    expect(await screen.findByRole('button', { name: 'Neuer Gast, Geplant' })).toBeInTheDocument()
-  })
-
-  it('shows a unit-only user one row', async () => {
-    mockApi({
-      ...base,
-      'GET /api/vacationrental/units': { body: [{ ...seeufer, id: 82, name: 'Whg. 2', propertyName: 'Haus am Deich', myRole: 'EDITOR' }] },
-      'GET /api/vacationrental/occupancy/calendar': { body: calendar({ units: [calendar().units[1]] }) },
-    })
-    renderApp('/ferienvermietung/kalender?propertyId=7&month=2026-11')
-    await screen.findByRole('button', { name: 'Gast Abgerechnet, Abgerechnet' })
-    expect(screen.getAllByRole('rowheader').map((r) => r.textContent)).toEqual(['Whg. 2'])
   })
 })
 

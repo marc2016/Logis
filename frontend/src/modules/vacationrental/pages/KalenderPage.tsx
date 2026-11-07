@@ -1,33 +1,88 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from 'lucide-react'
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
 import { todayIso } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
 import { CalendarGrid } from '../CalendarGrid'
 import { IdSelect } from '../RentalFilters'
-import { rentalProperties, useBooking, useCalendar, useRentalUnits } from '../api'
+import { rentalProperties, useBooking, useCalendarMonths, useRentalUnits } from '../api'
 
 const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+/** Months shown right away: the start month and the two after it. */
+const INITIAL_MONTHS = 3
 
-function shift(month: string, delta: number) {
+function monthTitle(month: string) {
   const [y, m] = month.split('-').map(Number)
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1))
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+  return monthName.format(new Date(Date.UTC(y, m - 1, 1)))
 }
 
-/** Month calendar per property; "+ Buchung" opens the same dialog as the grid. */
+/** Calls {@code onVisible} when the element comes near the viewport; does nothing without IntersectionObserver. */
+function useNearViewport(onVisible: () => void) {
+  // A callback ref: the element only appears once the first month has loaded.
+  const [element, setElement] = useState<HTMLDivElement | null>(null)
+  const callback = useRef(onVisible)
+  useEffect(() => {
+    callback.current = onVisible
+  })
+  useEffect(() => {
+    if (!element || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && callback.current(), {
+      rootMargin: '400px',
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [element])
+  return setElement
+}
+
+/** Months of one property one below the other, loading further months while scrolling in both directions. */
 export function KalenderPage() {
   const [params, setParams] = useSearchParams()
   const { data: units = [], isLoading: unitsLoading } = useRentalUnits()
   const properties = useMemo(() => rentalProperties(units), [units])
   const propertyId = params.get('propertyId') ? Number(params.get('propertyId')) : (properties[0]?.id ?? null)
-  const month = params.get('month') ?? todayIso().slice(0, 7)
-  const { data: calendar, isLoading } = useCalendar(propertyId, month)
+  const currentMonth = todayIso().slice(0, 7)
+  const startMonth = params.get('month') ?? currentMonth
+  const months = useCalendarMonths(propertyId, startMonth)
   const [dialog, setDialog] = useState<{ bookingId: number | null } | null>(null)
   const { data: openBooking } = useBooking(dialog?.bookingId ?? null)
   const canRecord = units.some((u) => u.propertyId === propertyId && !u.archived && u.myRole !== 'VIEWER')
+  const pages = months.data?.pages ?? []
+
+  // Fill the screen: the start month and the next two.
+  useEffect(() => {
+    if (months.hasNextPage && !months.isFetching && pages.length > 0 && pages.length < INITIAL_MONTHS) {
+      void months.fetchNextPage()
+    }
+  }, [months, pages.length])
+
+  // Earlier months are inserted above: keep what the user looks at in place.
+  const heightBeforePrevious = useRef<number | null>(null)
+  const firstMonth = pages[0]?.month
+  useLayoutEffect(() => {
+    const before = heightBeforePrevious.current
+    if (before !== null) {
+      heightBeforePrevious.current = null
+      const scroller = document.scrollingElement
+      if (scroller) window.scrollBy(0, scroller.scrollHeight - before)
+    }
+  }, [firstMonth])
+
+  function loadEarlier() {
+    if (months.isFetchingPreviousPage || !months.hasPreviousPage) return
+    heightBeforePrevious.current = document.scrollingElement?.scrollHeight ?? null
+    void months.fetchPreviousPage()
+  }
+
+  function loadLater() {
+    if (months.isFetchingNextPage || !months.hasNextPage) return
+    void months.fetchNextPage()
+  }
+
+  const topRef = useNearViewport(() => pages.length >= INITIAL_MONTHS && loadEarlier())
+  const bottomRef = useNearViewport(() => pages.length >= INITIAL_MONTHS && loadLater())
 
   function update(changes: Record<string, string | number | undefined>) {
     const next = new URLSearchParams(params)
@@ -35,12 +90,16 @@ export function KalenderPage() {
     setParams(next, { replace: true })
   }
 
-  const [y, m] = month.split('-').map(Number)
+  function today() {
+    update({ month: undefined })
+    window.scrollTo({ top: 0 })
+  }
+
   return (
     <>
       <PageHeader
         title="Kalender"
-        description="Belegung der Ferienwohnungen je Monat."
+        description="Belegung der Ferienwohnungen, Monat für Monat."
         actions={
           canRecord && (
             <Button onClick={() => setDialog({ bookingId: null })}>
@@ -65,24 +124,11 @@ export function KalenderPage() {
                 allLabel="Objekt wählen"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" aria-label="Vorheriger Monat" onClick={() => update({ month: shift(month, -1) })}>
-                <ChevronLeftIcon />
-              </Button>
-              <span className="min-w-36 text-center font-medium" aria-live="polite">
-                {monthName.format(new Date(Date.UTC(y, m - 1, 1)))}
-              </span>
-              <Button variant="outline" size="icon" aria-label="Nächster Monat" onClick={() => update({ month: shift(month, 1) })}>
-                <ChevronRightIcon />
-              </Button>
-            </div>
+            <Button variant="outline" onClick={today} disabled={startMonth === currentMonth && pages[0]?.month === currentMonth}>
+              Heute
+            </Button>
           </div>
-          {calendar ? (
-            <CalendarGrid calendar={calendar} onOpen={(bookingId) => setDialog({ bookingId })} />
-          ) : (
-            isLoading && <p className="text-muted-foreground">Wird geladen …</p>
-          )}
-          <p className="mt-2 flex gap-4 text-xs text-muted-foreground">
+          <p className="mb-3 flex gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <span className="inline-block h-3 w-5 rounded border-2 border-primary" /> Geplant
             </span>
@@ -90,6 +136,32 @@ export function KalenderPage() {
               <span className="inline-block h-3 w-5 rounded bg-primary" /> Abgerechnet
             </span>
           </p>
+
+          {pages.length > 0 && (
+            <div ref={topRef} className="mb-4">
+              <Button variant="ghost" size="sm" disabled={months.isFetchingPreviousPage} onClick={loadEarlier}>
+                <ChevronUpIcon />
+                Frühere Monate
+              </Button>
+            </div>
+          )}
+          {months.isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
+          <div className="space-y-8">
+            {pages.map((calendar) => (
+              <section key={calendar.month} aria-label={monthTitle(calendar.month)}>
+                <h2 className="mb-2 text-lg font-semibold">{monthTitle(calendar.month)}</h2>
+                <CalendarGrid calendar={calendar} onOpen={(bookingId) => setDialog({ bookingId })} />
+              </section>
+            ))}
+          </div>
+          {pages.length > 0 && (
+            <div ref={bottomRef} className="mt-4">
+              <Button variant="ghost" size="sm" disabled={months.isFetchingNextPage} onClick={loadLater}>
+                <ChevronDownIcon />
+                Spätere Monate
+              </Button>
+            </div>
+          )}
         </>
       )}
       {dialog && (dialog.bookingId === null || openBooking) && (

@@ -18,3 +18,10 @@ export function nightsInMonth(b: Pick<CalendarBooking, 'arrival' | 'departure'>,
   const end = b.departure > last ? daysIn(month) : dayOf(b.departure) - 1
   return end >= start ? [start, end] : null
 }
+
+/** "2026-11" plus delta months, e.g. shiftMonth("2026-12", 1) = "2027-01". */
+export function shiftMonth(month: string, delta: number) {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1))
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
