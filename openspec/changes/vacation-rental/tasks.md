@@ -50,4 +50,4 @@
   5. On "Haus Seeufer", record a repair with „+ Kosten“ and a PDF receipt, then check that „Finanzen“ shows the booking income, commission, cleaning and repair, with the result for November.
 
   Verify: All steps behave as described in the specs.
-- [ ] 7.3 Add a section "Vacation rental" to the README (bookings, documents, statements, guest data and its manual deletion), a section on property finances and costs,, and the 10 MB request body note to the deployment section. Verify: The section matches `specs/bookings` regarding visibility of contact data and documents.
+- [x] 7.3 Add a section "Vacation rental" to the README (bookings, documents, statements, guest data and its manual deletion), a section on property finances and costs,, and the 10 MB request body note to the deployment section. Verify: The section matches `specs/bookings` regarding visibility of contact data and documents.

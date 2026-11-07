@@ -93,6 +93,8 @@ http:
 
 **Nginx Proxy Manager:** Create a proxy host for the domain, target `http`, `<IP of the mini PC>`, port `LOGIS_PORT`. Force SSL via Let's Encrypt. Set `LOGIS_BIND` and `LOGIS_TRUSTED_PROXIES` accordingly.
 
+**Uploads:** Documents and receipts may be up to 10 MB, so the proxy must accept request bodies of at least 11 MB. Caddy and Traefik have no limit by default. nginx and Nginx Proxy Manager allow only 1 MB by default: add `client_max_body_size 11m;` (in Nginx Proxy Manager under *Advanced > Custom Nginx Configuration*).
+
 **Check:** After signing in through the domain, the cookie `LOGIS_SESSION` must carry the attributes `Secure; HttpOnly; SameSite=Lax` in the browser DevTools. After a deliberately wrong password, `docker compose logs backend | grep auth.failed` must show your real IP and not the proxy's.
 
 ## Users
@@ -131,6 +133,18 @@ http:
 
   The effective role on a unit is the higher of the property role and the unit role. Whoever only has a share on a unit sees the property's name and address and that unit, but no other units and nothing attributed to the property as a whole.
 - **Attributed transactions:** A transaction can be attributed to a property or a unit (field *Objekt* in the transaction dialog). This needs *Bearbeiten* on the account and on the property or unit. People who see the property or unit but not the account can read these transactions without account name, balance or note; changing them still requires rights on the account. Transfers cannot be attributed.
+- **Finances on the property:** The property page shows *Finanzen*: income, expenses and result per month and year, and every item of the year. *+ Kosten* records a cost (e.g. a repair) directly on the property or one of its units, with category, recipient, note and receipts (PDF or image, at most 10 MB each). No account is needed. Settled vacation rental statements appear automatically: the gross amount as income, commission and cleaning as expenses, all on the statement date. Transactions attributed to the property are listed separately and do not count in the result; linking them to costs comes with the bank import. Recording costs needs *Bearbeiten* on the property or unit. Costs on the property as a whole are visible only to people with a role on the property.
+- **Deleting** a property is only possible while no transactions, costs or bookings refer to it; otherwise archive it.
+
+## Vacation rental
+
+The module *Ferienvermietung* records stays in units with the usage *Ferienvermietung*. Rights come from the unit: *Lesen* on the property or unit shows bookings and statements, *Bearbeiten* records and changes them.
+
+- **Bookings** (*Buchungen*, *Kalender*): arrival, departure, booking number of the provider, channel, guests, expected rent and the guest. *+ Buchung* at the top right opens the same dialog in the grid and the calendar. Stays of a unit must not overlap; arrival on another stay's departure day is fine. A cancelled booking keeps its data and frees the calendar.
+- **Documents** such as the provider's booking confirmation can be attached to a booking (PDF or image, at most 10 MB each).
+- **Statements** (*Abrechnungen*): one per unit and statement of the service provider. Assign the bookings with gross, commission and cleaning; net and payout are computed. A booking on a statement counts as settled; a cancelled booking can carry a cancellation payout.
+- **Auswertung:** booked nights and occupancy per month (stays across a month boundary are split by night), settled net income on the statement date and planned rent in the month of arrival.
+- **Guest data:** Name, address, phone and email are stored. Only people with *Bearbeiten* see the contact data and the documents; *Lesen* shows the guest name only. Guest data is never deleted automatically: *Gastdaten löschen* in the booking removes name and contact data for good and keeps the booking and its amounts. Documents stay and have to be deleted one by one, because they usually contain guest data too.
 
 ## Backup and restore
 
