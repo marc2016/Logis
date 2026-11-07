@@ -6,7 +6,7 @@ import {
   ChevronsUpDownIcon,
   HouseIcon,
   LandmarkIcon,
-  LayoutDashboardIcon,
+  InboxIcon, LayoutDashboardIcon,
   LogOutIcon,
   TagsIcon,
   UserCogIcon,
@@ -145,7 +145,13 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup label="Allgemein" items={[{ label: 'Übersicht', to: '/', icon: LayoutDashboardIcon }]} />
+        <NavGroup
+          label="Allgemein"
+          items={[
+            { label: 'Übersicht', to: '/', icon: LayoutDashboardIcon },
+            { label: 'Posteingang', to: '/posteingang', icon: InboxIcon },
+          ]}
+        />
         <NavGroup
           label="Finanzen"
           items={[

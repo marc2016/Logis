@@ -3,20 +3,22 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
-import { InboxDialog } from '../InboxDialog'
-import { MailboxCard } from '../MailboxCard'
-import { importResultLabel, mailTypeLabel, useInbox, useMailbox, type ImportResult, type InboxItem } from '../api'
+import { InboxDialog } from './InboxDialog'
+import { MailboxCard } from './MailboxCard'
+import { ATTENTION_RESULTS, useInbox, useMailbox, type InboxItem } from './api'
+import { useMailLabels } from './labels'
 
 const dateTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' })
-const attention: ImportResult[] = ['UNASSIGNED_UNIT', 'NOT_MATCHED', 'PERIOD_TAKEN', 'NOT_RECOGNISED', 'FAILED']
 const column = createColumnHelper<InboxItem>()
 
-const columns = [
+function useColumns() {
+  const labels = useMailLabels()
+  return [
   column.accessor('receivedAt', { header: 'Eingang', cell: (c) => dateTime.format(new Date(c.getValue())), meta: { label: 'Eingang' } }),
-  column.accessor('agency', {
-    header: 'Vermittler',
+  column.accessor('source', {
+    header: 'Absender',
     cell: (c) => c.getValue() ?? c.row.original.sender ?? '–',
-    meta: { label: 'Vermittler', className: 'whitespace-normal break-all' },
+    meta: { label: 'Absender', className: 'whitespace-normal break-all' },
   }),
   column.accessor('subject', {
     header: 'Betreff',
@@ -24,26 +26,28 @@ const columns = [
     // Long subjects wrap instead of widening the page.
     meta: { label: 'Betreff', className: 'min-w-48 whitespace-normal break-words' },
   }),
-  column.accessor('mailType', { header: 'Art', cell: (c) => (c.getValue() ? mailTypeLabel[c.getValue()!] : '–'), meta: { label: 'Art' } }),
+  column.accessor('kind', { header: 'Art', cell: (c) => labels.kind(c.getValue()), meta: { label: 'Art' } }),
   column.accessor('result', {
     header: 'Ergebnis',
-    cell: (c) => <Badge variant={attention.includes(c.getValue()) ? 'default' : 'outline'}>{importResultLabel[c.getValue()]}</Badge>,
+    cell: (c) => <Badge variant={ATTENTION_RESULTS.has(c.getValue()) ? 'default' : 'outline'}>{labels.result(c.getValue())}</Badge>,
     meta: { label: 'Ergebnis' },
   }),
-]
+  ]
+}
 
-/** Mailbox settings and the mails fetched from it, with what the import did. */
+/** Mailbox settings and the mails fetched from it, with what the handling part of Logis did. */
 export function PosteingangPage() {
   const { data: mailbox } = useMailbox()
   const { data: inbox = [], isLoading } = useInbox()
   const [open, setOpen] = useState<InboxItem | null>(null)
+  const columns = useColumns()
 
   return (
     <>
-      <PageHeader title="Posteingang" description="Buchungsmails der Vermittler, automatisch gelesen." />
+      <PageHeader title="Posteingang" description="Mails aus deinem Postfach, automatisch gelesen und an die passenden Bereiche übergeben." />
       {mailbox && <MailboxCard key={String(mailbox.configured)} mailbox={mailbox} />}
       <DataTable
-        tableId="vacationrental.inbox"
+        tableId="mail.inbox"
         columns={columns}
         data={inbox}
         getRowId={(m) => String(m.id)}

@@ -168,82 +168,23 @@ export interface BookingFilter {
   size?: number
 }
 
-// --- Mail import ---------------------------------------------------------------------------------
+// --- Booking mails (labels for the core inbox) ----------------------------------------------------
 
-export type MailType = 'CONFIRMATION' | 'SHORT_NOTICE' | 'CHANGE' | 'CANCELLATION'
-export type ImportResult =
-  | 'BOOKING_CREATED'
-  | 'CHANGE_PROPOSED'
-  | 'ATTACHED'
-  | 'DUPLICATE'
-  | 'UNASSIGNED_UNIT'
-  | 'NOT_MATCHED'
-  | 'PERIOD_TAKEN'
-  | 'NOT_RECOGNISED'
-  | 'IGNORED'
-  | 'DISCARDED'
-  | 'FAILED'
-
-export const mailTypeLabel: Record<MailType, string> = {
+export const mailKindLabel: Record<string, string> = {
   CONFIRMATION: 'Bestätigung',
   SHORT_NOTICE: 'Last-Minute',
   CHANGE: 'Änderung',
   CANCELLATION: 'Stornierung',
 }
 
-export const importResultLabel: Record<ImportResult, string> = {
+export const mailResultLabel: Record<string, string> = {
   BOOKING_CREATED: 'Buchung angelegt',
   CHANGE_PROPOSED: 'Änderung vorgeschlagen',
   ATTACHED: 'Angehängt',
-  DUPLICATE: 'Duplikat',
   UNASSIGNED_UNIT: 'Einheit zuordnen',
   NOT_MATCHED: 'Nicht zugeordnet',
   PERIOD_TAKEN: 'Zeitraum belegt',
-  NOT_RECOGNISED: 'Nicht erkannt',
-  IGNORED: 'Ignoriert',
   DISCARDED: 'Verworfen',
-  FAILED: 'Fehler',
-}
-
-/** Results the user can act on. */
-export const RETRYABLE: ImportResult[] = ['UNASSIGNED_UNIT', 'NOT_MATCHED', 'PERIOD_TAKEN', 'NOT_RECOGNISED', 'FAILED', 'IGNORED']
-
-export interface MailboxSettings {
-  configured: boolean
-  host: string | null
-  port: number | null
-  username: string | null
-  hasPassword: boolean
-  folder: string | null
-  useTls: boolean | null
-  cutoffDate: string | null
-  enabled: boolean | null
-  lastPollAt: string | null
-  lastError: string | null
-  aiEnabled: boolean
-}
-
-export interface InboxItem {
-  id: number
-  receivedAt: string
-  sender: string | null
-  subject: string | null
-  agency: string | null
-  mailType: MailType | null
-  propertyName: string | null
-  bookingRef: string | null
-  parsedBy: 'RULE' | 'AI' | 'NONE'
-  result: ImportResult
-  resultDetail: string | null
-  bookingId: number | null
-}
-
-export function useMailbox() {
-  return useQuery({ queryKey: ['vacationrental', 'mailbox'], queryFn: () => api<MailboxSettings>('/api/vacationrental/mailbox') })
-}
-
-export function useInbox() {
-  return useQuery({ queryKey: ['vacationrental', 'inbox'], queryFn: () => api<InboxItem[]>('/api/vacationrental/inbox') })
 }
 
 /** Display name of a unit: the property alone for single-unit properties. */

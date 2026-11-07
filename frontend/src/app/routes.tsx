@@ -26,6 +26,7 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'konto', element: <AccountPage /> },
+          { path: 'posteingang', lazy: async () => ({ Component: (await import('@/core/mail/PosteingangPage')).PosteingangPage }) },
           { path: 'finanzen/konten', element: <AccountsPage /> },
           { path: 'finanzen/konten/:accountId', element: <AccountDetailPage /> },
           { path: 'finanzen/transaktionen', element: <TransactionsPage /> },

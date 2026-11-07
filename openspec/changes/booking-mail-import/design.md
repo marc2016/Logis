@@ -111,7 +111,7 @@ same Message-ID again    -> skipped before parsing (unique constraint)
 - Booking DTO gains `agency`, `pets`, `reviewState`, `proposal`. Booking list filter `review=true` and column „Vermittler“; rows awaiting review get a badge „zu prüfen“; calendar bars get a dashed border.
 - `BookingDialog`: banner „Aus E-Mail übernommen – bitte prüfen“ with *Bestätigen* / *Verwerfen*; for proposals a table old → new with *Übernehmen* / *Verwerfen*.
 - Endpoints: `POST /api/vacationrental/bookings/{id}/confirm`, `…/discard`, `…/proposal/apply`, `…/proposal/discard`.
-- New page *Ferienvermietung > Posteingang*: settings card (mailbox, cut-off date, status, last error, AI notice) and the inbox on `DataTable` with result badges and actions (Einheit zuordnen, Erneut verarbeiten, Ignorieren, Mail anzeigen, Ältere Mails abrufen).
+- New core page *Posteingang* (group „Allgemein“, route `/posteingang`), see D1: settings card (mailbox, cut-off date, status, last error, AI notice) and the inbox on `DataTable` with result badges and actions (Einheit zuordnen, Erneut verarbeiten, Ignorieren, Mail anzeigen, Ältere Mails abrufen).
 
 ### D8: Tests
 

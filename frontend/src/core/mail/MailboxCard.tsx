@@ -11,7 +11,7 @@ import { FormError } from '@/components/FormError'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatDate, todayIso } from '@/core/ledger/transactions/format'
-import type { MailboxSettings } from './api'
+import { mailKeys, type MailboxSettings } from './api'
 
 const dateTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -28,11 +28,11 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
   const [enabled, setEnabled] = useState(mailbox.enabled ?? true)
   const [olderFrom, setOlderFrom] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['vacationrental'] })
+  const refresh = () => queryClient.invalidateQueries({ queryKey: mailKeys.all })
 
   const save = useMutation({
     mutationFn: () =>
-      api<MailboxSettings>('/api/vacationrental/mailbox', {
+      api<MailboxSettings>('/api/mail/mailbox', {
         method: 'PUT',
         json: { host, port: Number(port), username, password, folder, useTls, cutoffDate, enabled },
       }),
@@ -63,7 +63,7 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
       <CardHeader>
         <CardTitle>Postfach</CardTitle>
         <CardDescription>
-          Logis liest Buchungsmails deiner Vermittler aus diesem IMAP-Postfach oder -Ordner, alle paar Minuten und ab dem Stichtag. Mails werden dort nicht verändert.
+          Logis liest Mails aus diesem IMAP-Postfach oder -Ordner, alle paar Minuten und ab dem Stichtag, z. B. Buchungsmails deiner Vermittler. Mails werden dort nicht verändert.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -130,7 +130,7 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
                 variant="outline"
                 size="sm"
                 disabled={trigger.isPending}
-                onClick={() => trigger.mutate({ url: '/api/vacationrental/mailbox/poll', done: 'Abruf gestartet.' })}
+                onClick={() => trigger.mutate({ url: '/api/mail/mailbox/poll', done: 'Abruf gestartet.' })}
               >
                 Jetzt abrufen
               </Button>
@@ -147,7 +147,7 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
                 disabled={!olderFrom || trigger.isPending}
                 onClick={() =>
                   trigger.mutate({
-                    url: '/api/vacationrental/mailbox/fetch-older',
+                    url: '/api/mail/mailbox/fetch-older',
                     body: { from: olderFrom },
                     done: `Mails ab ${formatDate(olderFrom)} werden abgerufen.`,
                   })
