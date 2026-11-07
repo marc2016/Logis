@@ -86,8 +86,10 @@ start_prod() {
     fail ".env still contains placeholders (CHANGE_ME): $(grep -o '^[A-Z_]*=CHANGE_ME' .env | cut -d= -f1 | tr '\n' ' ')"
   fi
 
-  info "Building and starting the stack ..."
-  docker compose up -d --build --wait
+  info "Pulling the images (LOGIS_VERSION from .env) ..."
+  docker compose pull frontend backend
+  info "Starting the stack ..."
+  docker compose up -d --wait
   docker compose ps --format 'table {{.Service}}\t{{.Status}}'
 
   bind=$(grep -E '^LOGIS_BIND=' .env | cut -d= -f2-); port=$(grep -E '^LOGIS_PORT=' .env | cut -d= -f2-)

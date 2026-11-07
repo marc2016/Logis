@@ -1,11 +1,12 @@
 # Logis - production (mini PC behind an existing reverse proxy).
-# Start: docker compose up -d --build   (settings from .env, template: .env.example)
+# Start: docker compose pull && docker compose up -d   (settings from .env, template: .env.example)
+# Images: ghcr.io/marc2016/logis-*, tag from LOGIS_VERSION. Build locally instead: docker compose up -d --build
 name: logis
 
 services:
   frontend:
     build: ./frontend
-    image: logis-frontend:${LOGIS_VERSION:-latest}
+    image: ghcr.io/marc2016/logis-frontend:${LOGIS_VERSION:-latest}
     restart: unless-stopped
     environment:
       LOGIS_TRUSTED_PROXIES: ${LOGIS_TRUSTED_PROXIES:-}
@@ -25,7 +26,7 @@ services:
 
   backend:
     build: ./backend
-    image: logis-backend:${LOGIS_VERSION:-latest}
+    image: ghcr.io/marc2016/logis-backend:${LOGIS_VERSION:-latest}
     restart: unless-stopped
     environment:
       LOGIS_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB is missing}

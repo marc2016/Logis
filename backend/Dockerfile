@@ -1,6 +1,7 @@
-# Multi-arch: all base images exist for amd64 and arm64, hence no platform setting.
+# Multi-arch: the build stage runs natively on the build machine (its output is platform-independent),
+# only the runtime stage is built per target platform. All base images exist for amd64 and arm64.
 
-FROM eclipse-temurin:21-jdk AS build
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw pom.xml ./

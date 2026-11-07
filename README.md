@@ -25,7 +25,7 @@ Internet --TLS--> Reverse proxy (existing)
 
 ## Prerequisites
 
-- Docker with Docker Compose v2. The images build natively on **amd64** (mini PC) and **arm64** (Mac).
+- Docker with Docker Compose v2. The images exist for **amd64** (mini PC) and **arm64** (Mac).
 - An existing reverse proxy with TLS, if Logis should be reachable from the internet.
 - For development: JDK 21 or newer and Node.js 22 or newer.
 
@@ -36,13 +36,26 @@ git clone <repo-url> logis && cd logis
 cp .env.example .env
 openssl rand -base64 32          # put the result into .env as LOGIS_ENCRYPTION_KEY
 $EDITOR .env                     # passwords, admin, port, trusted proxies
-./start.sh prod                  # checks .env and starts: docker compose up -d --build
+./start.sh prod                  # checks .env, pulls the images and starts the stack
 docker compose ps                # all services "healthy"
 ```
 
 Then set up an HTTPS route to `LOGIS_BIND:LOGIS_PORT` in the reverse proxy (see below). Open the domain and sign in with `LOGIS_ADMIN_USERNAME` and `LOGIS_ADMIN_PASSWORD`. At the first sign-in you set up two-factor authentication, e.g. with Aegis, 2FAS or Google Authenticator, and store the 10 recovery codes safely. The initial admin is only created as long as no user exists.
 
-**Update:** `git pull && docker compose up -d --build`. The data stays in the volume `pgdata`.
+**Update:** `docker compose pull && docker compose up -d` (or `./start.sh prod`). The data stays in the volume `pgdata`.
+
+### Images and versions
+
+GitHub Actions runs all tests on every push and publishes the images `ghcr.io/marc2016/logis-backend` and `ghcr.io/marc2016/logis-frontend` for amd64 and arm64 only if they pass:
+
+| Trigger | Tags |
+|---|---|
+| Push to `main` | `edge`, `sha-<commit>` |
+| Tag `v1.2.0` | `1.2.0`, `1.2`, `latest` |
+
+`LOGIS_VERSION` in `.env` chooses the tag: `latest` (default, newest version), a fixed version such as `1.2.0` (also to roll back), or `edge`. Releasing a version: `git tag v1.2.0 && git push origin v1.2.0`.
+
+`latest` only exists after the first version tag; until then set `LOGIS_VERSION=edge`. After the first workflow run, set both packages to public once on GitHub (profile, Packages, package, Package settings, Change visibility). Building on the mini PC instead of pulling: `docker compose up -d --build`.
 
 ### Important settings (`.env`)
 
@@ -227,7 +240,7 @@ Quickest with the start script:
 ```sh
 ./start.sh          # Postgres + backend (dev profile) + frontend; Ctrl+C stops backend and frontend
 ./start.sh stop     # stop the development database
-./start.sh prod     # production stack (checks .env for placeholders, then docker compose up -d --build)
+./start.sh prod     # production stack (checks .env for placeholders, pulls the images, docker compose up -d)
 ```
 
 Or individually:
