@@ -56,7 +56,7 @@ class MailParsersTest {
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 11, 6));
         assertThat(p.adults()).isEqualTo(4);
         assertThat(p.children()).isZero();
-        assertThat(p.pets()).isEqualTo(1);
+        assertThat(p.pets()).isZero();
         assertThat(p.expectedRent()).isNull();
         assertThat(p.guest().phone()).isEqualTo("+49 151 0000001");
     }

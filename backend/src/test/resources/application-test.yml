@@ -10,6 +10,9 @@ management:
     port: -1
 
 logis:
+  # Tests trigger mail polling themselves.
+  mailimport:
+    polling: false
   admin:
     username: bootstrap-admin
     password: bootstrap-admin-password

@@ -183,6 +183,42 @@ class BookingService {
         return get(userId, id);
     }
 
+    // --- Mail import (acting as the mailbox owner) -----------------------------------------------
+
+    /** Creates a booking awaiting review; the usual rules apply, with the owner's rights. */
+    BookingDetails createImported(Long ownerId, BookingInput input) {
+        var booking = new Booking(clock.instant());
+        booking.setReviewState(ReviewState.NEW);
+        apply(ownerId, booking, input);
+        return get(ownerId, save(booking).getId());
+    }
+
+    /** A later mail completes a booking that still awaits review (e.g. the rent from the confirmation). */
+    void updateImported(Long ownerId, Long id, BookingInput input) {
+        var booking = requireEditable(ownerId, id);
+        apply(ownerId, booking, input);
+        save(booking);
+    }
+
+    void propose(Long ownerId, Long id, BookingProposal proposal) {
+        requireEditable(ownerId, id).setProposal(proposal);
+    }
+
+    /** A booking entered by hand gets the agency of the first mail that matches it. */
+    void adoptAgency(Long ownerId, Long id, String agency) {
+        var booking = requireEditable(ownerId, id);
+        if (booking.getAgency() == null) {
+            booking.setAgency(agency);
+        }
+    }
+
+    /** Bookings with this number on units the owner can see: of this agency first, then without agency. */
+    @Transactional(readOnly = true)
+    List<Booking> findByRef(Long ownerId, String agency, String ref) {
+        var units = access.visibleUnits(ownerId).keySet();
+        return units.isEmpty() ? List.of() : bookings.findByRef(units, agency, ref);
+    }
+
     // --- Review of imported bookings -----------------------------------------------------------
 
     /** Confirms a booking that came from a mail; it becomes an ordinary booking. */

@@ -18,10 +18,10 @@
 
 ## 4. Import
 
-- [ ] 4.1 Implement `Mailbox`, `MailboxService` and `MailboxController` with encrypted password and connection test. Verify: tests with GreenMail cover saving, the password never in responses, and „Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen“.
-- [ ] 4.2 Implement `MailPoller` and the fetch of older mails (D4). Verify: GreenMail tests cover the cut-off date, processing each Message-ID once, unchanged flags in the mailbox, and an error stored in `last_error`.
-- [ ] 4.3 Implement `ImportEngine` and `UnitMapping` (D3), attaching the `.eml` to bookings. Verify: integration tests cover every row of D3 and every scenario of „Effects on bookings“ and „Unit mapping per agency“.
-- [ ] 4.4 Implement `InboxService` and `InboxController` (list, assign unit, retry, ignore, delete, text preview). Verify: tests cover the inbox scenarios and that another user gets an empty inbox and 404 on someone else's mail.
+- [x] 4.1 Implement `Mailbox`, `MailboxService` and `MailboxController` with encrypted password and connection test. Verify: tests with GreenMail cover saving, the password never in responses, and „Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen“.
+- [x] 4.2 Implement `MailPoller` and the fetch of older mails (D4). Verify: GreenMail tests cover the cut-off date, processing each Message-ID once, unchanged flags in the mailbox, and an error stored in `last_error`.
+- [x] 4.3 Implement `ImportEngine` and `UnitMapping` (D3), attaching the `.eml` to bookings. Verify: integration tests cover every row of D3 and every scenario of „Effects on bookings“ and „Unit mapping per agency“.
+- [x] 4.4 Implement `InboxService` and `InboxController` (list, assign unit, retry, ignore, delete, text preview). Verify: tests cover the inbox scenarios and that another user gets an empty inbox and 404 on someone else's mail.
 
 ## 5. Frontend
 

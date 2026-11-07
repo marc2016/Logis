@@ -23,7 +23,7 @@ Motivation and decisions are in proposal.md; requirements in `specs/`.
 ### D1: Package layout (module `vacationrental`)
 
 ```
-app.logis.modules.vacationrental.mailimport
+app.logis.modules.vacationrental   (same package as bookings, so package-private services stay hidden)
   Mailbox, MailboxRepository, MailboxService, MailboxController     /api/vacationrental/mailbox
   ImportedMail, ImportedMailRepository, InboxService, InboxController /api/vacationrental/inbox
   MailPoller          @Scheduled, per enabled mailbox; ImapClient (Jakarta Mail) behind an interface
@@ -37,7 +37,7 @@ app.logis.modules.vacationrental.mailimport
   ImportEngine        ParsedMail + owner -> effect (D3)
 ```
 
-- The package is part of the module; it uses `RentalAccess`, `BookingService` and the new `Documents.store` (D5). `ModularityTest` keeps the module boundaries.
+- The classes live in the module package next to bookings; they use `RentalAccess`, `BookingService` and the new `Documents.store` (D5). A sub-package would have forced bookings classes to become public. `ModularityTest` keeps the module boundaries.
 - *Alternative:* a core package `core.mail`. Rejected for now: the only consumer is vacation rental; a later invoice import can extract the IMAP part.
 
 ### D2: Data model (schema `vacationrental`)
@@ -52,7 +52,7 @@ imported_mails
   raw BYTEA (the .eml), text_preview TEXT,
   agency, mail_type, parsed JSONB, parsed_by (RULE|AI|NONE),
   result (BOOKING_CREATED|CHANGE_PROPOSED|ATTACHED|DUPLICATE|UNASSIGNED_UNIT|NOT_MATCHED|
-          PERIOD_TAKEN|NOT_RECOGNISED|IGNORED|DISCARDED|FAILED),
+          PERIOD_TAKEN|NOT_RECOGNISED|IGNORED|DISCARDED|FAILED|DELETED),
   booking_id NULL, created_at
   UNIQUE (owner_user_id, message_id)
 
@@ -64,7 +64,7 @@ bookings  + agency VARCHAR(64) NULL, + pets SMALLINT NOT NULL DEFAULT 0,
   unique index replaced: (unit_id, lower(coalesce(agency,'')), lower(external_ref))
 ```
 
-- `raw` is kept in `imported_mails` for retries and the preview; the booking gets a copy as a document (D5). Ignored/unassigned mails keep their raw mail until the user ignores and later deletes them — guest data lives there too (Risks).
+- `raw` is kept in `imported_mails` for retries and the preview; the booking gets a copy as a document (D5). Deleting a mail in the inbox clears `raw`, the preview and the parsed fields and sets `DELETED`: the guest data is gone, but the Message-ID stays known, so the next poll does not fetch the mail again.
 - `proposal` holds `{type: CHANGE|CANCELLATION, fields:{…}, mailId}`. A newer proposal overwrites it.
 
 ### D3: Effect engine
