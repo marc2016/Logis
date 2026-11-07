@@ -1,4 +1,9 @@
 spring:
+  datasource:
+    hikari:
+      # Many cached test contexts share one Postgres (max 100 connections).
+      maximum-pool-size: 4
+      minimum-idle: 0
   flyway:
     locations:
       - classpath:db/migration/core
