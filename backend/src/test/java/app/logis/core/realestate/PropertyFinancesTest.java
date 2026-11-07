@@ -58,10 +58,10 @@ class PropertyFinancesTest extends RealestateTest {
         getWith("/api/properties/" + property + "/finances?year=2026", anna.session())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.months", hasSize(12)))
-                .andExpect(jsonPath("$.months[10].income").value(248.58))
-                .andExpect(jsonPath("$.months[10].expenses").value(417.29))
-                .andExpect(jsonPath("$.months[10].result").value(-168.71))
-                .andExpect(jsonPath("$.total.result").value(-168.71))
+                .andExpect(jsonPath("$.months[10].income").value("248.58"))
+                .andExpect(jsonPath("$.months[10].expenses").value("417.29"))
+                .andExpect(jsonPath("$.months[10].result").value("-168.71"))
+                .andExpect(jsonPath("$.total.result").value("-168.71"))
                 .andExpect(jsonPath("$.items", hasSize(4)))
                 .andExpect(jsonPath("$.items[0].date").value("2026-11-30"))
                 .andExpect(jsonPath("$.items[?(@.label == 'Kosten')].editable").value(true))
@@ -70,7 +70,7 @@ class PropertyFinancesTest extends RealestateTest {
 
         getWith("/api/properties/" + property + "/finances?year=2026&kind=INCOME&sort=amount,asc", anna.session())
                 .andExpect(jsonPath("$.items", hasSize(1)))
-                .andExpect(jsonPath("$.total.expenses").value(417.29));
+                .andExpect(jsonPath("$.total.expenses").value("417.29"));
     }
 
     @Test
@@ -82,7 +82,7 @@ class PropertyFinancesTest extends RealestateTest {
                 "propertyId", property));
 
         getWith("/api/properties/" + property + "/finances?year=2026", anna.session())
-                .andExpect(jsonPath("$.total.expenses").value(0.00))
+                .andExpect(jsonPath("$.total.expenses").value("0.00"))
                 .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
@@ -103,16 +103,16 @@ class PropertyFinancesTest extends RealestateTest {
 
         getWith(url, carla.session())
                 .andExpect(jsonPath("$.items", hasSize(2)))
-                .andExpect(jsonPath("$.total.income").value(50.00))
-                .andExpect(jsonPath("$.total.expenses").value(1.00))
+                .andExpect(jsonPath("$.total.income").value("50.00"))
+                .andExpect(jsonPath("$.total.expenses").value("1.00"))
                 .andExpect(jsonPath("$.canRecord").value(true));
         getWith(url, dieter.session())
                 .andExpect(jsonPath("$.items", hasSize(4)))
-                .andExpect(jsonPath("$.total.expenses").value(111.00))
+                .andExpect(jsonPath("$.total.expenses").value("111.00"))
                 .andExpect(jsonPath("$.canRecord").value(false));
         getWith(url + "&unitId=" + ids[1], dieter.session())
                 .andExpect(jsonPath("$.items", hasSize(1)))
-                .andExpect(jsonPath("$.total.expenses").value(10.00));
+                .andExpect(jsonPath("$.total.expenses").value("10.00"));
         getWith(url + "&unitId=" + ids[1], carla.session()).andExpect(status().isNotFound());
         getWith(url, bert.session()).andExpect(status().isNotFound());
     }

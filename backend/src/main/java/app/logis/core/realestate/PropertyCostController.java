@@ -1,6 +1,7 @@
 package app.logis.core.realestate;
 
 import app.logis.core.auth.LogisPrincipal;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,8 +36,8 @@ class PropertyCostController {
         }
     }
 
-    record CostView(Long id, Long propertyId, Long unitId, LocalDate date, BigDecimal amount, Long categoryId,
-            String counterparty, String note, long version) {
+    record CostView(Long id, Long propertyId, Long unitId, LocalDate date, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal amount,
+            Long categoryId, String counterparty, String note, long version) {
 
         static CostView of(PropertyCost c) {
             return new CostView(c.getId(), c.getPropertyId(), c.getUnitId(), c.getDate(), c.getAmount(),

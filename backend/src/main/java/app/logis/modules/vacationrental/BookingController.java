@@ -4,6 +4,7 @@ import app.logis.core.auth.LogisPrincipal;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.sharing.ShareRole;
 import app.logis.core.web.ApiException;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,8 +52,8 @@ class BookingController {
 
     /** {@code guest} carries contact data only for editors; {@code guestDeleted} marks deleted guest data. */
     record BookingView(Long id, UnitRef unit, LocalDate arrival, LocalDate departure, long nights,
-            String externalRef, Channel channel, int adults, int children, BigDecimal expectedRent,
-            BookingStatus status, Long statementId, Guest guest, boolean guestDeleted, boolean canEdit,
+            String externalRef, Channel channel, int adults, int children,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status, Long statementId, Guest guest, boolean guestDeleted, boolean canEdit,
             long version) {
 
         static BookingView of(BookingService.BookingDetails d) {

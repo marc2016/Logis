@@ -35,7 +35,7 @@ class PropertyCostsTest extends RealestateTest {
         var property = singleUnitProperty(anna, "Haus Seeufer");
         var costId = id(postJson("/api/properties/" + property + "/costs", repair("320.00"), anna.session())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.amount").value(320.00))
+                .andExpect(jsonPath("$.amount").value("320.00"))
                 .andExpect(jsonPath("$.unitId").doesNotExist())
                 .andExpect(jsonPath("$.version").value(0)));
 
@@ -43,7 +43,7 @@ class PropertyCostsTest extends RealestateTest {
         change.put("version", 0);
         putJson("/api/costs/" + costId, change, anna.session())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.amount").value(340.00))
+                .andExpect(jsonPath("$.amount").value("340.00"))
                 .andExpect(jsonPath("$.version").value(1));
         // A second change based on the old version.
         putJson("/api/costs/" + costId, change, anna.session())

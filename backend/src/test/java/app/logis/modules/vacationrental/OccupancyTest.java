@@ -41,12 +41,12 @@ class OccupancyTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.months", hasSize(12)))
                 .andExpect(jsonPath("$.months[10].nights").value(11))
                 .andExpect(jsonPath("$.months[10].occupancy").value(37))
-                .andExpect(jsonPath("$.months[10].settledNet").value(540.00))
-                .andExpect(jsonPath("$.months[10].plannedRent").value(248.58))
+                .andExpect(jsonPath("$.months[10].settledNet").value("540.00"))
+                .andExpect(jsonPath("$.months[10].plannedRent").value("248.58"))
                 .andExpect(jsonPath("$.total.nights").value(11));
         getWith(url, dieter.session())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.months[10].settledNet").value(540.00));
+                .andExpect(jsonPath("$.months[10].settledNet").value("540.00"));
     }
 
     @Test
@@ -61,12 +61,12 @@ class OccupancyTest extends VacationRentalTest {
 
         getWith("/api/vacationrental/occupancy/overview?unitId=" + unit + "&year=2026", anna.session())
                 .andExpect(jsonPath("$.months[2].nights").value(4))
-                .andExpect(jsonPath("$.months[2].settledNet").value(0.00))
+                .andExpect(jsonPath("$.months[2].settledNet").value("0.00"))
                 .andExpect(jsonPath("$.months[3].nights").value(3))
-                .andExpect(jsonPath("$.months[3].settledNet").value(700.00))
+                .andExpect(jsonPath("$.months[3].settledNet").value("700.00"))
                 .andExpect(jsonPath("$.months[4].nights").value(0))
-                .andExpect(jsonPath("$.months[5].settledNet").value(80.00))
-                .andExpect(jsonPath("$.total.settledNet").value(780.00));
+                .andExpect(jsonPath("$.months[5].settledNet").value("80.00"))
+                .andExpect(jsonPath("$.total.settledNet").value("780.00"));
     }
 
     @Test

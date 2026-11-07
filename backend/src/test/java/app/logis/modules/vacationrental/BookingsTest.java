@@ -31,7 +31,7 @@ class BookingsTest extends VacationRentalTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PLANNED"))
                 .andExpect(jsonPath("$.nights").value(2))
-                .andExpect(jsonPath("$.expectedRent").value(248.58))
+                .andExpect(jsonPath("$.expectedRent").value("248.58"))
                 .andExpect(jsonPath("$.unit.propertyName").value("Haus Seeufer"))
                 .andExpect(jsonPath("$.guest.email").value("gast@example.org"))
                 .andExpect(jsonPath("$.canEdit").value(true));
@@ -159,7 +159,7 @@ class BookingsTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.guest.email").doesNotExist())
                 .andExpect(jsonPath("$.externalRef").value("275505"))
                 .andExpect(jsonPath("$.adults").value(4))
-                .andExpect(jsonPath("$.expectedRent").value(248.58));
+                .andExpect(jsonPath("$.expectedRent").value("248.58"));
         var stored = jdbc.queryForMap("SELECT guest_name, guest_street, guest_phone, guest_email "
                 + "FROM vacationrental.bookings WHERE id = ?", id);
         org.assertj.core.api.Assertions.assertThat(stored.values()).containsOnlyNulls();

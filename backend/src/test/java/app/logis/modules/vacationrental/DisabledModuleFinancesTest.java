@@ -26,6 +26,6 @@ class DisabledModuleFinancesTest extends VacationRentalTest {
 
         getWith("/api/properties/" + property + "/finances?year=2026", anna.session())
                 .andExpect(jsonPath("$.items", hasSize(1)))
-                .andExpect(jsonPath("$.total.income").value(0.00));
+                .andExpect(jsonPath("$.total.income").value("0.00"));
     }
 }

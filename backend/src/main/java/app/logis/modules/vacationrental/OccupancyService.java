@@ -4,6 +4,7 @@ import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.realestate.UnitUsage;
 import app.logis.core.sharing.ShareRole;
 import app.logis.core.web.ApiException;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +47,9 @@ class OccupancyService {
     record Calendar(Long propertyId, String propertyName, YearMonth month, List<CalendarUnit> units) {
     }
 
-    record MonthFigures(int month, int nights, int occupancy, BigDecimal settledNet, BigDecimal plannedRent) {
+    record MonthFigures(int month, int nights, int occupancy,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal settledNet,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal plannedRent) {
     }
 
     record Overview(Long unitId, int year, List<MonthFigures> months, MonthFigures total) {

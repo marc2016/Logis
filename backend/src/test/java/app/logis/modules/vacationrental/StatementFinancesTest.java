@@ -28,9 +28,9 @@ class StatementFinancesTest extends VacationRentalTest {
                 "counterparty", "Handwerker Meyer"), anna.session()).andExpect(status().isCreated());
 
         getWith("/api/properties/" + property + "/finances?year=2026", anna.session())
-                .andExpect(jsonPath("$.months[10].income").value(248.58))
-                .andExpect(jsonPath("$.months[10].expenses").value(417.29))
-                .andExpect(jsonPath("$.months[10].result").value(-168.71))
+                .andExpect(jsonPath("$.months[10].income").value("248.58"))
+                .andExpect(jsonPath("$.months[10].expenses").value("417.29"))
+                .andExpect(jsonPath("$.months[10].result").value("-168.71"))
                 .andExpect(jsonPath("$.items[*].label",
                         containsInAnyOrder("Buchung 275505", "Provision", "Reinigung", "Handwerker Meyer")))
                 .andExpect(jsonPath("$.items[?(@.label == 'Provision')].date").value("2026-11-30"))

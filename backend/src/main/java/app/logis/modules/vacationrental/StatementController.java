@@ -2,6 +2,7 @@ package app.logis.modules.vacationrental;
 
 import app.logis.core.auth.LogisPrincipal;
 import app.logis.core.modules.ConditionalOnLogisModule;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,12 +43,16 @@ class StatementController {
     record LineRequest(BigDecimal gross, BigDecimal commission, BigDecimal cleaning) {
     }
 
-    record LineView(BookingController.BookingView booking, BigDecimal gross, BigDecimal commission,
-            BigDecimal cleaning, BigDecimal net) {
+    record LineView(BookingController.BookingView booking,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal gross,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal commission,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal cleaning,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal net) {
     }
 
     record StatementView(Long id, BookingController.UnitRef unit, String provider, LocalDate periodFrom,
-            LocalDate periodTo, LocalDate statementDate, BigDecimal payout, int lineCount, boolean canEdit,
+            LocalDate periodTo, LocalDate statementDate, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal payout,
+            int lineCount, boolean canEdit,
             long version, List<LineView> lines) {
 
         static StatementView of(StatementService.StatementDetails d) {

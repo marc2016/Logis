@@ -41,7 +41,7 @@ class StatementsTest extends VacationRentalTest {
         postJson("/api/vacationrental/statements", Map.of("unitId", unit, "provider", "Ferienwohnungen Nord",
                 "periodFrom", "2026-10-01", "periodTo", "2026-10-31", "statementDate", "2026-11-05"), anna.session())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.payout").value(0.00))
+                .andExpect(jsonPath("$.payout").value("0.00"))
                 .andExpect(jsonPath("$.provider").value("Ferienwohnungen Nord"));
         postJson("/api/vacationrental/statements", Map.of("unitId", unit, "provider", " ",
                 "periodFrom", "2026-10-01", "periodTo", "2026-10-31", "statementDate", "2026-11-05"), anna.session())
@@ -61,9 +61,9 @@ class StatementsTest extends VacationRentalTest {
         line(anna.session(), november, booking, Map.of("commission", "37.29", "cleaning", "60.00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lines", hasSize(1)))
-                .andExpect(jsonPath("$.lines[0].gross").value(248.58))
-                .andExpect(jsonPath("$.lines[0].net").value(151.29))
-                .andExpect(jsonPath("$.payout").value(151.29));
+                .andExpect(jsonPath("$.lines[0].gross").value("248.58"))
+                .andExpect(jsonPath("$.lines[0].net").value("151.29"))
+                .andExpect(jsonPath("$.payout").value("151.29"));
         getWith("/api/vacationrental/bookings/" + booking, anna.session())
                 .andExpect(jsonPath("$.status").value("SETTLED"))
                 .andExpect(jsonPath("$.statementId").value(november));
@@ -99,7 +99,7 @@ class StatementsTest extends VacationRentalTest {
                 .andExpect(status().isOk());
         var november = statement(anna, unit, "Nord", "2026-11-01", "2026-11-30");
         line(anna.session(), november, booking, Map.of("gross", "80.00", "commission", "12.00"))
-                .andExpect(jsonPath("$.payout").value(68.00))
+                .andExpect(jsonPath("$.payout").value("68.00"))
                 .andExpect(jsonPath("$.lines[0].booking.status").value("CANCELLED"));
         // The cancelled stay does not block the calendar.
         booking(anna, unit, "2026-11-06", "2026-11-08");
@@ -113,12 +113,12 @@ class StatementsTest extends VacationRentalTest {
         var b = booking(anna, unit, "2026-11-20", "2026-11-22");
         var november = statement(anna, unit, "Nord", "2026-11-01", "2026-11-30");
         line(anna.session(), november, a, Map.of("commission", "37.29", "cleaning", "60.00"));
-        line(anna.session(), november, b, Map.of("gross", "100.00")).andExpect(jsonPath("$.payout").value(251.29));
+        line(anna.session(), november, b, Map.of("gross", "100.00")).andExpect(jsonPath("$.payout").value("251.29"));
 
         mvc.perform(delete("/api/vacationrental/statements/" + november + "/lines/" + a)
                         .with(csrf()).session(anna.session()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.payout").value(100.00));
+                .andExpect(jsonPath("$.payout").value("100.00"));
         getWith("/api/vacationrental/bookings/" + a, anna.session()).andExpect(jsonPath("$.status").value("PLANNED"));
 
         mvc.perform(delete("/api/vacationrental/statements/" + november).with(csrf()).session(anna.session()))

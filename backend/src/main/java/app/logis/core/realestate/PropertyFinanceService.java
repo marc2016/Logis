@@ -2,6 +2,7 @@ package app.logis.core.realestate;
 
 import app.logis.core.ledger.Categories;
 import app.logis.core.web.ApiException;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,11 +46,13 @@ class PropertyFinanceService {
     record Filter(Long unitId, FinanceItem.Kind kind, SortKey sort, boolean ascending) {
     }
 
-    record Item(LocalDate date, Long unitId, String unitName, FinanceItem.Kind kind, String label, BigDecimal amount,
-            String sourceType, Long sourceId, String categoryName, String counterparty, boolean editable) {
+    record Item(LocalDate date, Long unitId, String unitName, FinanceItem.Kind kind, String label,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal amount, String sourceType, Long sourceId, String categoryName, String counterparty, boolean editable) {
     }
 
-    record Month(int month, BigDecimal income, BigDecimal expenses, BigDecimal result) {
+    record Month(int month, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal income,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expenses,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal result) {
     }
 
     record Finances(int year, List<Month> months, Month total, List<Item> items, boolean canRecord) {
