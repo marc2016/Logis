@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useParams } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
 import { ArchiveIcon, ArchiveRestoreIcon, PencilIcon, PlusIcon, UsersIcon } from 'lucide-react'
@@ -16,6 +16,9 @@ import { Pagination } from '@/core/ledger/transactions/Pagination'
 import { PropertyDialog } from './PropertyDialog'
 import { UnitDialog } from './UnitDialog'
 import { atLeast, formatAddress, unitUsageLabel, useInvalidateProperties, useProperty, type Unit } from './api'
+
+// The finances section brings the table library; load it with the page section, not the main bundle.
+const PropertyFinances = lazy(() => import('./PropertyFinances').then((m) => ({ default: m.PropertyFinances })))
 
 const PAGE_SIZE = 50
 const UNIT_ROLES = ['VIEWER', 'EDITOR'] as const
@@ -146,7 +149,14 @@ export function PropertyDetailPage() {
         </section>
       )}
 
-      <h2 className="mb-2 text-lg font-semibold">Zugeordnete Buchungen</h2>
+      <Suspense fallback={<p className="mb-8 text-muted-foreground">Finanzen werden geladen …</p>}>
+        <PropertyFinances property={property} />
+      </Suspense>
+
+      <h2 className="mb-2 flex flex-wrap items-center gap-2 text-lg font-semibold">
+        Zugeordnete Buchungen
+        <Badge variant="secondary">nicht im Ergebnis</Badge>
+      </h2>
       <TransactionTable items={transactions?.items ?? []} accounts={accounts} isLoading={txLoading} />
       <Pagination page={page} size={PAGE_SIZE} total={transactions?.totalItems ?? 0} onChange={setPage} />
 

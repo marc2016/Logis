@@ -7,7 +7,10 @@ describe('App shell', () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
     renderApp('/')
     expect(await screen.findByText('Ferienvermietung')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Belegung/ })).toHaveAttribute('href', '/ferienvermietung/belegung')
+    expect(screen.getByRole('link', { name: /Buchungen/ })).toHaveAttribute('href', '/ferienvermietung/buchungen')
+    expect(screen.getByRole('link', { name: /Kalender/ })).toHaveAttribute('href', '/ferienvermietung/kalender')
+    expect(screen.getByRole('link', { name: /Abrechnungen/ })).toHaveAttribute('href', '/ferienvermietung/abrechnungen')
+    expect(screen.getByRole('link', { name: /Auswertung/ })).toHaveAttribute('href', '/ferienvermietung/auswertung')
   })
 
   it('hides a disabled module', async () => {
@@ -32,8 +35,8 @@ describe('App shell', () => {
 
   it('highlights the active entry', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
-    renderApp('/ferienvermietung/belegung')
-    const link = await screen.findByRole('link', { name: /Belegung/ })
+    renderApp('/ferienvermietung/buchungen')
+    const link = await screen.findByRole('link', { name: /Buchungen/ })
     expect(link).toHaveAttribute('data-active', 'true')
     expect(screen.getByRole('link', { name: /Übersicht/ })).toHaveAttribute('data-active', 'false')
   })
@@ -42,13 +45,13 @@ describe('App shell', () => {
 describe('Routing', () => {
   it('shows the module page for an active module', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
-    renderApp('/ferienvermietung/belegung')
-    expect(await screen.findByRole('heading', { name: 'Belegung' })).toBeInTheDocument()
+    renderApp('/ferienvermietung/buchungen')
+    expect(await screen.findByRole('heading', { name: 'Buchungen' })).toBeInTheDocument()
   })
 
   it('shows "Seite nicht gefunden" for a disabled module', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': { body: [] } })
-    renderApp('/ferienvermietung/belegung')
+    renderApp('/ferienvermietung/buchungen')
     expect(await screen.findByRole('heading', { name: 'Seite nicht gefunden' })).toBeInTheDocument()
   })
 

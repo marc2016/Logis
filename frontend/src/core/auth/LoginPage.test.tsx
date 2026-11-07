@@ -17,11 +17,11 @@ describe('Sign-in', () => {
       },
       'GET /api/modules': vacationRentalActive,
     })
-    const { router } = renderApp('/ferienvermietung/belegung')
+    const { router } = renderApp('/ferienvermietung/buchungen')
     const user = userEvent.setup()
 
     await screen.findByLabelText('Benutzername')
-    expect(router.state.location.search).toBe('?next=%2Fferienvermietung%2Fbelegung')
+    expect(router.state.location.search).toBe('?next=%2Fferienvermietung%2Fbuchungen')
 
     await user.type(screen.getByLabelText('Benutzername'), 'admin')
     await user.type(screen.getByLabelText('Passwort'), 'ein-langes-passwort')
@@ -31,8 +31,8 @@ describe('Sign-in', () => {
     await user.keyboard('123456')
     await user.click(screen.getByRole('button', { name: 'Anmelden' }))
 
-    expect(await screen.findByRole('heading', { name: 'Belegung' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/ferienvermietung/belegung')
+    expect(await screen.findByRole('heading', { name: 'Buchungen' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen')
   })
 
   it('first sign-in: password -> setup -> codes -> overview', async () => {

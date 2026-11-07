@@ -12,10 +12,12 @@ interface Props {
   currentName?: string | null
   placeholder?: string
   noneLabel?: string
+  /** Which kinds to offer; both by default. */
+  kinds?: CategoryKind[]
 }
 
 /** Selection from the shared category tree, grouped by income/expenses. */
-export function CategorySelect({ id, value, onChange, currentName, placeholder = 'Kategorie wählen', noneLabel = 'Keine Kategorie' }: Props) {
+export function CategorySelect({ id, value, onChange, currentName, placeholder = 'Kategorie wählen', noneLabel = 'Keine Kategorie', kinds = ['EXPENSE', 'INCOME'] }: Props) {
   const { data: tree = [] } = useCategories()
   const known = new Set<number>()
   tree.forEach((c) => {
@@ -32,7 +34,7 @@ export function CategorySelect({ id, value, onChange, currentName, placeholder =
       <SelectContent>
         <SelectItem value={NONE}>{noneLabel}</SelectItem>
         {archivedCurrent && <SelectItem value={String(value)}>{currentName} (archiviert)</SelectItem>}
-        {(['EXPENSE', 'INCOME'] as const).map((kind) => (
+        {kinds.map((kind) => (
           <SelectGroup key={kind}>
             <SelectLabel>{kindLabel[kind]}</SelectLabel>
             {tree

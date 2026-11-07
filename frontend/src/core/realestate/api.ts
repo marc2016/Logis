@@ -73,3 +73,79 @@ export function atLeast(role: ShareRole | null | undefined, required: ShareRole)
   const order: ShareRole[] = ['VIEWER', 'EDITOR', 'OWNER']
   return role != null && order.indexOf(role) >= order.indexOf(required)
 }
+
+// --- Finances ------------------------------------------------------------------------------------
+
+export type FinanceKind = 'INCOME' | 'EXPENSE'
+
+export const COST_SOURCE = 'realestate.cost'
+
+export interface FinanceItem {
+  date: string
+  /** null for items on the property itself. */
+  unitId: number | null
+  unitName: string | null
+  kind: FinanceKind
+  label: string
+  amount: string
+  /** e.g. "realestate.cost" or "vacationrental.statement". */
+  sourceType: string
+  sourceId: number
+  categoryName: string | null
+  counterparty: string | null
+  editable: boolean
+}
+
+export interface FinanceMonth {
+  month: number
+  income: string
+  expenses: string
+  result: string
+}
+
+export interface Finances {
+  year: number
+  months: FinanceMonth[]
+  total: FinanceMonth
+  items: FinanceItem[]
+  canRecord: boolean
+}
+
+export interface Cost {
+  id: number
+  propertyId: number
+  unitId: number | null
+  date: string
+  amount: string
+  categoryId: number | null
+  counterparty: string | null
+  note: string | null
+  version: number
+}
+
+export interface FinanceFilter {
+  unitId?: number
+  kind?: FinanceKind
+  sort?: string
+}
+
+export const financeKeys = {
+  all: (propertyId: number) => ['properties', propertyId, 'finances'] as const,
+  year: (propertyId: number, year: number, filter: FinanceFilter) => ['properties', propertyId, 'finances', year, filter] as const,
+}
+
+export function useFinances(propertyId: number, year: number, filter: FinanceFilter) {
+  const search = new URLSearchParams({ year: String(year) })
+  if (filter.unitId) search.set('unitId', String(filter.unitId))
+  if (filter.kind) search.set('kind', filter.kind)
+  if (filter.sort) search.set('sort', filter.sort)
+  return useQuery({
+    queryKey: financeKeys.year(propertyId, year, filter),
+    queryFn: () => api<Finances>(`/api/properties/${propertyId}/finances?${search}`),
+  })
+}
+
+export function useInvalidateFinances(propertyId: number) {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: financeKeys.all(propertyId) })
+}
