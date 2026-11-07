@@ -40,7 +40,7 @@ A user with at least `EDITOR` on the property SHALL be able to add units, change
 - **THEN** the system rejects this with the message „Eine Einheit mit diesem Namen existiert bereits“
 
 ### Requirement: Edit and archive a property
-An `OWNER` of a property SHALL be able to change its name and address and to archive or restore it. The legal entity of a property MUST NOT be changed afterwards. Archived properties SHALL be hidden from lists by default and shown on request. A property SHALL only be deletable if no transactions are attributed to it or its units.
+An `OWNER` of a property SHALL be able to change its name and address and to archive or restore it. The legal entity of a property MUST NOT be changed afterwards. Archived properties SHALL be hidden from lists by default and shown on request. A property SHALL only be deletable if no transactions are attributed to it or its units, no costs are recorded on it or its units, and no module still references one of its units, for example through bookings.
 
 #### Scenario: Editor edits a property
 - **WHEN** Bert, as `EDITOR` of a property, tries to change its name
@@ -49,6 +49,14 @@ An `OWNER` of a property SHALL be able to change its name and address and to arc
 #### Scenario: Delete with attributed transactions
 - **WHEN** Anna tries to delete a property to whose unit transactions are attributed
 - **THEN** the system rejects this with the message „Dem Objekt sind noch Transaktionen zugeordnet und es kann nur archiviert werden“
+
+#### Scenario: Delete with bookings
+- **WHEN** Anna tries to delete a property whose unit has bookings
+- **THEN** the system rejects this with the message „Zum Objekt gibt es noch Buchungen und es kann nur archiviert werden“
+
+#### Scenario: Delete with costs
+- **WHEN** Anna tries to delete a property with a recorded cost
+- **THEN** the system rejects this with the message „Zum Objekt sind noch Kosten erfasst und es kann nur archiviert werden“
 
 ### Requirement: Property list and visibility
 A user SHALL see every property on which they have a share, and every property with at least one unit on which they have a share. Each entry shows name, address, legal entity, the user's role on the property (if any) and the units visible to them. Without any share on the property or one of its units, a property MUST be treated as nonexistent (HTTP 404).
