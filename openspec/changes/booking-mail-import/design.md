@@ -20,25 +20,29 @@ Motivation and decisions are in proposal.md; requirements in `specs/`.
 
 ## Decisions
 
-### D1: Package layout (module `vacationrental`)
+### D1: Mail in the core, booking mails in the module
 
 ```
-app.logis.modules.vacationrental   (same package as bookings, so package-private services stay hidden)
-  Mailbox, MailboxRepository, MailboxService, MailboxController     /api/vacationrental/mailbox
-  ImportedMail, ImportedMailRepository, InboxService, InboxController /api/vacationrental/inbox
-  MailPoller          @Scheduled, per enabled mailbox; ImapClient (Jakarta Mail) behind an interface
-  ParsedMail          record(agency, type, bookingRef, propertyName, arrival, departure, adults, children,
-                             pets, expectedRent, guest)   type: CONFIRMATION|SHORT_NOTICE|CHANGE|CANCELLATION
-  MailParser          interface: Optional<ParsedMail> parse(MailContent)
-    FewoUndMeerParser   subject patterns "Neue Buchung für", "Last-Minute Buchung", "Stornierung"
-    HoliduDsParser      "Buchungsmitteilung (Buchungsnummer: …)"
-    AiMailParser        only if logis.ai.enabled; Anthropic Java SDK, structured JSON output
-  UnitMapping, UnitMappingRepository   (owner_user_id, agency, lower(property_name)) -> unit_id
-  ImportEngine        ParsedMail + owner -> effect (D3)
+app.logis.core.mail                 (named interface "mail")
+  Mailbox, MailboxService, MailboxController       /api/mail/mailbox
+  ImapClient, JakartaImapClient, MailPoller        @Scheduled, per enabled mailbox
+  StoredMail, MailService, MailController          /api/mail/inbox  (list, text, retry, ignore, delete)
+  MailContent       public: subject, sender, text (HTML -> "Label\tValue" lines)
+  MailHandler       public interface: key(), usesAi(), handle(ownerId, MailContent, raw) -> Optional<Handled>
+  Handled           public record: result, detail, kind, source, reference, subject, linkType, linkId, data, parsedBy
+  Mails             public API for handlers: reprocess, find waiting mails, mark results by link
+
+app.logis.modules.vacationrental
+  BookingMailHandler implements MailHandler ("vacationrental.booking")
+  FewoUndMeerParser, HoliduDsParser, MailRecognizer, AiExtractor/ClaudeAiExtractor, ParsedMail
+  ImportEngine, UnitMapping                        POST /api/vacationrental/mail/{id}/assign
 ```
 
-- The classes live in the module package next to bookings; they use `RentalAccess`, `BookingService` and the new `Documents.store` (D5). A sub-package would have forced bookings classes to become public. `ModularityTest` keeps the module boundaries.
-- *Alternative:* a core package `core.mail`. Rejected for now: the only consumer is vacation rental; a later invoice import can extract the IMAP part.
+- The core stores and lists mails and offers each mail to the handlers in `@Order` order; the first one that returns a result takes it. No handler: `NOT_RECOGNISED`. A disabled module has no handler bean, so its mails stay `NOT_RECOGNISED` and can be retried later.
+- Results are strings: the core owns `NOT_RECOGNISED`, `IGNORED`, `DELETED` and `FAILED`; handlers add their own (`BOOKING_CREATED`, `UNASSIGNED_UNIT`, …). The frontend shows labels contributed by the module.
+- Booking-specific actions (assigning a unit) are module endpoints; the module saves the mapping and asks `Mails.reprocess` for the waiting mails. The frontend module contributes these actions to the core inbox dialog through the module contract (`mailActions`, `mailResultLabels`).
+- *Alternative:* everything in the module (first implementation). Rejected by the user: mail will be needed by other parts, and polling must not depend on vacation rental being enabled.
+- *Alternative:* generic AI extraction in the core. Rejected for now: the schema is booking-specific; a later handler can bring its own.
 
 ### D2: Data model (schema `vacationrental`)
 

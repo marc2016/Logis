@@ -24,6 +24,7 @@ Guiding decisions from exploration:
   - A known booking number with different data, or a cancellation, proposes a change on the existing booking. A mail without differences is only attached.
   - Mails that cannot be matched to a unit or booking stay in the inbox with a reason.
 - **Unit mapping:** The property name in the mail („Haus Seeufer - Nordhorn“, „Ferienhaus Seeufer“) is mapped to a unit once per agency and remembered.
+- **Core and module:** Mailbox, polling and inbox live in the core (`core.mail`), so other parts of Logis can handle mails later (e.g. invoices). Vacation rental registers a handler for booking mails.
 - **Inbox page:** All fetched mails with their result (Buchung angelegt, Änderung vorgeschlagen, angehängt, Duplikat, nicht zugeordnet, nicht erkannt), with actions to assign a unit, retry or ignore, and to fetch older mails from a chosen date.
 - **Bookings:** new fields „Vermittler“ (agency, free text) and „Haustiere“ (pets). „zu prüfen“ markers and the actions *Bestätigen* and *Verwerfen* in the grid, the calendar and the dialog. The booking number becomes unique per unit and agency.
 - **Documents:** The original mail is stored as an `.eml` document of the booking, plus a readable text preview.
@@ -32,7 +33,8 @@ Guiding decisions from exploration:
 
 ### New Capabilities
 
-- `mail-import`: Mailbox configuration, polling from a cut-off date, recognition by rules and optional AI, unit mapping per agency, the effects on bookings, and the inbox with results and actions.
+- `mail-inbox` (core): Mailbox configuration, polling from a cut-off date, mail handlers registered by modules, and the inbox with generic actions.
+- `booking-mails` (vacation rental): Recognition of booking mails by rules and optional AI, unit mapping per agency, and the effects on bookings.
 
 ### Modified Capabilities
 

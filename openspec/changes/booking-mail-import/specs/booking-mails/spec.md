@@ -2,31 +2,9 @@
 
 ## Purpose
 
-Mail import fetches booking emails of rental agencies from a user's mailbox, recognises confirmations, short-notice notices, changes and cancellations, and prepares bookings and changes for the user to confirm, with the original email attached.
+Booking mails turn the mails of rental agencies (confirmations, short-notice notices, changes and cancellations) into bookings and changes that the user confirms, with the original mail attached. It is the vacation rental handler of the mail inbox.
 
 ## ADDED Requirements
-
-### Requirement: Configure a mailbox
-A user SHALL be able to configure one IMAP mailbox with host, port, username, password, folder, a cut-off date and an on/off switch. The password MUST be stored encrypted and MUST never be returned by the system. Saving MUST test the connection and reject unreachable or wrongly authenticated mailboxes with „Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen“.
-
-#### Scenario: Set up the mailbox
-- **WHEN** Anna enters the IMAP data of the folder "Buchungen" and the cut-off date 2026-11-01
-- **THEN** the settings are saved, and the password field shows only that a password is set
-
-#### Scenario: Wrong password
-- **WHEN** Anna saves the mailbox with a wrong password
-- **THEN** the system rejects this with the message „Das Postfach ist nicht erreichbar oder die Anmeldung ist fehlgeschlagen“
-
-### Requirement: Poll from the cut-off date
-For an enabled mailbox, the system SHALL fetch new mails regularly, at least every 10 minutes, without user action. It MUST only consider mails received on or after the cut-off date, MUST process each mail once (by its Message-ID), and MUST NOT change, move or delete mails in the mailbox. The user SHALL be able to fetch older mails from a chosen date once.
-
-#### Scenario: Old mails are left out
-- **WHEN** the folder contains a cancellation from 2024 and the cut-off date is 2026-11-01
-- **THEN** the cancellation is not fetched
-
-#### Scenario: Fetch older mails
-- **WHEN** Anna fetches older mails from 2025-01-01
-- **THEN** the mails from 2025 on are processed once, and later polls do not process them again
 
 ### Requirement: Recognise booking mails
 The system SHALL recognise the mail type and read its fields with fixed rules for known agencies: Fewo & Meer confirmations, short-notice notices and cancellations, and Holidu/DS confirmations. Read fields MUST include agency, booking number, property name, arrival, departure, adults, children, and where present pets, rent and guest data. Amounts and dates MUST be read in German notation. For Holidu/DS the total price MUST be used as the expected rent.
@@ -82,10 +60,3 @@ A cancellation or change for an unknown booking number MUST stay in the inbox as
 #### Scenario: Cancellation without booking
 - **WHEN** the cancellation of booking 236678 from 2024 is fetched and no such booking exists
 - **THEN** the mail appears in the inbox as „nicht zugeordnet“
-
-### Requirement: Inbox
-A user SHALL see the mails fetched from their mailbox with date, sender, subject, agency, mail type, result and the linked booking. They SHALL be able to assign a unit, retry processing, ignore a mail and open the mail text. Other users MUST NOT see a user's inbox.
-
-#### Scenario: Retry after assigning a unit
-- **WHEN** Anna assigns a unit to a mail „Einheit zuordnen“
-- **THEN** the mail is processed again and shows „Buchung angelegt“

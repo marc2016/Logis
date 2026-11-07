@@ -33,3 +33,9 @@
 - [x] 6.1 Run `./mvnw verify` and `npm test && npm run lint && npm run build`. Verify: everything is green.
 - [x] 6.2 Manual run against a GreenMail or real test mailbox: deliver the five sample mails (anonymised), assign "Haus Seeufer - Nordhorn" and "Ferienhaus Seeufer" to the same unit, confirm a booking, apply a cancellation, and check the inbox results. Verify: all steps behave as described in the specs.
 - [x] 6.3 Document the mailbox setup, the AI settings and the privacy notice in the README. Verify: the section names `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY` and `LOGIS_AI_MODEL` and that AI is off by default.
+
+## 7. Mail in the core
+
+- [ ] 7.1 Move mailbox, IMAP client, poller, stored mails and inbox into `core.mail` with the `MailHandler` interface and the `Mails` API (D1); move the tables to the schema `core` in the (unreleased) migrations. Verify: core tests with a stub handler cover polling from the cut-off date, Message-ID dedup, delete keeping the Message-ID, private inbox, recorded errors, and `NOT_RECOGNISED` without handler; `ModularityTest` is green.
+- [ ] 7.2 Turn the booking import into `BookingMailHandler` with the assign endpoint in the module. Verify: the GreenMail tests of the booking effects pass against the core poll, and with the module disabled a confirmation stays „nicht erkannt“ and creates the booking after enabling and retrying.
+- [ ] 7.3 Move the inbox page to the core (`/posteingang` under „Allgemein“) with module-contributed actions and result labels. Verify: component tests cover the core page, the assign action from the module, and `npm test && npm run lint && npm run build` are green.
