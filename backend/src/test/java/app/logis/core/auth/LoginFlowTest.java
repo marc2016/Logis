@@ -11,6 +11,10 @@ import org.springframework.mock.web.MockHttpSession;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -95,6 +99,33 @@ class LoginFlowTest extends IntegrationTest {
         assertThat(stored).isNotNull().doesNotContain(secret);
         assertThat(cipher.decrypt(stored)).isEqualTo(secret);
         getWith("/api/modules", session).andExpect(status().isOk());
+    }
+
+    @Test
+    void concurrentSetupRequestsGetTheSameSecret() throws Exception {
+        var user = createUser(Role.USER, false);
+        var session = passwordStep(user);
+        var start = new CountDownLatch(1);
+        Callable<String> setup = () -> {
+            start.await();
+            var body = postJson("/api/auth/totp/setup", Map.of(), session)
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            return JsonPath.read(body, "$.secret");
+        };
+        var pool = Executors.newFixedThreadPool(4);
+        try {
+            var results = List.of(pool.submit(setup), pool.submit(setup), pool.submit(setup), pool.submit(setup));
+            start.countDown();
+            var secrets = new HashSet<String>();
+            for (var result : results) {
+                secrets.add(result.get());
+            }
+            assertThat(secrets).hasSize(1);
+            assertThat(session.getAttribute(AuthSession.PENDING_TOTP_SECRET)).isEqualTo(secrets.iterator().next());
+        } finally {
+            pool.shutdown();
+        }
     }
 
     @Test

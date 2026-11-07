@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Clock;
 import java.util.List;
@@ -75,10 +76,15 @@ class AuthController {
     TotpSetupResponse setupTotp(HttpServletRequest request) {
         var userId = AuthSession.requireStage(request, AuthStage.TOTP_ENROLLMENT_REQUIRED);
         var session = request.getSession(false);
-        var secret = (String) session.getAttribute(AuthSession.PENDING_TOTP_SECRET);
-        if (secret == null) {
-            secret = totp.generateSecret();
-            session.setAttribute(AuthSession.PENDING_TOTP_SECRET, secret);
+        String secret;
+        // Requests arriving at the same time (e.g. a page that asks twice) must get the same secret,
+        // otherwise the one shown could differ from the one confirmed.
+        synchronized (WebUtils.getSessionMutex(session)) {
+            secret = (String) session.getAttribute(AuthSession.PENDING_TOTP_SECRET);
+            if (secret == null) {
+                secret = totp.generateSecret();
+                session.setAttribute(AuthSession.PENDING_TOTP_SECRET, secret);
+            }
         }
         return new TotpSetupResponse(secret, totp.otpauthUri(flow.username(userId), secret));
     }

@@ -280,7 +280,7 @@ cd e2e && npm ci && npx playwright install chromium
 npx playwright test                 # npx playwright test --project=phone for one screen
 ```
 
-`LOGIS_E2E_URL` points to another stack (default `http://localhost:8080`); `LOGIS_E2E_ADMIN_PASSWORD`, `LOGIS_E2E_IMAP_HOST` and `LOGIS_E2E_SMTP_HOST` match its admin and mail server. The suite keeps the admin's TOTP secret in `e2e/.auth/`; delete that folder together with the database. Against `npm run dev` the two-factor setup fails, because React runs the setup request twice in development mode; use `npm run build && npx vite preview` instead.
+`LOGIS_E2E_URL` points to another stack (default `http://localhost:8080`); `LOGIS_E2E_ADMIN_PASSWORD`, `LOGIS_E2E_IMAP_HOST` and `LOGIS_E2E_SMTP_HOST` match its admin and mail server. The suite keeps the admin's TOTP secret in `e2e/.auth/`; delete that folder together with the database.
 
 ### Creating a new module
 
