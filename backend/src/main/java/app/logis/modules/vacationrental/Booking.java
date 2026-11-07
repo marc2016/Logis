@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -38,6 +40,21 @@ class Booking {
 
     @Column(name = "external_ref", length = 64)
     private String externalRef;
+
+    /** Agency the booking came from, e.g. "Fewo & Meer"; optional. */
+    @Column(length = 64)
+    private String agency;
+
+    @Column(nullable = false)
+    private short pets;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_state", nullable = false, length = 8)
+    private ReviewState reviewState = ReviewState.NONE;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private BookingProposal proposal;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
@@ -98,6 +115,42 @@ class Booking {
 
     String getExternalRef() {
         return externalRef;
+    }
+
+    String getAgency() {
+        return agency;
+    }
+
+    void setAgency(String agency) {
+        this.agency = agency;
+    }
+
+    int getPets() {
+        return pets;
+    }
+
+    void setPets(int pets) {
+        this.pets = (short) pets;
+    }
+
+    ReviewState getReviewState() {
+        return reviewState;
+    }
+
+    void setReviewState(ReviewState reviewState) {
+        this.reviewState = reviewState;
+    }
+
+    BookingProposal getProposal() {
+        return proposal;
+    }
+
+    /** Sets or clears the proposal; the review state follows unless the booking itself is still new. */
+    void setProposal(BookingProposal proposal) {
+        this.proposal = proposal;
+        if (reviewState != ReviewState.NEW) {
+            reviewState = proposal == null ? ReviewState.NONE : ReviewState.CHANGE;
+        }
     }
 
     Channel getChannel() {

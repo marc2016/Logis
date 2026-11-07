@@ -6,6 +6,7 @@ import app.logis.core.realestate.UnitSummary;
 import app.logis.core.realestate.UnitUsage;
 import app.logis.core.sharing.ShareRole;
 import app.logis.core.web.ApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,19 +38,21 @@ class BookingService {
     private final StatementLineRepository lines;
     private final RentalAccess access;
     private final Documents documents;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     BookingService(BookingRepository bookings, StatementLineRepository lines, RentalAccess access,
-            Documents documents, Clock clock) {
+            Documents documents, ApplicationEventPublisher events, Clock clock) {
         this.bookings = bookings;
         this.lines = lines;
         this.access = access;
         this.documents = documents;
+        this.events = events;
         this.clock = clock;
     }
 
     record BookingInput(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Channel channel,
-            Integer adults, Integer children, BigDecimal expectedRent, Guest guest) {
+            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, String agency, Integer pets) {
     }
 
     /** A booking as the user may see it: contact data only from EDITOR on. */
@@ -70,10 +73,12 @@ class BookingService {
     }
 
     enum SortKey {
-        ARRIVAL, DEPARTURE, UNIT, GUEST, NIGHTS, EXPECTED_RENT, STATUS
+        ARRIVAL, DEPARTURE, UNIT, GUEST, NIGHTS, EXPECTED_RENT, STATUS, AGENCY
     }
 
-    record Filter(Long propertyId, Long unitId, BookingStatus status, LocalDate from, LocalDate to, String q) {
+    /** {@code review = true}: only bookings and changes awaiting review. */
+    record Filter(Long propertyId, Long unitId, BookingStatus status, LocalDate from, LocalDate to, String q,
+            boolean review) {
     }
 
     record ListResult(List<BookingDetails> items, int page, int size, long totalItems) {
@@ -106,6 +111,7 @@ class BookingService {
         var q = filter.q() == null || filter.q().isBlank() ? null : filter.q().trim().toLowerCase(Locale.ROOT);
         var all = details(bookings.findForUnits(unitIds, filter.from(), filter.to()), roles).stream()
                 .filter(d -> filter.status() == null || d.status() == filter.status())
+                .filter(d -> !filter.review() || d.booking().getReviewState() != ReviewState.NONE)
                 .filter(d -> q == null || matches(d, q))
                 .sorted(comparator(sort, ascending))
                 .toList();
@@ -177,6 +183,73 @@ class BookingService {
         return get(userId, id);
     }
 
+    // --- Review of imported bookings -----------------------------------------------------------
+
+    /** Confirms a booking that came from a mail; it becomes an ordinary booking. */
+    BookingDetails confirm(Long userId, Long id) {
+        var booking = requireEditable(userId, id);
+        if (booking.getReviewState() == ReviewState.NEW) {
+            booking.setReviewState(booking.getProposal() == null ? ReviewState.NONE : ReviewState.CHANGE);
+        }
+        return get(userId, id);
+    }
+
+    /** Discards a booking that came from a mail and has not been confirmed: it is deleted with its documents. */
+    void discard(Long userId, Long id) {
+        var booking = requireEditable(userId, id);
+        if (booking.getReviewState() != ReviewState.NEW) {
+            throw ApiException.conflict("Nur Buchungen „zu prüfen“ können verworfen werden.");
+        }
+        if (settled(id)) {
+            throw ApiException.conflict("Die Buchung ist abgerechnet und kann nur storniert werden");
+        }
+        documents.deleteAll(Booking.DOCUMENT_TYPE, id);
+        bookings.delete(booking);
+        events.publishEvent(new ImportedBookingDiscarded(id));
+    }
+
+    /** Applies the proposed change or cancellation under the usual booking rules. */
+    BookingDetails applyProposal(Long userId, Long id) {
+        var booking = requireEditable(userId, id);
+        var p = booking.getProposal();
+        if (p == null) {
+            throw ApiException.conflict("Es gibt keine vorgeschlagene Änderung.");
+        }
+        if (p.type() == BookingProposal.Type.CANCELLATION) {
+            booking.setCancelled(true);
+        } else {
+            var g = p.guest() == null ? booking.getGuest() : merge(booking.getGuest(), p.guest());
+            apply(userId, booking, new BookingInput(booking.getUnitId(),
+                    p.arrival() != null ? p.arrival() : booking.getArrival(),
+                    p.departure() != null ? p.departure() : booking.getDeparture(),
+                    booking.getExternalRef(), booking.getChannel(),
+                    p.adults() != null ? p.adults() : booking.getAdults(),
+                    p.children() != null ? p.children() : booking.getChildren(),
+                    p.expectedRent() != null ? p.expectedRent() : booking.getExpectedRent(), g,
+                    booking.getAgency(), p.pets() != null ? p.pets() : booking.getPets()));
+        }
+        booking.setProposal(null);
+        save(booking);
+        return get(userId, id);
+    }
+
+    BookingDetails discardProposal(Long userId, Long id) {
+        requireEditable(userId, id).setProposal(null);
+        return get(userId, id);
+    }
+
+    /** Proposed guest fields replace only what the mail carries. */
+    private static Guest merge(Guest current, Guest proposed) {
+        return new Guest(or(proposed.name(), current.name()), or(proposed.street(), current.street()),
+                or(proposed.postalCode(), current.postalCode()), or(proposed.city(), current.city()),
+                or(proposed.country(), current.country()), or(proposed.phone(), current.phone()),
+                or(proposed.email(), current.email()));
+    }
+
+    private static String or(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     /** Document access: reading needs EDITOR too, because documents usually contain contact data. */
     @Transactional(readOnly = true)
     boolean canEditBooking(Long id, Long userId) {
@@ -225,7 +298,12 @@ class BookingService {
             throw ApiException.badRequest("Die Zahl der Kinder ist ungültig.");
         }
         var ref = text(input.externalRef(), 64, "Die Buchungsnummer");
-        if (ref != null && bookings.refTaken(input.unitId(), ref, booking.getId())) {
+        var agency = text(input.agency(), 64, "Der Vermittler");
+        var pets = input.pets() == null ? 0 : input.pets();
+        if (pets < 0 || pets > 20) {
+            throw ApiException.badRequest("Die Zahl der Haustiere ist ungültig.");
+        }
+        if (ref != null && bookings.refTaken(input.unitId(), agency, ref, booking.getId())) {
             throw ApiException.conflict("Diese Buchungsnummer ist bereits erfasst");
         }
         if (!booking.isCancelled()
@@ -234,6 +312,8 @@ class BookingService {
         }
         booking.apply(input.unitId(), input.arrival(), input.departure(), ref, input.channel(), adults, children,
                 Money.optional(input.expectedRent()));
+        booking.setAgency(agency);
+        booking.setPets(pets);
         var g = input.guest() == null ? Guest.EMPTY : input.guest();
         booking.setGuest(new Guest(text(g.name(), 128, "Der Name"), text(g.street(), 128, "Die Straße"),
                 text(g.postalCode(), 16, "Die PLZ"), text(g.city(), 128, "Der Ort"),
@@ -285,6 +365,8 @@ class BookingService {
             case EXPECTED_RENT -> Comparator.comparing(d -> d.booking().getExpectedRent() == null ? BigDecimal.ZERO
                     : d.booking().getExpectedRent());
             case STATUS -> Comparator.comparing(BookingDetails::status);
+            case AGENCY -> Comparator.comparing(d -> d.booking().getAgency() == null ? ""
+                    : d.booking().getAgency().toLowerCase(Locale.ROOT));
         };
         if (!ascending) {
             c = c.reversed();

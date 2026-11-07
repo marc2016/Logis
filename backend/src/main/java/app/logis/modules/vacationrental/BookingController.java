@@ -39,11 +39,12 @@ class BookingController {
     }
 
     record BookingRequest(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Channel channel,
-            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, Long version) {
+            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, String agency, Integer pets,
+            Long version) {
 
         BookingService.BookingInput input() {
             return new BookingService.BookingInput(unitId, arrival, departure, externalRef, channel, adults,
-                    children, expectedRent, guest);
+                    children, expectedRent, guest, agency, pets);
         }
     }
 
@@ -53,8 +54,9 @@ class BookingController {
     /** {@code guest} carries contact data only for editors; {@code guestDeleted} marks deleted guest data. */
     record BookingView(Long id, UnitRef unit, LocalDate arrival, LocalDate departure, long nights,
             String externalRef, Channel channel, int adults, int children,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status, Long statementId, Guest guest, boolean guestDeleted, boolean canEdit,
-            long version) {
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status,
+            Long statementId, Guest guest, boolean guestDeleted, boolean canEdit, long version, String agency,
+            int pets, ReviewState reviewState, ProposalView proposal) {
 
         static BookingView of(BookingService.BookingDetails d) {
             var b = d.booking();
@@ -63,7 +65,23 @@ class BookingController {
                     new UnitRef(u.id(), u.name(), u.propertyId(), u.propertyName(), u.propertyMultiUnit()),
                     b.getArrival(), b.getDeparture(), b.nights(), b.getExternalRef(), b.getChannel(),
                     b.getAdults(), b.getChildren(), b.getExpectedRent(), d.status(), d.statementId(), d.guest(),
-                    b.isGuestDeleted(), d.canEdit(), b.getVersion());
+                    b.isGuestDeleted(), d.canEdit(), b.getVersion(), b.getAgency(), b.getPets(), b.getReviewState(),
+                    ProposalView.of(b.getProposal(), d.canEdit()));
+        }
+    }
+
+    /** A proposed change; guest contact data only for editors, like on the booking itself. */
+    record ProposalView(BookingProposal.Type type, LocalDate arrival, LocalDate departure, Integer adults,
+            Integer children, Integer pets, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent,
+            Guest guest) {
+
+        static ProposalView of(BookingProposal p, boolean canEdit) {
+            if (p == null) {
+                return null;
+            }
+            var guest = p.guest() == null ? null : canEdit ? p.guest() : p.guest().nameOnly();
+            return new ProposalView(p.type(), p.arrival(), p.departure(), p.adults(), p.children(), p.pets(),
+                    p.expectedRent(), guest);
         }
     }
 
@@ -91,6 +109,7 @@ class BookingController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean review,
             @RequestParam(defaultValue = "arrival,desc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -105,7 +124,7 @@ class BookingController {
             throw ApiException.badRequest("Ungültige Sortierung.");
         }
         var ascending = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc");
-        var result = service.list(me.userId(), new BookingService.Filter(propertyId, unitId, status, from, to, q),
+        var result = service.list(me.userId(), new BookingService.Filter(propertyId, unitId, status, from, to, q, review),
                 key, ascending, Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
         return new BookingPage(result.items().stream().map(BookingView::of).toList(), result.page(), result.size(),
                 result.totalItems());
@@ -136,6 +155,27 @@ class BookingController {
     @PostMapping("/bookings/{id}/reinstate")
     BookingView reinstate(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
         return BookingView.of(service.setCancelled(me.userId(), id, false));
+    }
+
+    @PostMapping("/bookings/{id}/confirm")
+    BookingView confirm(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
+        return BookingView.of(service.confirm(me.userId(), id));
+    }
+
+    @PostMapping("/bookings/{id}/discard")
+    ResponseEntity<Void> discard(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
+        service.discard(me.userId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/bookings/{id}/proposal/apply")
+    BookingView applyProposal(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
+        return BookingView.of(service.applyProposal(me.userId(), id));
+    }
+
+    @PostMapping("/bookings/{id}/proposal/discard")
+    BookingView discardProposal(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
+        return BookingView.of(service.discardProposal(me.userId(), id));
     }
 
     @DeleteMapping("/bookings/{id}/guest")

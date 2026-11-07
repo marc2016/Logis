@@ -8,8 +8,8 @@
 
 ## 2. Bookings
 
-- [ ] 2.1 Add agency and pets to bookings, the uniqueness per unit and agency, the list filter `review` and the sort key `agency`. Verify: the scenarios of the modified requirement „Unique booking number per unit“ and „Agency and pets“ pass, and the existing booking tests stay green.
-- [ ] 2.2 Implement review state and proposals with confirm, discard, apply and discard proposal (D7 endpoints). Verify: integration tests cover every scenario of „Bookings awaiting review“ and „Proposed changes“, including the overlap message on apply.
+- [x] 2.1 Add agency and pets to bookings, the uniqueness per unit and agency, the list filter `review` and the sort key `agency`. Verify: the scenarios of the modified requirement „Unique booking number per unit“ and „Agency and pets“ pass, and the existing booking tests stay green.
+- [x] 2.2 Implement review state and proposals with confirm, discard, apply and discard proposal (D7 endpoints). Verify: integration tests cover every scenario of „Bookings awaiting review“ and „Proposed changes“, including the overlap message on apply.
 
 ## 3. Parsing
 
