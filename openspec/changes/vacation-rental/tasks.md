@@ -28,10 +28,11 @@
 
 - [ ] 6.1 Create `modules/vacationrental/api.ts`, the nav items „Buchungen“, „Kalender“, „Abrechnungen“, „Auswertung“ with the index redirect to „Buchungen“, and remove `BelegungPage`. Verify: `npm run build` is green, and the sidebar test shows the four entries.
 - [ ] 6.2 Implement `BookingDialog` with `DocumentList`: stay, guests, amounts, guest data and documents for create and edit; the guest and document sections only with `canEdit`; „Gastdaten löschen“ with confirmation and the hint about remaining documents (D6). Verify: Component tests cover that files chosen on create are uploaded after saving, that a failed upload keeps the booking, and that a viewer sees no contact fields and no documents.
-- [ ] 6.3 Implement `BuchungenPage`: the filter bar, sortable column headers with `sort` and the filters in the URL, paging, „+ Buchung“ at the top right, and opening the dialog on a row click. Verify: Component tests cover that clicking a header sends `sort=arrival,asc`, that filters survive a reload from the URL, and that the button opens the dialog.
-- [ ] 6.4 Implement `KalenderPage` with `CalendarGrid`, property picker, month navigation and „+ Buchung“ at the top right with the property preselected. Verify: Component tests cover planned vs. settled bars, a cancelled booking not shown, a new booking appearing after saving, and Carla seeing one row.
-- [ ] 6.5 Implement `AbrechnungenPage`, `StatementDialog` and `StatementLineDialog` with provider suggestions and the payout. Verify: A component test shows the net per line and the payout after assigning a booking.
-- [ ] 6.6 Implement `AuswertungPage` with the 12-month table and totals. Verify: A component test renders nights, occupancy rate, settled net and planned rent from a mocked response.
+- [ ] 6.3 Add `@tanstack/react-table` and a reusable `components/DataTable.tsx` (D6): server-side sorting and paging, sortable headers, and a column visibility menu stored in `localStorage`. Verify: A component test covers the sort callback, hiding a column, and the table rendering when `localStorage` throws.
+- [ ] 6.4 Implement `BuchungenPage` on `DataTable`: the filter bar, `sort`, the filters and the page in the URL, paging, „+ Buchung“ at the top right, and opening the dialog on a row click. Verify: Component tests cover that clicking a header sends `sort=arrival,asc`, that filters survive a reload from the URL, and that the button opens the dialog.
+- [ ] 6.5 Implement `KalenderPage` with `CalendarGrid`, property picker, month navigation and „+ Buchung“ at the top right with the property preselected. Verify: Component tests cover planned vs. settled bars, a cancelled booking not shown, a new booking appearing after saving, and Carla seeing one row.
+- [ ] 6.6 Implement `AbrechnungenPage`, `StatementDialog` and `StatementLineDialog` with provider suggestions and the payout. Verify: A component test shows the net per line and the payout after assigning a booking.
+- [ ] 6.7 Implement `AuswertungPage` with the 12-month table and totals. Verify: A component test renders nights, occupancy rate, settled net and planned rent from a mocked response.
 
 ## 7. Acceptance
 
