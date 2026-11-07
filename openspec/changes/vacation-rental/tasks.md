@@ -3,7 +3,8 @@
 ## 1. Real estate core
 
 - [ ] 1.1 Add `UnitSummary` and `UnitAccess.summaries(unitIds)` in `core.realestate`. Verify: A test returns name, property, usage and archive flag for visible units, and `ModularityTest` stays green.
-- [ ] 1.2 Add the public interface `UnitReferences` and call all beans in `PropertyService.delete` after the transaction check (design.md D1). Verify: A test with a stub bean that blocks gets HTTP 409 with the stub's reason, and existing property tests stay green.
+- [ ] 1.2 Add `TransactionAttributions.monthlyExpenses` in `core.ledger` and `UnitFinances` in `core.realestate` (design.md D1). Verify: Tests cover negative amounts only, transfers excluded, property-level costs counted only for single-unit properties and only with a property role, and Carla getting only unit-level expenses.
+- [ ] 1.3 Add the public interface `UnitReferences` and call all beans in `PropertyService.delete` after the transaction check (design.md D1). Verify: A test with a stub bean that blocks gets HTTP 409 with the stub's reason, and existing property tests stay green.
 
 ## 2. Database
 
@@ -21,7 +22,7 @@
 
 ## 5. Occupancy (backend)
 
-- [ ] 5.1 Implement `OccupancyService` and `OccupancyController` with the calendar and the yearly overview (D5). Verify: Unit tests cover the night split (700.00 → 400.00/300.00), the rounding remainder, the year boundary and the cancellation payout in the arrival month. Integration tests cover the "Mixed month" scenario (11 nights, 37 %) and Carla seeing only "Whg. 2" in the calendar.
+- [ ] 5.1 Implement `OccupancyService` and `OccupancyController` with the calendar and the yearly overview including expenses and result (D5). Verify: Unit tests cover the night split (700.00 → 400.00/300.00), the rounding remainder, the year boundary and the cancellation payout in the arrival month. Integration tests cover the "Mixed month" scenario (11 nights, 37 %), "Repair in November" (result 220.00), "Payout not counted twice", and Carla seeing only "Whg. 2" in the calendar.
 - [ ] 5.2 Remove `VacationRentalStatusController`. Verify: With the module disabled, `/api/vacationrental/bookings` returns 404, and after enabling it again the bookings are still there.
 
 ## 6. Frontend
@@ -32,7 +33,8 @@
 - [ ] 6.4 Implement `BuchungenPage` on `DataTable`: the filter bar, `sort`, the filters and the page in the URL, paging, „+ Buchung“ at the top right, and opening the dialog on a row click. Verify: Component tests cover that clicking a header sends `sort=arrival,asc`, that filters survive a reload from the URL, and that the button opens the dialog.
 - [ ] 6.5 Implement `KalenderPage` with `CalendarGrid`, property picker, month navigation and „+ Buchung“ at the top right with the property preselected. Verify: Component tests cover planned vs. settled bars, a cancelled booking not shown, a new booking appearing after saving, and Carla seeing one row.
 - [ ] 6.6 Implement `AbrechnungenPage`, `StatementDialog` and `StatementLineDialog` with provider suggestions and the payout. Verify: A component test shows the net per line and the payout after assigning a booking.
-- [ ] 6.7 Implement `AuswertungPage` with the 12-month table and totals. Verify: A component test renders nights, occupancy rate, settled net and planned rent from a mocked response.
+- [ ] 6.7 Implement `AuswertungPage` with the 12-month table and totals. Verify: A component test renders nights, occupancy rate, settled net, planned rent, expenses and result from a mocked response.
+- [ ] 6.8 Add „Kosten erfassen“ to `PropertyDetailPage`: `TransactionDialog` with the target preset and only accounts with `EDITOR` (D6). Verify: Component tests cover the preset unit for a single-unit property, sending `unitId`, and the message „Kein Konto mit Schreibrechten vorhanden“ for a user without account rights.
 
 ## 7. Acceptance
 
@@ -42,6 +44,7 @@
   2. Create a statement, assign the booking, and check the net, the payout and the status settled.
   3. As a `VIEWER`, open the booking and check that there are no contact details.
   4. Delete the guest data and check the overview for November.
+  5. Record a repair with „Kosten erfassen“ on "Haus Seeufer" and check that it appears on the account and as an expense with the reduced result in the overview.
 
   Verify: All steps behave as described in the specs.
 - [ ] 7.3 Add a section "Vacation rental" to the README (bookings, documents, statements, guest data and its manual deletion), and the 10 MB request body note to the deployment section. Verify: The section matches `specs/bookings` regarding visibility of contact data and documents.

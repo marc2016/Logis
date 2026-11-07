@@ -27,7 +27,9 @@ Guiding decisions from exploration:
   - Removing a booking from a statement makes it planned again.
 - **Occupancy:**
   - A monthly calendar per property with one row per vacation rental unit.
-  - A yearly overview per unit with booked nights, occupancy rate and net income per month. Settled and planned amounts are shown separately, and stays across a month boundary are split by night.
+  - A yearly overview per unit with booked nights, occupancy rate, net income, expenses and result per month. Settled and planned amounts are shown separately, and stays across a month boundary are split by night.
+  - Expenses are the transactions attributed to the unit with a negative amount, for example paid repair invoices.
+- **Costs on the property:** The property page gets „Kosten erfassen“. It opens the transaction dialog with the property or unit preselected as the target, so costs are recorded as ordinary transactions on the bank account. A later bank import can match them instead of creating duplicates.
 - **Real estate core:**
   - Modules can report that they still reference a unit. A property is then not deletable, as is already the case with attributed transactions.
   - `UnitAccess` returns display data for units (name, property, usage, archived).
@@ -43,7 +45,7 @@ Guiding decisions from exploration:
 
 ### Modified Capabilities
 
-- `properties`: A property is also not deletable while a module still references one of its units, for example through bookings.
+- `properties`: A property is also not deletable while a module still references one of its units, for example through bookings. Costs can be recorded from the property page as transactions attributed to it.
 
 ## Impact
 
@@ -63,3 +65,5 @@ Guiding decisions from exploration:
   - Children are recorded separately from adults. Infants get no special treatment.
   - Documents: PDF, JPEG, PNG, WebP and HEIC, at most 10 MB each, any number per booking. They are visible only to users with at least `EDITOR`, like the contact details.
   - The booking list is sorted by arrival, newest first, by default.
+  - In the overview, income comes only from statements. Positive transactions attributed to the unit (e.g. the provider's payout) are not counted again. Expenses of a single-unit property also include transactions attributed to the property itself. For multi-unit properties, property-wide costs are not split across units.
+- **Decision on accounts:** An account stays a bank account of a legal entity, and nothing ties it to a property. The connection to the holiday home is made per transaction through its target. There is no separate cost type on properties.

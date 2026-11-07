@@ -39,7 +39,14 @@ app.logis.core.realestate          (named interface "realestate")
   + UnitReferences   public interface: String blockingReason(Collection<Long> unitIds)
   + UnitAccess.summaries(Collection<Long> unitIds) -> Map<Long, UnitSummary>
   + UnitSummary      record(id, name, propertyId, propertyName, usage, archived)
+  + UnitFinances     public: monthlyExpenses(unitId, year, userId) -> Map<YearMonth, BigDecimal>
+
+app.logis.core.ledger
+  + TransactionAttributions.monthlyExpenses(propertyId|null, unitId, year)   (public, used by realestate)
 ```
+
+- **Expenses go through `core.realestate`, not directly to `core.ledger`:** Modules may only use the named interfaces, and `ledger` has none. `UnitFinances` checks the user's role (the unit role for the unit's own transactions, the property role for property-level ones, and the property-level part only for single-unit properties) and then delegates to `TransactionAttributions`. That keeps the dependency direction `module → realestate → ledger`. The query sums `amount < 0`, excludes transfers and groups by month of the booking date.
+  - *Alternative:* a named interface `ledger` for modules. It was rejected for now because it would open the whole financial core to modules for one sum.
 
 - `PropertyService.delete` asks all `UnitReferences` beans after the transaction check and throws the first reason as a 409. `BookingUnitReferences` returns „Zum Objekt gibt es noch Buchungen und es kann nur archiviert werden“. This mirrors `LegalEntityUsage`. The interface takes unit IDs, so the core passes all units of the property in one call.
 - `UnitSummary` gives the module names, the property for grouping in the calendar, and the usage and archive checks for new bookings. The module never reads `core.units` directly.
@@ -106,7 +113,11 @@ month.settledNet  += net share   (bookings with a line, not cancelled)
 month.plannedRent += rent share  (planned bookings with expected_rent)
 cancelled with line: whole net -> month of arrival
 occupancy = nights / daysInMonth, shown as a whole percentage
+month.expenses    = -UnitFinances.monthlyExpenses(...)[month]   (shown positive)
+month.result      = settledNet - expenses
 ```
+
+The planned rent is deliberately left out of the result, so the result only shows settled money.
 
 Stays that reach into the year from December or out of it into January are clipped, but their shares are still computed over the whole stay.
 
@@ -129,6 +140,7 @@ src/modules/vacationrental/
 - **Grid:** TanStack Table (`@tanstack/react-table`, new dependency), rendered with the existing shadcn `table` as in shadcn's "Data Table" pattern. A reusable `components/DataTable.tsx` takes the column definitions and supports sortable headers, a column visibility menu (in the shadcn `dropdown-menu`, stored per table in `localStorage`) and paging controls. Sorting, filtering and paging run on the server (`manualSorting`, `manualPagination`), so totals and pages stay correct for large lists. `sort`, the filters and the page are kept in the URL query, so they survive a reload and can be shared as links. A row click opens `BookingDialog` in edit mode.
   - *Alternatives:* a hand-built sortable `table` (no dependency, but every further feature would be custom code), or AG Grid (feature-complete, but its own look and heavy). TanStack Table is headless and fits shadcn. `DataTable` can later replace the transaction table too, which is not part of this change.
 - **Add button:** `PageHeader` action at the top right on both pages. Both open the same `BookingDialog`. In the calendar, the current property is preselected. After saving, the query cache of bookings and calendar is invalidated.
+- **„Kosten erfassen“ (core, `PropertyDetailPage`):** The button opens the existing `TransactionDialog` with the target preset (the unit for single-unit properties, otherwise the property, changeable in `TargetSelect`). The account select offers only accounts with `EDITOR`. If there are none, the dialog shows „Kein Konto mit Schreibrechten vorhanden“ and disables saving. There are no backend changes: attribution rules from `realestate-minimal` apply.
 - **Documents in the dialog:** On create, files are kept in the dialog and uploaded right after the booking is saved. On edit, they are uploaded immediately. A failed upload shows an error on that file without losing the booking.
 - Status labels: „Geplant“, „Abgerechnet“, „Storniert“. Channel labels: „Airbnb“, „Booking.com“, „Direkt“, „Sonstige“.
 - The calendar is a simple CSS grid (days as columns), with no new dependency. Planned bars are outlined, settled bars filled, and cancelled bookings are not shown.
@@ -136,7 +148,7 @@ src/modules/vacationrental/
 
 ### D7: Tests
 
-- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split and the yearly overview including the year boundary, property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
+- **Backend:** integration tests per spec file with the realestate permission matrix (Anna OWNER, Carla unit-only EDITOR, Dieter property VIEWER). They cover: overlap and changeover, the exclusion constraint against a direct insert, booking number uniqueness, usage check, guest fields `null` for Dieter in bookings and statement lines, guest deletion keeping documents, document type/size/signature checks and 404 for Dieter, list filters and every sort key, assign/remove/delete statement effects on status, net and payout arithmetic, cancellation payout, night split and the yearly overview including the year boundary, expenses (unit-level, property-level only for single-unit properties and only with a property role, positive amounts and transfers ignored), property delete blocked by bookings, module disabled → 404. `ModularityTest` covers the new dependency on `realestate`.
 - **Frontend:** component tests for the calendar row filtering and bar styles, `BookingDialog` without guest fields for a viewer, the statement payout display, and the overview table.
 
 ## Risks / Trade-offs
