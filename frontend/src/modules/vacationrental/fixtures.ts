@@ -18,7 +18,6 @@ export function booking(overrides: Partial<Booking> = {}): Booking {
     departure: '2026-11-08',
     nights: 2,
     externalRef: '275505',
-    channel: null,
     adults: 4,
     children: 0,
     expectedRent: '248.58',

@@ -16,7 +16,7 @@ const base = {
 
 describe('Review of imported bookings', () => {
   it('confirms a booking taken from a mail', async () => {
-    const imported = booking({ reviewState: 'NEW', agency: 'Fewo & Meer' })
+    const imported = booking({ reviewState: 'NEW', agency: { id: 1, name: 'Fewo & Meer', archived: false } })
     let confirmed = false
     mockApi({
       ...base,

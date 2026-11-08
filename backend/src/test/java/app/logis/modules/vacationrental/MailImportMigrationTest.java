@@ -30,7 +30,8 @@ class MailImportMigrationTest {
             db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref) "
                     + "VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, '275505')");
 
-            config.target("latest").load().migrate();
+            // Up to the mail import; later migrations replace the free-text agency (see AgencyMigrationTest).
+            config.target("20261109.1200").load().migrate();
 
             var row = db.queryForMap("SELECT review_state, agency, pets, proposal FROM vacationrental.bookings");
             assertThat(row.get("review_state")).isEqualTo("NONE");

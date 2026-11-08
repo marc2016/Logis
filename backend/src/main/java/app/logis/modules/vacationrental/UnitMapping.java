@@ -19,8 +19,8 @@ class UnitMapping {
     @Column(name = "owner_user_id", nullable = false)
     private Long ownerUserId;
 
-    @Column(nullable = false)
-    private String agency;
+    @Column(name = "agency_id", nullable = false)
+    private Long agencyId;
 
     @Column(name = "property_name", nullable = false)
     private String propertyName;
@@ -31,15 +31,27 @@ class UnitMapping {
     protected UnitMapping() {
     }
 
-    UnitMapping(Long ownerUserId, String agency, String propertyName, Long unitId) {
+    UnitMapping(Long ownerUserId, Long agencyId, String propertyName, Long unitId) {
         this.ownerUserId = ownerUserId;
-        this.agency = agency;
+        this.agencyId = agencyId;
         this.propertyName = propertyName;
         this.unitId = unitId;
     }
 
+    Long getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    String getPropertyName() {
+        return propertyName;
+    }
+
     Long getUnitId() {
         return unitId;
+    }
+
+    void setAgencyId(Long agencyId) {
+        this.agencyId = agencyId;
     }
 
     void setUnitId(Long unitId) {

@@ -3,16 +3,8 @@ import { api } from '@/lib/api'
 import type { ShareRole } from '@/core/ledger/api'
 import { shiftMonth } from './calendar'
 
-export type Channel = 'AIRBNB' | 'BOOKING_COM' | 'DIRECT' | 'OTHER'
 export type BookingStatus = 'PLANNED' | 'SETTLED' | 'CANCELLED'
 export type ReviewState = 'NONE' | 'NEW' | 'CHANGE'
-
-export const channelLabel: Record<Channel, string> = {
-  AIRBNB: 'Airbnb',
-  BOOKING_COM: 'Booking.com',
-  DIRECT: 'Direkt',
-  OTHER: 'Sonstige',
-}
 
 export const statusLabel: Record<BookingStatus, string> = {
   PLANNED: 'Geplant',
@@ -53,6 +45,23 @@ export interface BookingProposal {
   guest: Guest | null
 }
 
+/** An agency as shown on a booking. */
+export interface AgencyRef {
+  id: number
+  name: string
+  archived: boolean
+}
+
+/** An entry of the shared list of agencies; `bookingCount` only counts bookings the user can see. */
+export interface Agency {
+  id: number
+  name: string
+  archived: boolean
+  version: number
+  aliases: { id: number; alias: string }[]
+  bookingCount: number
+}
+
 export interface Booking {
   id: number
   unit: UnitRef
@@ -60,7 +69,6 @@ export interface Booking {
   departure: string
   nights: number
   externalRef: string | null
-  channel: Channel | null
   adults: number
   children: number
   expectedRent: string | null
@@ -70,7 +78,7 @@ export interface Booking {
   guestDeleted: boolean
   canEdit: boolean
   version: number
-  agency: string | null
+  agency: AgencyRef | null
   pets: number
   reviewState: ReviewState
   proposal: BookingProposal | null
@@ -164,6 +172,7 @@ export interface BookingFilter {
   q?: string
   /** Only bookings and changes awaiting review. */
   review?: boolean
+  agencyId?: number
   sort?: string
   page?: number
   size?: number
@@ -209,6 +218,7 @@ export const rentalKeys = {
   statements: (unitId?: number) => ['vacationrental', 'statements', unitId ?? null] as const,
   statement: (id: number) => ['vacationrental', 'statement', id] as const,
   providers: (unitId: number) => ['vacationrental', 'providers', unitId] as const,
+  agencies: ['vacationrental', 'agencies'] as const,
   overview: (unitId: number, year: number) => ['vacationrental', 'overview', unitId, year] as const,
 }
 
@@ -223,6 +233,10 @@ function query(params: Record<string, string | number | boolean | undefined | nu
 
 export function useRentalUnits() {
   return useQuery({ queryKey: rentalKeys.units, queryFn: () => api<RentalUnit[]>('/api/vacationrental/units') })
+}
+
+export function useAgencies() {
+  return useQuery({ queryKey: rentalKeys.agencies, queryFn: () => api<Agency[]>('/api/vacationrental/agencies') })
 }
 
 export function useBookings(filter: BookingFilter) {

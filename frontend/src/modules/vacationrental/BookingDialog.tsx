@@ -13,24 +13,23 @@ import { DocumentList, PendingDocuments } from '@/components/DocumentList'
 import { uploadDocument } from '@/components/documents'
 import { FormError } from '@/components/FormError'
 import { ReviewPanel } from './ReviewPanel'
+import { AgencyPicker } from './AgencyPicker'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { parseAmount, toInputValue } from '@/lib/money'
 import { formatDate, todayIso } from '@/core/ledger/transactions/format'
 import {
-  channelLabel,
   EMPTY_GUEST,
   statusLabel,
   unitLabel,
   useInvalidateRental,
   useRentalUnits,
+  type AgencyRef,
   type Booking,
-  type Channel,
   type Guest,
 } from './api'
 
 export const BOOKING_DOCUMENT_TYPE = 'vacationrental.booking'
-const NO_CHANNEL = 'none'
 
 interface Props {
   /** Existing booking, or null for a new one. */
@@ -61,10 +60,9 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
   const [arrival, setArrival] = useState(initial?.arrival ?? todayIso())
   const [departure, setDeparture] = useState(initial?.departure ?? addDays(todayIso(), 1))
   const [externalRef, setExternalRef] = useState(initial?.externalRef ?? '')
-  const [channel, setChannel] = useState<string>(initial?.channel ?? NO_CHANNEL)
   const [adults, setAdults] = useState(String(initial?.adults ?? 2))
   const [children, setChildren] = useState(String(initial?.children ?? 0))
-  const [agency, setAgency] = useState(initial?.agency ?? '')
+  const [agency, setAgency] = useState<AgencyRef | null>(initial?.agency ?? null)
   const [pets, setPets] = useState(String(initial?.pets ?? 0))
   const [rent, setRent] = useState(initial?.expectedRent ? toInputValue(initial.expectedRent) : '')
   const [guest, setGuest] = useState<Guest>(initial?.guest ?? EMPTY_GUEST)
@@ -83,10 +81,9 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
         arrival,
         departure,
         externalRef,
-        channel: channel === NO_CHANNEL ? null : channel,
         adults: Number(adults),
         children: Number(children || 0),
-        agency,
+        agencyId: agency?.id ?? null,
         pets: Number(pets || 0),
         expectedRent,
         guest,
@@ -226,20 +223,8 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
                 <Input id="bk-ref" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bk-channel">Kanal</Label>
-                <Select value={channel} onValueChange={setChannel} disabled={!canEdit}>
-                  <SelectTrigger id="bk-channel" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_CHANNEL}>Kein Kanal</SelectItem>
-                    {(Object.keys(channelLabel) as Channel[]).map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {channelLabel[c]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="bk-agency">Vermittler</Label>
+                <AgencyPicker id="bk-agency" value={agency} onChange={setAgency} disabled={!canEdit} onError={setError} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bk-adults">Erwachsene</Label>
@@ -252,10 +237,6 @@ export function BookingDialog({ booking: initial, defaultUnitId, defaultProperty
               <div className="space-y-2">
                 <Label htmlFor="bk-pets">Haustiere</Label>
                 <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bk-agency">Vermittler</Label>
-                <Input id="bk-agency" value={agency} onChange={(e) => setAgency(e.target.value)} placeholder="z. B. Fewo & Meer" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bk-rent">Mietpreis (€)</Label>

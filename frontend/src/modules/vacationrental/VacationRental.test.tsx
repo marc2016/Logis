@@ -47,6 +47,57 @@ describe('Bookings grid', () => {
   })
 })
 
+describe('Agencies on bookings', () => {
+  const agency = { id: 3, name: 'Fewo & Meer', archived: false, version: 0, aliases: [{ id: 30, alias: 'Fewo & Meer' }], bookingCount: 1 }
+
+  it('creates a new agency from the booking dialog and saves it on the booking', async () => {
+    let createdAgency: Record<string, unknown> | undefined
+    let created: Record<string, unknown> | undefined
+    mockApi({
+      ...base,
+      'GET /api/vacationrental/agencies': { body: [agency] },
+      'GET /api/vacationrental/bookings': { body: bookingPage([]) },
+      'POST /api/vacationrental/agencies': (init) => {
+        createdAgency = JSON.parse(String(init?.body))
+        return { status: 201, body: { id: 4, name: 'Ferienbüro Nord', archived: false, version: 0, aliases: [], bookingCount: 0 } }
+      },
+      'POST /api/vacationrental/bookings': (init) => {
+        created = JSON.parse(String(init?.body))
+        return { status: 201, body: booking({ id: 503 }) }
+      },
+    })
+    renderApp('/ferienvermietung/buchungen')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Buchung' }))
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    expect(within(dialog).queryByText('Kanal')).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole('combobox', { name: /Vermittler/ }))
+    await user.type(await screen.findByPlaceholderText('Vermittler suchen oder anlegen'), 'Ferienbüro Nord')
+    await user.click(await screen.findByRole('option', { name: /„Ferienbüro Nord“ anlegen/ }))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: /Vermittler/ })).toHaveTextContent('Ferienbüro Nord'))
+    await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => expect(created).toMatchObject({ agencyId: 4 }))
+    expect(createdAgency).toEqual({ name: 'Ferienbüro Nord' })
+    expect(created).not.toHaveProperty('channel')
+  })
+
+  it('shows the agency name in the list and filters by agency', async () => {
+    const fetch = mockApi({
+      ...base,
+      'GET /api/vacationrental/agencies': { body: [agency] },
+      'GET /api/vacationrental/bookings': { body: bookingPage([booking({ agency: { id: 3, name: 'Fewo & Meer', archived: false } })]) },
+    })
+    renderApp('/ferienvermietung/buchungen?agencyId=3')
+    expect(await screen.findByRole('cell', { name: 'Fewo & Meer' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /Kanal/ })).not.toBeInTheDocument()
+    const url = fetch.mock.calls.map((c) => String(c[0])).find((u) => u.startsWith('/api/vacationrental/bookings'))!
+    expect(url).toContain('agencyId=3')
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Vermittler' })).toHaveTextContent('Fewo & Meer'))
+  })
+})
+
 describe('Booking dialog', () => {
   it('uploads files chosen on create after saving', async () => {
     const uploads: string[] = []

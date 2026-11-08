@@ -25,30 +25,35 @@ class ImportEngine {
     private final UnitMappingRepository mappings;
     private final RentalAccess access;
     private final Documents documents;
+    private final AgencyService agencies;
 
-    ImportEngine(BookingService bookings, UnitMappingRepository mappings, RentalAccess access, Documents documents) {
+    ImportEngine(BookingService bookings, UnitMappingRepository mappings, RentalAccess access, Documents documents,
+            AgencyService agencies) {
         this.bookings = bookings;
         this.mappings = mappings;
         this.access = access;
         this.documents = documents;
+        this.agencies = agencies;
     }
 
     Outcome apply(Long ownerId, ParsedMail mail, byte[] raw) {
+        // The mail's agency name, resolved through the shared list (an unknown name creates the agency).
+        var agencyId = agencies.resolve(mail.agency()).map(Agency::getId).orElse(null);
         if (mail.type() == ParsedMail.MailType.BLOCK_NOTICE) {
-            return blockNotice(ownerId, mail, raw);
+            return blockNotice(ownerId, agencyId, mail, raw);
         }
-        var existing = bookings.findByRef(ownerId, mail.agency(), mail.bookingRef()).stream().findFirst();
+        var existing = bookings.findByRef(ownerId, agencyId, mail.bookingRef()).stream().findFirst();
         try {
             return switch (mail.type()) {
                 case CONFIRMATION, SHORT_NOTICE -> existing.isPresent()
-                        ? update(ownerId, existing.get(), mail, raw)
-                        : create(ownerId, mail, raw);
+                        ? update(ownerId, agencyId, existing.get(), mail, raw)
+                        : create(ownerId, agencyId, mail, raw);
                 case CHANGE -> existing.isPresent()
-                        ? update(ownerId, existing.get(), mail, raw)
+                        ? update(ownerId, agencyId, existing.get(), mail, raw)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
                 case CANCELLATION -> existing.isPresent()
-                        ? cancel(ownerId, existing.get(), mail, raw)
+                        ? cancel(ownerId, agencyId, existing.get(), mail, raw)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
                 case BLOCK_NOTICE -> throw new IllegalStateException("handled above");
@@ -62,8 +67,8 @@ class ImportEngine {
      * The agency only blocked its calendar for a stay booked elsewhere: the number is the agency's, the booking
      * carries the intermediary's, so the stay is found by its exact period (design.md D3). Never creates a booking.
      */
-    private Outcome blockNotice(Long ownerId, ParsedMail mail, byte[] raw) {
-        var unit = editableUnit(ownerId, mail);
+    private Outcome blockNotice(Long ownerId, Long agencyId, ParsedMail mail, byte[] raw) {
+        var unit = editableUnit(ownerId, agencyId, mail);
         if (unit.outcome() != null) {
             return unit.outcome();
         }
@@ -82,9 +87,9 @@ class ImportEngine {
     }
 
     /** The unit the mail's property is mapped to, if the owner may edit it; otherwise the inbox outcome. */
-    private UnitLookup editableUnit(Long ownerId, ParsedMail mail) {
-        var mapping = mail.propertyName() == null ? null
-                : mappings.find(ownerId, mail.agency(), mail.propertyName()).orElse(null);
+    private UnitLookup editableUnit(Long ownerId, Long agencyId, ParsedMail mail) {
+        var mapping = mail.propertyName() == null || agencyId == null ? null
+                : mappings.find(ownerId, agencyId, mail.propertyName()).orElse(null);
         if (mapping == null) {
             return new UnitLookup(null, new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
                     "Einheit für „" + Objects.toString(mail.propertyName(), "?") + "“ zuordnen"));
@@ -97,13 +102,13 @@ class ImportEngine {
         return new UnitLookup(mapping.getUnitId(), null);
     }
 
-    private Outcome create(Long ownerId, ParsedMail mail, byte[] raw) {
-        var unit = editableUnit(ownerId, mail);
+    private Outcome create(Long ownerId, Long agencyId, ParsedMail mail, byte[] raw) {
+        var unit = editableUnit(ownerId, agencyId, mail);
         if (unit.outcome() != null) {
             return unit.outcome();
         }
         try {
-            var created = bookings.createImported(ownerId, input(unit.unitId(), mail, null));
+            var created = bookings.createImported(ownerId, input(unit.unitId(), agencyId, mail, null));
             attach(created.booking().getId(), mail, raw);
             return new Outcome(BookingMailResult.BOOKING_CREATED, created.booking().getId(), null);
         } catch (ApiException e) {
@@ -114,9 +119,9 @@ class ImportEngine {
         }
     }
 
-    private Outcome update(Long ownerId, Booking booking, ParsedMail mail, byte[] raw) {
+    private Outcome update(Long ownerId, Long agencyId, Booking booking, ParsedMail mail, byte[] raw) {
         var id = booking.getId();
-        bookings.adoptAgency(ownerId, id, mail.agency());
+        bookings.adoptAgency(ownerId, id, agencyId);
         var proposal = differences(booking, mail);
         if (proposal == null) {
             attach(id, mail, raw);
@@ -124,7 +129,8 @@ class ImportEngine {
         }
         if (booking.getReviewState() == ReviewState.NEW) {
             // Not confirmed yet: the mail simply completes the prepared booking.
-            bookings.updateImported(ownerId, id, input(booking.getUnitId(), merged(booking, proposal), booking));
+            bookings.updateImported(ownerId, id, input(booking.getUnitId(), agencyId, merged(booking, proposal),
+                    booking));
             attach(id, mail, raw);
             return new Outcome(BookingMailResult.ATTACHED, id, "Angaben ergänzt");
         }
@@ -133,9 +139,9 @@ class ImportEngine {
         return new Outcome(BookingMailResult.CHANGE_PROPOSED, id, null);
     }
 
-    private Outcome cancel(Long ownerId, Booking booking, ParsedMail mail, byte[] raw) {
+    private Outcome cancel(Long ownerId, Long agencyId, Booking booking, ParsedMail mail, byte[] raw) {
         var id = booking.getId();
-        bookings.adoptAgency(ownerId, id, mail.agency());
+        bookings.adoptAgency(ownerId, id, agencyId);
         attach(id, mail, raw);
         if (booking.isCancelled()) {
             return new Outcome(BookingMailResult.ATTACHED, id, "Bereits storniert");
@@ -246,14 +252,13 @@ class ImportEngine {
         return a != null ? a : b;
     }
 
-    /** Booking input from a mail; an existing booking keeps its number, channel and agency. */
-    private static BookingService.BookingInput input(Long unitId, ParsedMail m, Booking existing) {
+    /** Booking input from a mail; an existing booking keeps its number and agency. */
+    private static BookingService.BookingInput input(Long unitId, Long agencyId, ParsedMail m, Booking existing) {
         return new BookingService.BookingInput(unitId, m.arrival(), m.departure(),
                 existing != null ? existing.getExternalRef() : m.bookingRef(),
-                existing != null ? existing.getChannel() : null,
                 m.adults() != null ? m.adults() : 1, m.children(), m.expectedRent(),
                 m.guest() == null ? Guest.EMPTY : m.guest(),
-                existing != null && existing.getAgency() != null ? existing.getAgency() : m.agency(),
+                existing != null && existing.getAgencyId() != null ? existing.getAgencyId() : agencyId,
                 m.pets());
     }
 }

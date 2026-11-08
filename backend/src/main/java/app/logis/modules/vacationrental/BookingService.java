@@ -40,24 +40,26 @@ class BookingService {
     private final RentalAccess access;
     private final Documents documents;
     private final ApplicationEventPublisher events;
+    private final AgencyService agencies;
     private final Clock clock;
 
     BookingService(BookingRepository bookings, StatementLineRepository lines, RentalAccess access,
-            Documents documents, ApplicationEventPublisher events, Clock clock) {
+            Documents documents, ApplicationEventPublisher events, AgencyService agencies, Clock clock) {
         this.bookings = bookings;
         this.lines = lines;
         this.access = access;
         this.documents = documents;
         this.events = events;
+        this.agencies = agencies;
         this.clock = clock;
     }
 
-    record BookingInput(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Channel channel,
-            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, String agency, Integer pets) {
+    record BookingInput(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Integer adults,
+            Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets) {
     }
 
-    /** A booking as the user may see it: contact data only from EDITOR on. */
-    record BookingDetails(Booking booking, UnitSummary unit, ShareRole role, Long statementId) {
+    /** A booking as the user may see it: contact data only from EDITOR on; {@code agency} may be null. */
+    record BookingDetails(Booking booking, UnitSummary unit, ShareRole role, Long statementId, Agency agency) {
 
         BookingStatus status() {
             return booking.isCancelled() ? BookingStatus.CANCELLED
@@ -79,7 +81,7 @@ class BookingService {
 
     /** {@code review = true}: only bookings and changes awaiting review. */
     record Filter(Long propertyId, Long unitId, BookingStatus status, LocalDate from, LocalDate to, String q,
-            boolean review) {
+            boolean review, Long agencyId) {
     }
 
     record ListResult(List<BookingDetails> items, int page, int size, long totalItems) {
@@ -113,6 +115,7 @@ class BookingService {
         var all = details(bookings.findForUnits(unitIds, filter.from(), filter.to()), roles).stream()
                 .filter(d -> filter.status() == null || d.status() == filter.status())
                 .filter(d -> !filter.review() || d.booking().getReviewState() != ReviewState.NONE)
+                .filter(d -> filter.agencyId() == null || filter.agencyId().equals(d.booking().getAgencyId()))
                 .filter(d -> q == null || matches(d, q))
                 .sorted(comparator(sort, ascending))
                 .toList();
@@ -206,18 +209,18 @@ class BookingService {
     }
 
     /** A booking entered by hand gets the agency of the first mail that matches it. */
-    void adoptAgency(Long ownerId, Long id, String agency) {
+    void adoptAgency(Long ownerId, Long id, Long agencyId) {
         var booking = requireEditable(ownerId, id);
-        if (booking.getAgency() == null) {
-            booking.setAgency(agency);
+        if (booking.getAgencyId() == null) {
+            booking.setAgencyId(agencyId);
         }
     }
 
     /** Bookings with this number on units the owner can see: of this agency first, then without agency. */
     @Transactional(readOnly = true)
-    List<Booking> findByRef(Long ownerId, String agency, String ref) {
+    List<Booking> findByRef(Long ownerId, Long agencyId, String ref) {
         var units = access.visibleUnits(ownerId).keySet();
-        return units.isEmpty() ? List.of() : bookings.findByRef(units, agency, ref);
+        return units.isEmpty() ? List.of() : bookings.findByRef(units, agencyId, ref);
     }
 
     /** The booking that is not cancelled with exactly this period on a unit the owner can edit. */
@@ -269,11 +272,11 @@ class BookingService {
             apply(userId, booking, new BookingInput(booking.getUnitId(),
                     p.arrival() != null ? p.arrival() : booking.getArrival(),
                     p.departure() != null ? p.departure() : booking.getDeparture(),
-                    booking.getExternalRef(), booking.getChannel(),
+                    booking.getExternalRef(),
                     p.adults() != null ? p.adults() : booking.getAdults(),
                     p.children() != null ? p.children() : booking.getChildren(),
                     p.expectedRent() != null ? p.expectedRent() : booking.getExpectedRent(), g,
-                    booking.getAgency(), p.pets() != null ? p.pets() : booking.getPets()));
+                    booking.getAgencyId(), p.pets() != null ? p.pets() : booking.getPets()));
         }
         booking.setProposal(null);
         save(booking);
@@ -345,21 +348,24 @@ class BookingService {
             throw ApiException.badRequest("Die Zahl der Kinder ist ungültig.");
         }
         var ref = text(input.externalRef(), 64, "Die Buchungsnummer");
-        var agency = text(input.agency(), 64, "Der Vermittler");
+        var agencyId = input.agencyId();
+        if (agencyId != null && !agencyId.equals(booking.getAgencyId())) {
+            agencies.require(agencyId);
+        }
         var pets = input.pets() == null ? 0 : input.pets();
         if (pets < 0 || pets > 20) {
             throw ApiException.badRequest("Die Zahl der Haustiere ist ungültig.");
         }
-        if (ref != null && bookings.refTaken(input.unitId(), agency, ref, booking.getId())) {
+        if (ref != null && bookings.refTaken(input.unitId(), agencyId, ref, booking.getId())) {
             throw ApiException.conflict("Diese Buchungsnummer ist bereits erfasst");
         }
         if (!booking.isCancelled()
                 && bookings.overlaps(input.unitId(), input.arrival(), input.departure(), booking.getId())) {
             throw ApiException.conflict(OVERLAP);
         }
-        booking.apply(input.unitId(), input.arrival(), input.departure(), ref, input.channel(), adults, children,
+        booking.apply(input.unitId(), input.arrival(), input.departure(), ref, adults, children,
                 Money.optional(input.expectedRent()));
-        booking.setAgency(agency);
+        booking.setAgencyId(agencyId);
         booking.setPets(pets);
         var g = input.guest() == null ? Guest.EMPTY : input.guest();
         booking.setGuest(new Guest(text(g.name(), 128, "Der Name"), text(g.street(), 128, "Die Straße"),
@@ -387,9 +393,12 @@ class BookingService {
         var summaries = access.summaries(list.stream().map(Booking::getUnitId).distinct().toList());
         var statementByBooking = lines.findByBookingIdIn(list.stream().map(Booking::getId).toList()).stream()
                 .collect(Collectors.toMap(StatementLine::getBookingId, StatementLine::getStatementId));
+        var agencyById = agencies.byIds(list.stream().map(Booking::getAgencyId).filter(java.util.Objects::nonNull)
+                .distinct().toList());
         return list.stream()
                 .map(b -> new BookingDetails(b, summaries.get(b.getUnitId()), roles.get(b.getUnitId()),
-                        statementByBooking.get(b.getId())))
+                        statementByBooking.get(b.getId()), b.getAgencyId() == null ? null
+                                : agencyById.get(b.getAgencyId())))
                 .toList();
     }
 
@@ -412,8 +421,8 @@ class BookingService {
             case EXPECTED_RENT -> Comparator.comparing(d -> d.booking().getExpectedRent() == null ? BigDecimal.ZERO
                     : d.booking().getExpectedRent());
             case STATUS -> Comparator.comparing(BookingDetails::status);
-            case AGENCY -> Comparator.comparing(d -> d.booking().getAgency() == null ? ""
-                    : d.booking().getAgency().toLowerCase(Locale.ROOT));
+            case AGENCY -> Comparator.comparing(d -> d.agency() == null ? ""
+                    : d.agency().getName().toLowerCase(Locale.ROOT));
         };
         if (!ascending) {
             c = c.reversed();

@@ -41,9 +41,9 @@ class Booking {
     @Column(name = "external_ref", length = 64)
     private String externalRef;
 
-    /** Agency the booking came from, e.g. "Fewo & Meer"; optional. */
-    @Column(length = 64)
-    private String agency;
+    /** Agency the booking came from, from the shared list; optional. */
+    @Column(name = "agency_id")
+    private Long agencyId;
 
     @Column(nullable = false)
     private short pets;
@@ -55,10 +55,6 @@ class Booking {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private BookingProposal proposal;
-
-    @Enumerated(EnumType.STRING)
-    @Column(length = 16)
-    private Channel channel;
 
     @Column(nullable = false)
     private short adults;
@@ -117,12 +113,12 @@ class Booking {
         return externalRef;
     }
 
-    String getAgency() {
-        return agency;
+    Long getAgencyId() {
+        return agencyId;
     }
 
-    void setAgency(String agency) {
-        this.agency = agency;
+    void setAgencyId(Long agencyId) {
+        this.agencyId = agencyId;
     }
 
     int getPets() {
@@ -151,10 +147,6 @@ class Booking {
         if (reviewState != ReviewState.NEW) {
             reviewState = proposal == null ? ReviewState.NONE : ReviewState.CHANGE;
         }
-    }
-
-    Channel getChannel() {
-        return channel;
     }
 
     int getAdults() {
@@ -189,13 +181,12 @@ class Booking {
         return version;
     }
 
-    void apply(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Channel channel, int adults,
-            int children, BigDecimal expectedRent) {
+    void apply(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, int adults, int children,
+            BigDecimal expectedRent) {
         this.unitId = unitId;
         this.arrival = arrival;
         this.departure = departure;
         this.externalRef = externalRef;
-        this.channel = channel;
         this.adults = (short) adults;
         this.children = (short) children;
         this.expectedRent = expectedRent;

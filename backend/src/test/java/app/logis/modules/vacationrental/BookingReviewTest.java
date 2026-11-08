@@ -25,28 +25,37 @@ class BookingReviewTest extends VacationRentalTest {
     void agencyAndPets() throws Exception {
         var anna = actor();
         var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var fewo = agency(anna, "Fewo & Meer");
+        var holiduId = agency(anna, "Holidu");
         var body = stay(unit, "2026-11-06", "2026-11-08");
         body.put("externalRef", "1234");
-        body.put("agency", "Fewo & Meer");
+        body.put("agencyId", fewo);
         body.put("pets", 1);
         book(anna, body).andExpect(status().isCreated())
-                .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
+                .andExpect(jsonPath("$.agency.id").value(fewo.intValue()))
+                .andExpect(jsonPath("$.agency.name").value(org.hamcrest.Matchers.startsWith("Fewo & Meer")))
                 .andExpect(jsonPath("$.pets").value(1))
                 .andExpect(jsonPath("$.reviewState").value("NONE"));
 
         // Same number at another agency is fine, at the same agency it is not.
         var holidu = stay(unit, "2026-12-06", "2026-12-08");
         holidu.put("externalRef", "1234");
-        holidu.put("agency", "Holidu");
+        holidu.put("agencyId", holiduId);
         book(anna, holidu).andExpect(status().isCreated());
         var again = stay(unit, "2027-01-06", "2027-01-08");
         again.put("externalRef", "1234");
-        again.put("agency", "fewo & meer");
+        again.put("agencyId", fewo);
         book(anna, again).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Diese Buchungsnummer ist bereits erfasst"));
 
         getWith("/api/vacationrental/bookings?unitId=" + unit + "&sort=agency,asc", anna.session())
-                .andExpect(jsonPath("$.items[*].agency", contains("Fewo & Meer", "Holidu")));
+                .andExpect(jsonPath("$.items[*].agency.id", contains(fewo.intValue(), holiduId.intValue())));
+        getWith("/api/vacationrental/bookings?unitId=" + unit + "&agencyId=" + holiduId, anna.session())
+                .andExpect(jsonPath("$.totalItems").value(1));
+        // An unknown agency is rejected.
+        var unknown = stay(unit, "2027-02-06", "2027-02-08");
+        unknown.put("agencyId", 999_999);
+        book(anna, unknown).andExpect(status().isBadRequest());
     }
 
     @Test

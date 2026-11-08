@@ -7,6 +7,10 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   const arrival = inDays(5)
   const departure = inDays(8)
   const month = arrival.slice(0, 7)
+  // The agency list is shared and outlives each run, hence the unique name.
+  const agency = await call<{ id: number; name: string }>(api, 'POST', '/api/vacationrental/agencies', {
+    name: `E2E Vermittler ${Date.now()}`,
+  })
 
   await page.goto(`/ferienvermietung/kalender?month=${month}`)
   await expect(page.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
@@ -16,6 +20,10 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await dialog.getByLabel('Anreise').fill(arrival)
   await dialog.getByLabel('Abreise').fill(departure)
   await dialog.getByLabel('Buchungsnummer').fill('E2E-42')
+  await dialog.getByRole('combobox', { name: /Vermittler/ }).click()
+  await page.getByPlaceholder('Vermittler suchen oder anlegen').fill(agency.name)
+  await page.getByRole('option', { name: agency.name, exact: true }).click()
+  await expect(dialog.getByRole('combobox', { name: /Vermittler/ })).toContainText(agency.name)
   await dialog.getByRole('textbox', { name: 'Name' }).fill('Max Testgast')
   await dialog.getByRole('button', { name: 'Speichern' }).click()
   await expect(dialog).toBeHidden()

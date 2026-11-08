@@ -38,13 +38,20 @@ class BookingController {
         this.service = service;
     }
 
-    record BookingRequest(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Channel channel,
-            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, String agency, Integer pets,
+    record BookingRequest(Long unitId, LocalDate arrival, LocalDate departure, String externalRef,
+            Integer adults, Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets,
             Long version) {
 
         BookingService.BookingInput input() {
-            return new BookingService.BookingInput(unitId, arrival, departure, externalRef, channel, adults,
-                    children, expectedRent, guest, agency, pets);
+            return new BookingService.BookingInput(unitId, arrival, departure, externalRef, adults, children,
+                    expectedRent, guest, agencyId, pets);
+        }
+    }
+
+    record AgencyRef(Long id, String name, boolean archived) {
+
+        static AgencyRef of(Agency a) {
+            return a == null ? null : new AgencyRef(a.getId(), a.getName(), a.isArchived());
         }
     }
 
@@ -53,9 +60,9 @@ class BookingController {
 
     /** {@code guest} carries contact data only for editors; {@code guestDeleted} marks deleted guest data. */
     record BookingView(Long id, UnitRef unit, LocalDate arrival, LocalDate departure, long nights,
-            String externalRef, Channel channel, int adults, int children,
+            String externalRef, int adults, int children,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status,
-            Long statementId, Guest guest, boolean guestDeleted, boolean canEdit, long version, String agency,
+            Long statementId, Guest guest, boolean guestDeleted, boolean canEdit, long version, AgencyRef agency,
             int pets, ReviewState reviewState, ProposalView proposal) {
 
         static BookingView of(BookingService.BookingDetails d) {
@@ -63,9 +70,9 @@ class BookingController {
             var u = d.unit();
             return new BookingView(b.getId(),
                     new UnitRef(u.id(), u.name(), u.propertyId(), u.propertyName(), u.propertyMultiUnit()),
-                    b.getArrival(), b.getDeparture(), b.nights(), b.getExternalRef(), b.getChannel(),
+                    b.getArrival(), b.getDeparture(), b.nights(), b.getExternalRef(),
                     b.getAdults(), b.getChildren(), b.getExpectedRent(), d.status(), d.statementId(), d.guest(),
-                    b.isGuestDeleted(), d.canEdit(), b.getVersion(), b.getAgency(), b.getPets(), b.getReviewState(),
+                    b.isGuestDeleted(), d.canEdit(), b.getVersion(), AgencyRef.of(d.agency()), b.getPets(), b.getReviewState(),
                     ProposalView.of(b.getProposal(), d.canEdit()));
         }
     }
@@ -110,6 +117,7 @@ class BookingController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean review,
+            @RequestParam(required = false) Long agencyId,
             @RequestParam(defaultValue = "arrival,desc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -124,7 +132,8 @@ class BookingController {
             throw ApiException.badRequest("Ungültige Sortierung.");
         }
         var ascending = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc");
-        var result = service.list(me.userId(), new BookingService.Filter(propertyId, unitId, status, from, to, q, review),
+        var result = service.list(me.userId(), new BookingService.Filter(propertyId, unitId, status, from, to, q, review,
+                agencyId),
                 key, ascending, Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
         return new BookingPage(result.items().stream().map(BookingView::of).toList(), result.page(), result.size(),
                 result.totalItems());

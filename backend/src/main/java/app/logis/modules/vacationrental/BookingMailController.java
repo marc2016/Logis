@@ -21,11 +21,13 @@ class BookingMailController {
     private final Mails mails;
     private final UnitMappingRepository mappings;
     private final RentalAccess access;
+    private final AgencyService agencies;
 
-    BookingMailController(Mails mails, UnitMappingRepository mappings, RentalAccess access) {
+    BookingMailController(Mails mails, UnitMappingRepository mappings, RentalAccess access, AgencyService agencies) {
         this.mails = mails;
         this.mappings = mappings;
         this.access = access;
+        this.agencies = agencies;
     }
 
     record AssignRequest(Long unitId) {
@@ -39,8 +41,10 @@ class BookingMailController {
             throw ApiException.badRequest("Die Mail nennt kein Objekt.");
         }
         access.require(body.unitId(), me.userId(), ShareRole.EDITOR, BookingService.UNIT_NOT_FOUND);
-        var mapping = mappings.find(me.userId(), mail.source(), mail.subjectName())
-                .orElseGet(() -> new UnitMapping(me.userId(), mail.source(), mail.subjectName(), body.unitId()));
+        var agencyId = agencies.resolve(mail.source()).map(Agency::getId)
+                .orElseThrow(() -> ApiException.badRequest("Die Mail nennt keinen Vermittler."));
+        var mapping = mappings.find(me.userId(), agencyId, mail.subjectName())
+                .orElseGet(() -> new UnitMapping(me.userId(), agencyId, mail.subjectName(), body.unitId()));
         mapping.setUnitId(body.unitId());
         mappings.save(mapping);
         mails.reprocessWaiting(me.userId(), BookingMailHandler.KEY, BookingMailResult.UNASSIGNED_UNIT.name(),

@@ -27,6 +27,16 @@ abstract class VacationRentalTest extends RealestateTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated()));
     }
 
+    /** Creates an agency in the shared list; names get a unique suffix, because the list outlives each test. */
+    protected Long agency(Actor actor, String name) throws Exception {
+        return id(postJson("/api/vacationrental/agencies", Map.of("name", unique(name)), actor.session())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated()));
+    }
+
+    protected static String unique(String name) {
+        return name + " " + Long.toString(System.nanoTime(), 36);
+    }
+
     /** Settles a booking directly in the database (independent of the statement API). */
     protected void settleDirectly(Long unitId, Long bookingId) {
         var statementId = jdbc.queryForObject("INSERT INTO vacationrental.statements "

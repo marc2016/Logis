@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
 import { IdSelect } from '../RentalFilters'
-import { rentalProperties, channelLabel, statusLabel, unitLabel, useBookings, useRentalUnits, type Booking, type BookingStatus } from '../api'
+import { rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useRentalUnits, type Booking, type BookingStatus } from '../api'
 
 const PAGE_SIZE = 50
 const ALL = 'all'
@@ -48,9 +48,8 @@ const columns = [
     ),
     meta: { label: 'Status', sortable: true },
   }),
-  column.accessor('agency', { header: 'Vermittler', cell: (c) => c.getValue() ?? '–', meta: { label: 'Vermittler', sortable: true } }),
+  column.accessor('agency', { header: 'Vermittler', cell: (c) => c.getValue()?.name ?? '–', meta: { label: 'Vermittler', sortable: true } }),
   column.accessor('externalRef', { header: 'Buchungsnr.', cell: (c) => c.getValue() ?? '–', meta: { label: 'Buchungsnummer' } }),
-  column.accessor('channel', { header: 'Kanal', cell: (c) => (c.getValue() ? channelLabel[c.getValue()!] : '–'), meta: { label: 'Kanal' } }),
 ]
 
 function parseSort(value: string | null): SortState {
@@ -62,6 +61,7 @@ function parseSort(value: string | null): SortState {
 export function BuchungenPage() {
   const [params, setParams] = useSearchParams()
   const { data: units = [] } = useRentalUnits()
+  const { data: agencies = [] } = useAgencies()
   const [dialog, setDialog] = useState<{ booking: Booking | null } | null>(null)
 
   const num = (key: string) => (params.get(key) ? Number(params.get(key)) : undefined)
@@ -73,6 +73,7 @@ export function BuchungenPage() {
     to: params.get('to') ?? undefined,
     q: params.get('q') ?? undefined,
     review: params.get('review') === 'true',
+    agencyId: num('agencyId'),
     sort: params.get('sort') ?? DEFAULT_SORT,
     page: num('page') ?? 0,
     size: PAGE_SIZE,
@@ -110,9 +111,10 @@ export function BuchungenPage() {
         <Checkbox checked={filter.review} onCheckedChange={(v) => update({ review: v === true ? 'true' : undefined })} aria-label="Nur zu prüfen" />
         Nur „zu prüfen“
       </label>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         <IdSelect id="flt-property" label="Objekt" value={filter.propertyId} options={properties} onChange={(v) => update({ propertyId: v, unitId: undefined })} />
         <IdSelect id="flt-unit" label="Einheit" value={filter.unitId} options={unitOptions} onChange={(v) => update({ unitId: v })} />
+        <IdSelect id="flt-agency" label="Vermittler" value={filter.agencyId} options={agencies} onChange={(v) => update({ agencyId: v })} />
         <div className="space-y-1">
           <Label htmlFor="flt-status" className="text-xs text-muted-foreground">
             Status

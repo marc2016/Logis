@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { Navigate } from 'react-router'
-import { BarChart3Icon, CalendarDaysIcon, HouseIcon, ListIcon, ReceiptTextIcon } from 'lucide-react'
+import { BarChart3Icon, CalendarDaysIcon, HandshakeIcon, HouseIcon, ListIcon, ReceiptTextIcon } from 'lucide-react'
 import type { LogisModule } from '@/app/types'
 import { mailKindLabel, mailResultLabel } from './api'
 import { BookingMailActions } from './BookingMailActions'
@@ -16,6 +16,7 @@ export const vacationRentalModule: LogisModule = {
     { label: 'Kalender', path: 'kalender', icon: CalendarDaysIcon },
     { label: 'Abrechnungen', path: 'abrechnungen', icon: ReceiptTextIcon },
     { label: 'Auswertung', path: 'auswertung', icon: BarChart3Icon },
+    { label: 'Vermittler', path: 'vermittler', icon: HandshakeIcon },
   ],
   // Pages load on first use, so the module does not grow the main bundle.
   routes: [
@@ -24,6 +25,7 @@ export const vacationRentalModule: LogisModule = {
     { path: 'kalender', lazy: async () => ({ Component: (await import('./pages/KalenderPage')).KalenderPage }) },
     { path: 'abrechnungen', lazy: async () => ({ Component: (await import('./pages/AbrechnungenPage')).AbrechnungenPage }) },
     { path: 'auswertung', lazy: async () => ({ Component: (await import('./pages/AuswertungPage')).AuswertungPage }) },
+    { path: 'vermittler', lazy: async () => ({ Component: (await import('./pages/VermittlerPage')).VermittlerPage }) },
   ],
   mailResultLabels: mailResultLabel,
   mailKindLabels: mailKindLabel,

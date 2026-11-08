@@ -70,6 +70,34 @@ class MailImportTest extends VacationRentalTest {
         }
     }
 
+    /** The VVV sample with another intermediary and booking number, for agencies that only this test uses. */
+    private void deliverDs(String intermediary, String ref, String arrival, String departure) throws Exception {
+        deliverDs(intermediary, ref, arrival, departure, ref);
+    }
+
+    private void deliverDs(String intermediary, String ref, String arrival, String departure, String messageId)
+            throws Exception {
+        String text;
+        try (var in = getClass().getResourceAsStream("/mails/ds-vvv-confirmation.eml")) {
+            text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        text = text.replace("VVV-Stadt- und Citymarketing Nordhorn e.V.", intermediary)
+                .replace("6a29b55l9j", ref).replace("15.05.2027", arrival).replace("18.05.2027", departure);
+        var message = new MimeMessage(Session.getInstance(new Properties()),
+                new java.io.ByteArrayInputStream(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        message.setHeader("Message-ID", "<" + messageId + "@example.org>");
+        greenMail.getManagers().getImapHostManager().getInbox(mailUser)
+                .appendMessage(message, new Flags(), Date.from(clock.instant()));
+    }
+
+    private Long bookingOf(String subjectPart) throws Exception {
+        return ((Number) inboxItem(anna, subjectPart).get("linkId")).longValue();
+    }
+
+    private Long agencyIdByName(String name) {
+        return jdbc.queryForObject("SELECT id FROM vacationrental.agencies WHERE name = ?", Long.class, name);
+    }
+
     private List<Map<String, Object>> inbox(Actor actor) throws Exception {
         return JsonPath.read(getWith("/api/mail/inbox", actor.session()).andReturn().getResponse()
                 .getContentAsString(), "$");
@@ -103,7 +131,7 @@ class MailImportTest extends VacationRentalTest {
         var bookingId = ((Number) item.get("linkId")).longValue();
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
-                .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
+                .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"))
                 .andExpect(jsonPath("$.externalRef").value("275505"))
                 .andExpect(jsonPath("$.expectedRent").value("248.58"))
                 .andExpect(jsonPath("$.guest.email").value("erika@example.org"));
@@ -168,7 +196,7 @@ class MailImportTest extends VacationRentalTest {
         assertThat(holidu.get("result")).isEqualTo("BOOKING_CREATED");
         getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.unit.id").value(unit))
-                .andExpect(jsonPath("$.agency").value("Holidu"))
+                .andExpect(jsonPath("$.agency.name").value("Holidu"))
                 .andExpect(jsonPath("$.expectedRent").value("309.08"));
     }
 
@@ -199,7 +227,7 @@ class MailImportTest extends VacationRentalTest {
         assertThat(item.get("result")).isEqualTo("CHANGE_PROPOSED");
         assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(manual);
         getWith("/api/vacationrental/bookings/" + manual, anna.session())
-                .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
+                .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"))
                 .andExpect(jsonPath("$.proposal.guest.name").value("Erika Musterfrau"))
                 .andExpect(jsonPath("$.proposal.arrival").doesNotExist());
     }
@@ -243,7 +271,7 @@ class MailImportTest extends VacationRentalTest {
         assertThat(item.get("parsedBy")).isEqualTo("RULE");
         getWith("/api/vacationrental/bookings/" + ((Number) item.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
-                .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
+                .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"))
                 .andExpect(jsonPath("$.externalRef").value("274907"))
                 .andExpect(jsonPath("$.adults").value(2))
                 .andExpect(jsonPath("$.expectedRent").value("454.32"));
@@ -264,13 +292,13 @@ class MailImportTest extends VacationRentalTest {
         assertThat(vvv.get("source")).isEqualTo("VVV-Stadt- und Citymarketing Nordhorn e.V.");
         getWith("/api/vacationrental/bookings/" + ((Number) vvv.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
-                .andExpect(jsonPath("$.agency").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
                 .andExpect(jsonPath("$.adults").value(2))
                 .andExpect(jsonPath("$.children").value(2))
                 .andExpect(jsonPath("$.expectedRent").value("447.00"));
         var holidu = inboxItem(anna, "Buchungsmitteilung 6a31h227wy");
         getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("linkId")).longValue(), anna.session())
-                .andExpect(jsonPath("$.agency").value("Holidu"));
+                .andExpect(jsonPath("$.agency.name").value("Holidu"));
     }
 
     @Test
@@ -290,7 +318,7 @@ class MailImportTest extends VacationRentalTest {
         assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(bookingId);
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.externalRef").value("6a29b55l9j"))
-                .andExpect(jsonPath("$.agency").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
                 .andExpect(jsonPath("$.proposal").doesNotExist());
         getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -323,6 +351,70 @@ class MailImportTest extends VacationRentalTest {
         assign("Neue Blockung");
         assertThat(inboxItem(anna, "Neue Blockung").get("result")).isEqualTo("NOT_MATCHED");
         getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void unknownIntermediaryCreatesAnAgency() throws Exception {
+        var name = VacationRentalTest.unique("Ferienbüro Süd");
+        deliverDs(name, "ref-" + System.nanoTime(), "01.06.2027", "04.06.2027");
+        imports.pollNow(anna.id());
+        assign("Buchungsmitteilung");
+        var agencyId = agencyIdByName(name);
+        getWith("/api/vacationrental/bookings/" + bookingOf("Buchungsmitteilung"), anna.session())
+                .andExpect(jsonPath("$.agency.id").value(agencyId.intValue()))
+                .andExpect(jsonPath("$.agency.name").value(name));
+    }
+
+    @Test
+    void renamedAgencyKeepsMatchingMailsAndUnitMappings() throws Exception {
+        var longName = VacationRentalTest.unique("Stadtmarketing Musterstadt e.V.");
+        var first = "a-" + System.nanoTime();
+        deliverDs(longName, first, "01.07.2027", "04.07.2027");
+        imports.pollNow(anna.id());
+        assign("Buchungsmitteilung " + first);
+        var agencyId = agencyIdByName(longName);
+        var version = jdbc.queryForObject("SELECT version FROM vacationrental.agencies WHERE id = ?", Long.class,
+                agencyId);
+        var shortName = VacationRentalTest.unique("Stadtmarketing");
+        mvc.perform(put("/api/vacationrental/agencies/" + agencyId).with(csrf()).session(anna.session())
+                .contentType("application/json")
+                .content(json.writeValueAsString(Map.of("name", shortName, "version", version))))
+                .andExpect(status().isOk());
+
+        // The next mail still names the long form: same agency, and the unit mapping applies without asking.
+        var second = "b-" + System.nanoTime();
+        deliverDs(longName, second, "10.07.2027", "12.07.2027");
+        imports.pollNow(anna.id());
+        assertThat(inboxItem(anna, "Buchungsmitteilung " + second).get("result")).isEqualTo("BOOKING_CREATED");
+        getWith("/api/vacationrental/bookings/" + bookingOf("Buchungsmitteilung " + second), anna.session())
+                .andExpect(jsonPath("$.agency.id").value(agencyId.intValue()))
+                .andExpect(jsonPath("$.agency.name").value(shortName));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM vacationrental.agencies WHERE lower(name) = lower(?)",
+                Long.class, longName)).isZero();
+    }
+
+    @Test
+    void mailNamingAnAddedMailNameMatchesTheBookingByNumber() throws Exception {
+        var name = VacationRentalTest.unique("Ferienvermittlung Ost");
+        var ref = "c-" + System.nanoTime();
+        deliverDs(name, ref, "01.08.2027", "04.08.2027");
+        imports.pollNow(anna.id());
+        assign("Buchungsmitteilung " + ref);
+        var bookingId = bookingOf("Buchungsmitteilung " + ref);
+        var agencyId = agencyIdByName(name);
+        var otherSpelling = name.toUpperCase() + " GmbH";
+        postJson("/api/vacationrental/agencies/" + agencyId + "/aliases", Map.of("alias", otherSpelling),
+                anna.session()).andExpect(status().isOk());
+
+        // Same booking under the other spelling: found by agency identity and number, nothing new is created.
+        deliverDs(otherSpelling, ref, "01.08.2027", "04.08.2027", "again-" + ref);
+        imports.pollNow(anna.id());
+        var again = inbox(anna).stream().filter(m -> ((Number) m.get("linkId")) != null
+                && ((Number) m.get("linkId")).longValue() == bookingId && "ATTACHED".equals(m.get("result")))
+                .findFirst();
+        assertThat(again).isPresent();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM vacationrental.agencies WHERE lower(name) = lower(?)",
+                Long.class, otherSpelling)).isZero();
     }
 
     @Test
