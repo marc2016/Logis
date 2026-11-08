@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.YearMonth;
-import java.time.format.DateTimeParseException;
 
 @RestController
 @RequestMapping("/api/vacationrental/occupancy")
@@ -23,25 +21,24 @@ class OccupancyController {
         this.service = service;
     }
 
-    /** {@code month} as {@code 2026-11}. */
+    /** The year with December of the previous year and January of the next year. */
     @GetMapping("/calendar")
-    OccupancyService.Calendar calendar(@RequestParam Long propertyId, @RequestParam String month,
+    OccupancyService.Calendar calendar(@RequestParam Long propertyId, @RequestParam int year,
             @AuthenticationPrincipal LogisPrincipal me) {
-        YearMonth parsed;
-        try {
-            parsed = YearMonth.parse(month);
-        } catch (DateTimeParseException e) {
-            throw ApiException.badRequest("Ungültiger Monat.");
-        }
-        return service.calendar(me.userId(), propertyId, parsed);
+        requireYear(year);
+        return service.calendar(me.userId(), propertyId, year);
     }
 
     @GetMapping("/overview")
     OccupancyService.Overview overview(@RequestParam Long unitId, @RequestParam int year,
             @AuthenticationPrincipal LogisPrincipal me) {
+        requireYear(year);
+        return service.overview(me.userId(), unitId, year);
+    }
+
+    private static void requireYear(int year) {
         if (year < 1900 || year > 2999) {
             throw ApiException.badRequest("Ungültiges Jahr.");
         }
-        return service.overview(me.userId(), unitId, year);
     }
 }

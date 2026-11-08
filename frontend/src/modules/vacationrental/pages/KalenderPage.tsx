@@ -1,39 +1,24 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarPlusIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon } from 'lucide-react'
+import { CalendarPlusIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
 import { todayIso } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
 import { CalendarGrid } from '../CalendarGrid'
+import { monthRange } from '../calendar'
 import { IdSelect } from '../RentalFilters'
 import { SubscriptionDialog } from '../SubscriptionDialog'
-import { unitLabel, useBooking, useCalendarMonths, useRentalUnits } from '../api'
+import { unitLabel, useBooking, useCalendarYear, useRentalUnits } from '../api'
 
-/** Months shown right away: the start month and the two after it. */
-const INITIAL_MONTHS = 3
-
-/**
- * Whether the element is near the viewport (400px margin); always false without IntersectionObserver.
- * A new `version` (the number of loaded months) observes afresh, so a result from before the last
- * render never counts and loading stops as soon as the element has moved out of reach.
- */
-function useNearViewport(version: number) {
-  // A callback ref: the element only appears once the first month has loaded.
-  const [element, setElement] = useState<HTMLDivElement | null>(null)
-  const [nearAt, setNearAt] = useState<number | null>(null)
-  useEffect(() => {
-    if (!element || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver((entries) => setNearAt(entries.some((e) => e.isIntersecting) ? version : null), {
-      rootMargin: '400px',
-    })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [element, version])
-  return [setElement, nearAt === version] as const
+/** The year from the address: `year`, or the year of an old `month` link, otherwise the current year. */
+function yearFrom(params: URLSearchParams, currentYear: number) {
+  const raw = params.get('year') ?? params.get('month')?.slice(0, 4)
+  const year = Number(raw)
+  return Number.isInteger(year) && year >= 1900 && year <= 2999 ? year : currentYear
 }
 
-/** One unit, one row per month, loading further months while scrolling in both directions. */
+/** One unit, one row per month of a year plus its neighbouring months, paged by year. */
 export function KalenderPage() {
   const [params, setParams] = useSearchParams()
   const { data: units = [], isLoading: unitsLoading } = useRentalUnits()
@@ -44,59 +29,15 @@ export function KalenderPage() {
   const unit = options.find((u) => u.id === Number(params.get('unitId'))) ?? options[0]
   const propertyId = unit?.propertyId ?? null
   const currentMonth = todayIso().slice(0, 7)
-  const startMonth = params.get('month') ?? currentMonth
-  const months = useCalendarMonths(propertyId, startMonth)
+  const currentYear = Number(currentMonth.slice(0, 4))
+  const year = yearFrom(params, currentYear)
+  const calendar = useCalendarYear(propertyId, year)
   const [dialog, setDialog] = useState<{ bookingId: number | null } | null>(null)
   const [subscribing, setSubscribing] = useState(false)
   const { data: openBooking } = useBooking(dialog?.bookingId ?? null)
   const canRecord = !!unit && !unit.archived && unit.myRole !== 'VIEWER'
-  const pages = months.data?.pages ?? []
-
-  // Fill the screen: the start month and the next two.
-  useEffect(() => {
-    if (months.hasNextPage && !months.isFetching && pages.length > 0 && pages.length < INITIAL_MONTHS) {
-      void months.fetchNextPage()
-    }
-  }, [months, pages.length])
-
-  // Earlier months are inserted above: keep what the user looks at in place.
-  const heightBeforePrevious = useRef<number | null>(null)
-  const firstMonth = pages[0]?.month
-  useLayoutEffect(() => {
-    const before = heightBeforePrevious.current
-    if (before !== null) {
-      heightBeforePrevious.current = null
-      const scroller = document.scrollingElement
-      if (scroller) window.scrollBy(0, scroller.scrollHeight - before)
-    }
-  }, [firstMonth])
-
-  function loadEarlier() {
-    if (months.isFetchingPreviousPage || !months.hasPreviousPage) return
-    heightBeforePrevious.current = document.scrollingElement?.scrollHeight ?? null
-    void months.fetchPreviousPage()
-  }
-
-  function loadLater() {
-    if (months.isFetchingNextPage || !months.hasNextPage) return
-    void months.fetchNextPage()
-  }
-
-  // Keep loading while the end is in view; the start only after the user scrolled, so the start month stays on top.
-  const [topRef, topNear] = useNearViewport(pages.length)
-  const [bottomRef, bottomNear] = useNearViewport(pages.length)
-  const [scrolled, setScrolled] = useState(false)
-  useEffect(() => {
-    const onScroll = () => setScrolled(true)
-    window.addEventListener('scroll', onScroll, { passive: true, once: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [startMonth])
-  // A failed request stops automatic loading; the buttons still allow retrying.
-  const ready = pages.length >= INITIAL_MONTHS && !months.isFetching && !months.isError
-  useEffect(() => {
-    if (ready && bottomNear) loadLater()
-    else if (ready && topNear && scrolled) loadEarlier()
-  })
+  const data = calendar.data
+  const bookings = data?.units.find((u) => u.id === unit?.id)?.bookings ?? []
 
   function update(changes: Record<string, string | number | undefined>) {
     const next = new URLSearchParams(params)
@@ -104,9 +45,9 @@ export function KalenderPage() {
     setParams(next, { replace: true })
   }
 
-  function today() {
-    update({ month: undefined })
-    window.scrollTo({ top: 0 })
+  /** A year in the address; the current year needs none. An old `month` parameter is dropped. */
+  function showYear(next: number) {
+    update({ year: next === currentYear ? undefined : next, month: undefined })
   }
 
   return (
@@ -138,7 +79,18 @@ export function KalenderPage() {
                 allLabel="Einheit wählen"
               />
             </div>
-            <Button variant="outline" onClick={today} disabled={startMonth === currentMonth && pages[0]?.month === currentMonth}>
+            <div className="flex items-center gap-1" role="group" aria-label="Jahr">
+              <Button variant="outline" size="icon" aria-label={`Jahr ${year - 1}`} onClick={() => showYear(year - 1)}>
+                <ChevronLeftIcon />
+              </Button>
+              <span className="min-w-14 text-center font-medium tabular-nums" aria-live="polite">
+                {year}
+              </span>
+              <Button variant="outline" size="icon" aria-label={`Jahr ${year + 1}`} onClick={() => showYear(year + 1)}>
+                <ChevronRightIcon />
+              </Button>
+            </div>
+            <Button variant="outline" onClick={() => showYear(currentYear)} disabled={year === currentYear}>
               Heute
             </Button>
             {unit && (
@@ -157,25 +109,16 @@ export function KalenderPage() {
             </span>
           </p>
 
-          {pages.length > 0 && (
-            <div ref={topRef} className="mb-4">
-              <Button variant="ghost" size="sm" disabled={months.isFetchingPreviousPage} onClick={loadEarlier}>
-                <ChevronUpIcon />
-                Frühere Monate
-              </Button>
-            </div>
-          )}
-          {months.isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
-          {unit && pages.length > 0 && (
-            <CalendarGrid months={pages} unitId={unit.id} onOpen={(bookingId) => setDialog({ bookingId })} />
-          )}
-          {pages.length > 0 && (
-            <div ref={bottomRef} className="mt-4">
-              <Button variant="ghost" size="sm" disabled={months.isFetchingNextPage} onClick={loadLater}>
-                <ChevronDownIcon />
-                Spätere Monate
-              </Button>
-            </div>
+          {calendar.isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
+          {calendar.isError && <p className="text-destructive">Der Kalender konnte nicht geladen werden.</p>}
+          {unit && data && (
+            <CalendarGrid
+              months={monthRange(data.from, data.to)}
+              year={data.year}
+              currentMonth={currentMonth}
+              bookings={bookings}
+              onOpen={(bookingId) => setDialog({ bookingId })}
+            />
           )}
         </>
       )}

@@ -1,7 +1,6 @@
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { ShareRole } from '@/core/ledger/api'
-import { shiftMonth } from './calendar'
 
 export type BookingStatus = 'PLANNED' | 'SETTLED' | 'CANCELLED'
 export type ReviewState = 'NONE' | 'NEW' | 'CHANGE'
@@ -141,10 +140,13 @@ export interface CalendarUnit {
   bookings: CalendarBooking[]
 }
 
+/** One year with December of the previous year (`from`) and January of the next year (`to`). */
 export interface Calendar {
   propertyId: number
   propertyName: string
-  month: string
+  year: number
+  from: string
+  to: string
   units: CalendarUnit[]
 }
 
@@ -278,14 +280,10 @@ export function useProviders(unitId: number | null) {
 }
 
 /** Consecutive months of the calendar from a start month, loaded one by one in both directions. */
-export function useCalendarMonths(propertyId: number | null, startMonth: string) {
-  return useInfiniteQuery({
-    queryKey: ['vacationrental', 'calendar-months', propertyId ?? 0, startMonth] as const,
-    queryFn: ({ pageParam }) =>
-      api<Calendar>(`/api/vacationrental/occupancy/calendar?propertyId=${propertyId}&month=${pageParam}`),
-    initialPageParam: startMonth,
-    getNextPageParam: (last) => shiftMonth(last.month, 1),
-    getPreviousPageParam: (first) => shiftMonth(first.month, -1),
+export function useCalendarYear(propertyId: number | null, year: number) {
+  return useQuery({
+    queryKey: ['vacationrental', 'calendar', propertyId ?? 0, year] as const,
+    queryFn: () => api<Calendar>(`/api/vacationrental/occupancy/calendar?propertyId=${propertyId}&year=${year}`),
     enabled: propertyId !== null,
   })
 }

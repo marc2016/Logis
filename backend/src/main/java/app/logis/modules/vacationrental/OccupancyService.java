@@ -44,7 +44,9 @@ class OccupancyService {
     record CalendarUnit(Long id, String name, boolean archived, boolean canEdit, List<CalendarBooking> bookings) {
     }
 
-    record Calendar(Long propertyId, String propertyName, YearMonth month, List<CalendarUnit> units) {
+    /** One year from {@code from} (December of the previous year) to {@code to} (January of the next year). */
+    record Calendar(Long propertyId, String propertyName, int year, YearMonth from, YearMonth to,
+            List<CalendarUnit> units) {
     }
 
     record MonthFigures(int month, int nights, int occupancy,
@@ -55,8 +57,13 @@ class OccupancyService {
     record Overview(Long unitId, int year, List<MonthFigures> months, MonthFigures total) {
     }
 
-    /** Rows: the property's vacation rental units visible to the user; bars: stays that are not cancelled. */
-    Calendar calendar(Long userId, Long propertyId, YearMonth month) {
+    /**
+     * Rows: the property's vacation rental units visible to the user; bars: stays that are not cancelled and
+     * overlap the year with its neighbouring months.
+     */
+    Calendar calendar(Long userId, Long propertyId, int year) {
+        var from = YearMonth.of(year - 1, 12);
+        var to = YearMonth.of(year + 1, 1);
         var roles = access.visibleUnits(userId);
         var units = access.summaries(roles.keySet()).values().stream()
                 .filter(u -> u.propertyId().equals(propertyId) && u.usage() == UnitUsage.VACATION_RENTAL)
@@ -66,7 +73,7 @@ class OccupancyService {
             throw ApiException.notFound("Objekt nicht gefunden");
         }
         var unitIds = units.stream().map(u -> u.id()).toList();
-        var found = bookings.findForUnits(unitIds, month.atDay(1), month.atEndOfMonth()).stream()
+        var found = bookings.findForUnits(unitIds, from.atDay(1), to.atEndOfMonth()).stream()
                 .filter(b -> !b.isCancelled())
                 .map(b -> b.getId())
                 .toList();
@@ -82,7 +89,7 @@ class OccupancyService {
                                         d.booking().getExternalRef(), d.booking().getReviewState()))
                                 .toList()))
                 .toList();
-        return new Calendar(propertyId, units.getFirst().propertyName(), month, rows);
+        return new Calendar(propertyId, units.getFirst().propertyName(), year, from, to, rows);
     }
 
     Overview overview(Long userId, Long unitId, int year) {

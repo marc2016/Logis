@@ -6,11 +6,11 @@ Occupancy shows how vacation rental units are used over time: a calendar of stay
 
 ## Requirements
 
-### Requirement: Occupancy calendar
-The system SHALL show the occupancy calendar for one vacation rental unit chosen by the user as a continuous table with one row per month and one column per day of the month, starting with the current month, with one bar per booking that is not cancelled. Scrolling SHALL load further months in both directions without a fixed limit, and the user SHALL be able to return to the current month. Planned and settled bookings MUST be distinguishable. Only units with an effective role for the user MUST be offered.
+### Requirement: Occupancy calendar by year
+The system SHALL show the occupancy calendar for one vacation rental unit chosen by the user as a table with one row per month and one column per day of the month, with one bar per booking that is not cancelled. It SHALL show one calendar year at a time: the last month of the previous year, the twelve months of the year, and the first month of the following year. It SHALL start with the current year. The user SHALL be able to page to the previous and the next year and to return to the current year with „Heute“, and the shown year SHALL be kept in the address. The months of the neighbouring years MUST be visually set apart from the year, and the current month MUST be marked. Planned and settled bookings MUST be distinguishable. Only units with an effective role for the user MUST be offered.
 
 #### Scenario: November at the holiday home
-- **WHEN** Anna opens the calendar of the unit "Haus Seeufer" for November 2026
+- **WHEN** Anna opens the calendar of the unit "Haus Seeufer" in November 2026
 - **THEN** they see in the row of November a bar from 6 to 8 November for booking "275505", marked as planned
 
 #### Scenario: Record from the calendar
@@ -21,17 +21,25 @@ The system SHALL show the occupancy calendar for one vacation rental unit chosen
 - **WHEN** Carla, as `EDITOR` of "Whg. 2" only, opens the calendar
 - **THEN** only "Whg. 2" can be chosen and the calendar shows its bookings
 
-#### Scenario: Several months
+#### Scenario: Year with neighbouring months
 - **WHEN** Anna opens the calendar in November 2026
-- **THEN** they see the rows November, December 2026 and January 2027 one below the other, and scrolling down shows February 2027
+- **THEN** they see the rows December 2025, January to December 2026 and January 2027, with December 2025 and January 2027 set apart and November 2026 marked as the current month
 
-#### Scenario: Earlier months and back to today
-- **WHEN** Anna scrolls up to October 2026 and then chooses „Heute“
-- **THEN** the calendar shows October as well and then returns to November 2026
+#### Scenario: Next year and back to today
+- **WHEN** Anna pages to the next year and then chooses „Heute“
+- **THEN** the calendar first shows December 2026 to January 2028 with 2027 as the year, and then again December 2025 to January 2027
+
+#### Scenario: Year from the address
+- **WHEN** Anna opens the calendar with the year 2028 in the address
+- **THEN** the calendar shows December 2027 to January 2029
 
 #### Scenario: Stay across the month boundary
 - **WHEN** a booking runs from 2026-11-29 to 2026-12-02
 - **THEN** the November row shows its bar on 29 and 30 November and the December row shows it on 1 December
+
+#### Scenario: Stay across the year boundary
+- **WHEN** a booking runs from 2026-12-30 to 2027-01-02
+- **THEN** both the year 2026 and the year 2027 show its bar on 30 and 31 December and on 1 January
 
 ### Requirement: Counting nights and money
 A booking SHALL count its nights from arrival up to the night before departure, and a stay across a month boundary MUST be split by night. Cancelled bookings MUST NOT count as nights. Money MUST NOT be split by night: settled amounts MUST count in the month of their statement date, the same as in the property finances, and planned rent in the month of arrival.

@@ -25,3 +25,10 @@ export function shiftMonth(month: string, delta: number) {
   const d = new Date(Date.UTC(y, m - 1 + delta, 1))
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
 }
+
+/** Months from `from` to `to`, both inclusive, as "2026-11". */
+export function monthRange(from: string, to: string) {
+  const months: string[] = []
+  for (let m = from; m <= to; m = shiftMonth(m, 1)) months.push(m)
+  return months
+}

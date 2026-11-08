@@ -45,6 +45,6 @@ test('import a booking from a forwarded agency mail and confirm it', async ({ pa
   await expect(booking.getByText('zu prüfen')).toBeHidden()
   await page.keyboard.press('Escape')
 
-  await page.goto(`/ferienvermietung/kalender?month=${arrival.slice(0, 7)}`)
+  await page.goto(`/ferienvermietung/kalender?year=${arrival.slice(0, 4)}`)
   await expect(page.getByRole('button', { name: 'Lena Testgast, Geplant' })).toBeVisible()
 })

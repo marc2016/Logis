@@ -16,9 +16,7 @@ function setup() {
     'GET /api/modules': vacationRentalActive,
     'GET /api/categories': { body: categories },
     'GET /api/vacationrental/units': { body: [seeufer] },
-    'GET /api/vacationrental/occupancy/calendar?propertyId=7&month=2026-11': { body: calendar({ month: '2026-11' }) },
-    'GET /api/vacationrental/occupancy/calendar?propertyId=7&month=2026-12': { body: calendar({ month: '2026-12' }) },
-    'GET /api/vacationrental/occupancy/calendar?propertyId=7&month=2027-01': { body: calendar({ month: '2027-01' }) },
+    'GET /api/vacationrental/occupancy/calendar?propertyId=7&year=2026': { body: calendar() },
     'GET /api/vacationrental/calendar-links?unitId=70': () => ({ body: links }),
     'POST /api/vacationrental/calendar-links': (init) => {
       created.push(JSON.parse(String(init?.body)))
@@ -37,7 +35,7 @@ function setup() {
 describe('Calendar subscription', () => {
   it('creates a link without guest data, shows it once and revokes it', async () => {
     const { created } = setup()
-    renderApp('/ferienvermietung/kalender?month=2026-11')
+    renderApp('/ferienvermietung/kalender?year=2026')
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Abonnieren' }))
     const dialog = await screen.findByRole('dialog')
@@ -61,7 +59,7 @@ describe('Calendar subscription', () => {
 
   it('sends the guest data choice', async () => {
     const { created } = setup()
-    renderApp('/ferienvermietung/kalender?month=2026-11')
+    renderApp('/ferienvermietung/kalender?year=2026')
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Abonnieren' }))
     const dialog = await screen.findByRole('dialog')

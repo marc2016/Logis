@@ -60,7 +60,9 @@ export function calendar(overrides: Partial<Calendar> = {}): Calendar {
   return {
     propertyId: 7,
     propertyName: 'Haus am Deich',
-    month: '2026-11',
+    year: 2026,
+    from: '2025-12',
+    to: '2027-01',
     units: [
       {
         id: 81,

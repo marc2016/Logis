@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,13 +82,16 @@ class OccupancyTest extends VacationRentalTest {
         settle(anna, statement(anna, ids[2], "2026-11-30"), settled, "100.00");
         var cancelled = booking(anna, ids[1], "2026-11-20", "2026-11-22");
         postJson("/api/vacationrental/bookings/" + cancelled + "/cancel", Map.of(), anna.session());
-        booking(anna, ids[1], "2026-10-30", "2026-11-01"); // no night in November
+        var october = booking(anna, ids[1], "2026-10-30", "2026-11-01");
 
-        var url = "/api/vacationrental/occupancy/calendar?propertyId=" + ids[0] + "&month=2026-11";
+        var url = "/api/vacationrental/occupancy/calendar?propertyId=" + ids[0] + "&year=2026";
         getWith(url, anna.session())
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(2026))
+                .andExpect(jsonPath("$.from").value("2025-12"))
+                .andExpect(jsonPath("$.to").value("2027-01"))
                 .andExpect(jsonPath("$.units[*].name", contains("Whg. 1", "Whg. 2")))
-                .andExpect(jsonPath("$.units[0].bookings[*].id", contains(planned.intValue())))
+                .andExpect(jsonPath("$.units[0].bookings[*].id", contains(october.intValue(), planned.intValue())))
                 .andExpect(jsonPath("$.units[0].bookings[0].status").value("PLANNED"))
                 .andExpect(jsonPath("$.units[1].bookings[0].status").value("SETTLED"));
         getWith(url, carla.session())
@@ -96,5 +100,29 @@ class OccupancyTest extends VacationRentalTest {
         getWith(url, bert.session()).andExpect(status().isNotFound());
         getWith("/api/vacationrental/occupancy/overview?unitId=" + ids[1] + "&year=2026", carla.session())
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void calendarYearIncludesTheNeighbouringMonths() throws Exception {
+        var anna = actor();
+        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var unit = unitIds(property).getFirst();
+        var newYear = booking(anna, unit, "2026-12-30", "2027-01-02");
+        var earlyDecember = booking(anna, unit, "2025-12-01", "2025-12-03");
+        var lateJanuary = booking(anna, unit, "2027-01-30", "2027-02-02");
+        var outside = booking(anna, unit, "2025-11-20", "2025-11-30");
+
+        var base = "/api/vacationrental/occupancy/calendar?propertyId=" + property + "&year=";
+        getWith(base + 2026, anna.session())
+                .andExpect(jsonPath("$.units[0].bookings[*].id",
+                        contains(earlyDecember.intValue(), newYear.intValue(), lateJanuary.intValue())));
+        getWith(base + 2027, anna.session())
+                .andExpect(jsonPath("$.from").value("2026-12"))
+                .andExpect(jsonPath("$.units[0].bookings[*].id", contains(newYear.intValue(), lateJanuary.intValue())));
+        getWith(base + 2025, anna.session())
+                .andExpect(jsonPath("$.units[0].bookings[*].id", hasItem(outside.intValue())));
+        getWith(base + 1800, anna.session()).andExpect(status().isBadRequest());
+        getWith("/api/vacationrental/occupancy/calendar?propertyId=" + property + "&month=2026-11", anna.session())
+                .andExpect(status().isBadRequest());
     }
 }

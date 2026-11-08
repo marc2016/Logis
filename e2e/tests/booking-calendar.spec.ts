@@ -12,7 +12,7 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
     name: `E2E Vermittler ${Date.now()}`,
   })
 
-  await page.goto(`/ferienvermietung/kalender?month=${month}`)
+  await page.goto(`/ferienvermietung/kalender?year=${month.slice(0, 4)}`)
   await expect(page.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
   await page.getByRole('button', { name: 'Buchung' }).click()
   const dialog = page.getByRole('dialog', { name: 'Buchung erfassen' })
@@ -51,6 +51,6 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await expect(line).toBeHidden()
   await expect(page.getByRole('cell', { name: 'Max Testgast' })).toBeVisible()
 
-  await page.goto(`/ferienvermietung/kalender?month=${month}`)
+  await page.goto(`/ferienvermietung/kalender?year=${month.slice(0, 4)}`)
   await expect(page.getByRole('row', { name: monthName }).getByRole('button', { name: 'Max Testgast, Abgerechnet' })).toBeVisible()
 })

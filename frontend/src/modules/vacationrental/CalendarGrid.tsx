@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { daysIn, nightsInMonth } from './calendar'
-import { statusLabel, type Calendar } from './api'
+import { statusLabel, type CalendarBooking } from './api'
 
 const MAX_DAYS = 31
 const monthShort = new Intl.DateTimeFormat('de-DE', { month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -16,17 +16,23 @@ function monthTitle(month: string) {
 }
 
 interface Props {
-  /** Loaded months in order, each already reduced to one unit. */
-  months: Calendar[]
-  unitId: number
+  /** Months to show in order, e.g. December of the previous year to January of the next. */
+  months: string[]
+  /** The year the calendar shows; months of other years are set apart. */
+  year: number
+  /** Current month ("2026-11"), marked in its row header. */
+  currentMonth: string
+  /** Stays of the shown unit over all months. */
+  bookings: CalendarBooking[]
   onOpen: (bookingId: number) => void
 }
 
 /**
- * One unit over many months: one row per month, one column per day (1 to 31), one bar per stay over its nights.
- * Planned stays are outlined, settled ones filled.
+ * One unit over a year: one row per month, one column per day (1 to 31), one bar per stay over its nights.
+ * Planned stays are outlined, settled ones filled; the neighbouring months of other years are muted.
  */
-export function CalendarGrid({ months, unitId, onOpen }: Props) {
+export function CalendarGrid({ months, year, currentMonth, bookings, onOpen }: Props) {
+  const visible = bookings.filter((b) => b.status !== 'CANCELLED')
   return (
     <div className="overflow-x-auto rounded-lg border">
       <div
@@ -35,21 +41,33 @@ export function CalendarGrid({ months, unitId, onOpen }: Props) {
         role="grid"
         aria-label="Belegung"
       >
-        {months.map((calendar, index) => {
+        {months.map((month, index) => {
           const row = index + 1
-          const days = daysIn(calendar.month)
-          const bookings = calendar.units.find((u) => u.id === unitId)?.bookings ?? []
+          const days = daysIn(month)
+          const outside = !month.startsWith(`${year}-`)
+          const current = month === currentMonth
           return (
-            <div key={calendar.month} className="contents" role="row" aria-label={monthTitle(calendar.month)}>
+            <div
+              key={month}
+              className={cn('contents', outside && '[&>*]:opacity-60')}
+              role="row"
+              aria-label={monthTitle(month)}
+              data-outside={outside ? 'true' : undefined}
+              aria-current={current ? 'date' : undefined}
+            >
               <div
-                className="sticky left-0 z-20 flex items-center border-b bg-background px-2 font-medium whitespace-nowrap"
+                className={cn(
+                  'sticky left-0 z-20 flex items-center border-b bg-background px-2 font-medium whitespace-nowrap',
+                  outside && 'text-muted-foreground italic',
+                  current && 'border-l-4 border-l-primary text-primary',
+                )}
                 style={{ gridRow: row, gridColumn: 1 }}
                 role="rowheader"
               >
-                {monthShort.format(monthDate(calendar.month))}
+                {monthShort.format(monthDate(month))}
               </div>
               {Array.from({ length: MAX_DAYS }, (_, i) => {
-                const weekday = i < days ? monthDate(calendar.month, i + 1).getUTCDay() : null
+                const weekday = i < days ? monthDate(month, i + 1).getUTCDay() : null
                 return (
                   <div
                     key={i}
@@ -63,8 +81,8 @@ export function CalendarGrid({ months, unitId, onOpen }: Props) {
                   </div>
                 )
               })}
-              {bookings.filter((b) => b.status !== 'CANCELLED').map((b) => {
-                const span = nightsInMonth(b, calendar.month)
+              {visible.map((b) => {
+                const span = nightsInMonth(b, month)
                 if (!span) return null
                 const label = b.guestName ?? b.externalRef ?? 'Buchung'
                 return (
