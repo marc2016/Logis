@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -230,6 +231,98 @@ class MailImportTest extends VacationRentalTest {
         postJson("/api/vacationrental/mail/" + id + "/assign", Map.of("unitId", unit), anna.session())
                 .andExpect(status().isNoContent());
         getWith("/api/mail/inbox", anna.session()).andExpect(jsonPath("$[0].result").value("BOOKING_CREATED"));
+    }
+
+    @Test
+    void fewoScoutConfirmationWithoutSignatureCreatesABooking() throws Exception {
+        deliver("fewoscout-confirmation.eml", "2026-11-02T08:44:46Z");
+        imports.pollNow(anna.id());
+        assign("Neue Buchung");
+        var item = inboxItem(anna, "Neue Buchung");
+        assertThat(item.get("result")).isEqualTo("BOOKING_CREATED");
+        assertThat(item.get("parsedBy")).isEqualTo("RULE");
+        getWith("/api/vacationrental/bookings/" + ((Number) item.get("linkId")).longValue(), anna.session())
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.agency").value("Fewo & Meer"))
+                .andExpect(jsonPath("$.externalRef").value("274907"))
+                .andExpect(jsonPath("$.adults").value(2))
+                .andExpect(jsonPath("$.expectedRent").value("454.32"));
+    }
+
+    @Test
+    void vvvBookingGetsItsOwnAgencyNextToHolidu() throws Exception {
+        deliver("holidu-confirmation.eml", "2026-11-02T13:00:00Z");
+        deliver("ds-vvv-confirmation.eml", "2026-11-02T13:10:00Z");
+        imports.pollNow(anna.id());
+        assign("Buchungsmitteilung 6a31h227wy");
+        // The Holidu mapping does not cover VVV: its first mail asks for the unit once.
+        var vvv = inboxItem(anna, "Buchungsmitteilung 6a29b55l9j");
+        assertThat(vvv.get("result")).isEqualTo("UNASSIGNED_UNIT");
+        assign("Buchungsmitteilung 6a29b55l9j");
+        vvv = inboxItem(anna, "Buchungsmitteilung 6a29b55l9j");
+        assertThat(vvv.get("result")).isEqualTo("BOOKING_CREATED");
+        assertThat(vvv.get("source")).isEqualTo("VVV-Stadt- und Citymarketing Nordhorn e.V.");
+        getWith("/api/vacationrental/bookings/" + ((Number) vvv.get("linkId")).longValue(), anna.session())
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.agency").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.adults").value(2))
+                .andExpect(jsonPath("$.children").value(2))
+                .andExpect(jsonPath("$.expectedRent").value("447.00"));
+        var holidu = inboxItem(anna, "Buchungsmitteilung 6a31h227wy");
+        getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("linkId")).longValue(), anna.session())
+                .andExpect(jsonPath("$.agency").value("Holidu"));
+    }
+
+    @Test
+    void blockNoticeIsAttachedToTheStayWithTheSamePeriod() throws Exception {
+        deliver("ds-vvv-confirmation.eml", "2026-11-02T10:50:00Z");
+        imports.pollNow(anna.id());
+        assign("Buchungsmitteilung 6a29b55l9j");
+        var bookingId = ((Number) inboxItem(anna, "Buchungsmitteilung 6a29b55l9j").get("linkId")).longValue();
+
+        deliver("fewo-block-notice.eml", null);
+        imports.pollNow(anna.id());
+        assign("Neue Blockung");
+        var item = inboxItem(anna, "Neue Blockung");
+        assertThat(item.get("result")).isEqualTo("ATTACHED");
+        assertThat(item.get("kind")).isEqualTo("BLOCK_NOTICE");
+        assertThat(item.get("resultDetail")).isEqualTo("Blockung durch VVV Nordhorn");
+        assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(bookingId);
+        getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
+                .andExpect(jsonPath("$.externalRef").value("6a29b55l9j"))
+                .andExpect(jsonPath("$.agency").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.proposal").doesNotExist());
+        getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[*].fileName", hasItem(containsString("Blockung 275206"))));
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void blockNoticeBeforeTheBookingMailIsMatchedOnRetry() throws Exception {
+        deliver("fewo-block-notice.eml", "2026-11-02T10:55:00Z");
+        imports.pollNow(anna.id());
+        assign("Neue Blockung");
+        var item = inboxItem(anna, "Neue Blockung");
+        assertThat(item.get("result")).isEqualTo("NOT_MATCHED");
+        assertThat(item.get("resultDetail")).isEqualTo("Keine Buchung vom 15.05.2027 bis 18.05.2027");
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(0));
+
+        var bookingId = booking(anna, unit, "2027-05-15", "2027-05-18");
+        postJson("/api/mail/inbox/" + ((Number) item.get("id")).longValue() + "/retry", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("ATTACHED"));
+        assertThat(((Number) inboxItem(anna, "Neue Blockung").get("linkId")).longValue()).isEqualTo(bookingId);
+    }
+
+    @Test
+    void blockNoticeWithADifferentPeriodIsNotMatched() throws Exception {
+        booking(anna, unit, "2027-05-15", "2027-05-19");
+        deliver("fewo-block-notice.eml", "2026-11-02T10:55:00Z");
+        imports.pollNow(anna.id());
+        assign("Neue Blockung");
+        assertThat(inboxItem(anna, "Neue Blockung").get("result")).isEqualTo("NOT_MATCHED");
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
     }
 
     @Test

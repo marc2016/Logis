@@ -1,0 +1,29 @@
+From: "FEWO &  MEER e.K." <info@fewoscout.com>
+To: vermieter@example.org
+Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Date: Thu, 22 Oct 2026 10:44:46 +0200
+Message-ID: <fewoscout-274907@fewoscout.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body>
+<p>Sehr geehrte(r) Muster GbR,</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 01.11.2026 bis 06.11.2026.</p>
+<table>
+<tr><td>Buchungsnummer</td><td>274907</td></tr>
+<tr><td>Anzahl Gäste</td><td>2 Erwachsene</td></tr>
+<tr><td>Anreise</td><td>01.11.2026</td></tr>
+<tr><td>Abreise</td><td>06.11.2026</td></tr>
+<tr><td>Mietpreis</td><td>454,32 EUR</td></tr>
+</table>
+<p>Informationen zum Gast:</p>
+<table>
+<tr><td>Name</td><td>Jan Beispiel</td></tr>
+<tr><td>Adresse</td><td>Probeweg 4<br>44309 Probestadt<br>Deutschland</td></tr>
+<tr><td>Telefon</td><td>0172 0000004</td></tr>
+<tr><td>Telefon (mobil)</td><td>0172 0000004</td></tr>
+<tr><td>Email</td><td>jan@example.org</td></tr>
+</table>
+<p>Mit freundlichen Grüßen<br>P. Beispiel</p>
+</body></html>

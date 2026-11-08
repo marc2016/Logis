@@ -34,6 +34,9 @@ class ImportEngine {
     }
 
     Outcome apply(Long ownerId, ParsedMail mail, byte[] raw) {
+        if (mail.type() == ParsedMail.MailType.BLOCK_NOTICE) {
+            return blockNotice(ownerId, mail, raw);
+        }
         var existing = bookings.findByRef(ownerId, mail.agency(), mail.bookingRef()).stream().findFirst();
         try {
             return switch (mail.type()) {
@@ -48,26 +51,59 @@ class ImportEngine {
                         ? cancel(ownerId, existing.get(), mail, raw)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
+                case BLOCK_NOTICE -> throw new IllegalStateException("handled above");
             };
         } catch (ApiException e) {
             return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
         }
     }
 
-    private Outcome create(Long ownerId, ParsedMail mail, byte[] raw) {
+    /**
+     * The agency only blocked its calendar for a stay booked elsewhere: the number is the agency's, the booking
+     * carries the intermediary's, so the stay is found by its exact period (design.md D3). Never creates a booking.
+     */
+    private Outcome blockNotice(Long ownerId, ParsedMail mail, byte[] raw) {
+        var unit = editableUnit(ownerId, mail);
+        if (unit.outcome() != null) {
+            return unit.outcome();
+        }
+        var booking = bookings.findSamePeriod(ownerId, unit.unitId(), mail.arrival(), mail.departure());
+        if (booking.isEmpty()) {
+            return new Outcome(BookingMailResult.NOT_MATCHED, null, "Keine Buchung vom "
+                    + GermanText.format(mail.arrival()) + " bis " + GermanText.format(mail.departure()));
+        }
+        var id = booking.get().getId();
+        attach(id, mail, raw);
+        return new Outcome(BookingMailResult.ATTACHED, id,
+                mail.intermediary() == null ? "Blockung" : "Blockung durch " + mail.intermediary());
+    }
+
+    private record UnitLookup(Long unitId, Outcome outcome) {
+    }
+
+    /** The unit the mail's property is mapped to, if the owner may edit it; otherwise the inbox outcome. */
+    private UnitLookup editableUnit(Long ownerId, ParsedMail mail) {
         var mapping = mail.propertyName() == null ? null
                 : mappings.find(ownerId, mail.agency(), mail.propertyName()).orElse(null);
         if (mapping == null) {
-            return new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
-                    "Einheit für „" + Objects.toString(mail.propertyName(), "?") + "“ zuordnen");
+            return new UnitLookup(null, new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
+                    "Einheit für „" + Objects.toString(mail.propertyName(), "?") + "“ zuordnen"));
         }
         var role = access.role(mapping.getUnitId(), ownerId).orElse(null);
         if (!RentalAccess.canEdit(role)) {
-            return new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
-                    "Keine Bearbeitungsrechte für die zugeordnete Einheit");
+            return new UnitLookup(null, new Outcome(BookingMailResult.UNASSIGNED_UNIT, null,
+                    "Keine Bearbeitungsrechte für die zugeordnete Einheit"));
+        }
+        return new UnitLookup(mapping.getUnitId(), null);
+    }
+
+    private Outcome create(Long ownerId, ParsedMail mail, byte[] raw) {
+        var unit = editableUnit(ownerId, mail);
+        if (unit.outcome() != null) {
+            return unit.outcome();
         }
         try {
-            var created = bookings.createImported(ownerId, input(mapping.getUnitId(), mail, null));
+            var created = bookings.createImported(ownerId, input(unit.unitId(), mail, null));
             attach(created.booking().getId(), mail, raw);
             return new Outcome(BookingMailResult.BOOKING_CREATED, created.booking().getId(), null);
         } catch (ApiException e) {
@@ -114,6 +150,7 @@ class ImportEngine {
             case SHORT_NOTICE -> "Last-Minute";
             case CHANGE -> "Änderung";
             case CANCELLATION -> "Stornierung";
+            case BLOCK_NOTICE -> "Blockung";
         };
         documents.store(Booking.DOCUMENT_TYPE, bookingId, mail.agency() + " " + label + " " + mail.bookingRef() + ".eml",
                 "message/rfc822", raw);

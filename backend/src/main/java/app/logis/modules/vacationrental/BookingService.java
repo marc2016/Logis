@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -217,6 +218,16 @@ class BookingService {
     List<Booking> findByRef(Long ownerId, String agency, String ref) {
         var units = access.visibleUnits(ownerId).keySet();
         return units.isEmpty() ? List.of() : bookings.findByRef(units, agency, ref);
+    }
+
+    /** The booking that is not cancelled with exactly this period on a unit the owner can edit. */
+    @Transactional(readOnly = true)
+    Optional<Booking> findSamePeriod(Long ownerId, Long unitId, LocalDate arrival, LocalDate departure) {
+        if (!RentalAccess.canEdit(access.role(unitId, ownerId).orElse(null))) {
+            return Optional.empty();
+        }
+        return bookings.findByUnitIdAndArrivalAndDepartureAndCancelledFalse(unitId, arrival, departure).stream()
+                .findFirst();
     }
 
     // --- Review of imported bookings -----------------------------------------------------------

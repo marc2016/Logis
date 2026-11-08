@@ -14,8 +14,9 @@ import static app.logis.modules.vacationrental.GermanText.date;
 import static app.logis.modules.vacationrental.GermanText.find;
 
 /**
- * Rules for Holidu bookings delivered by DS Destination Solutions ("Buchungsmitteilung"). Only confirmations are
- * known so far; anything else is left to the AI fallback.
+ * Rules for bookings delivered by DS Destination Solutions ("Buchungsmitteilung"), e.g. from Holidu or VVV
+ * Nordhorn. The agency is the intermediary the mail names. Only confirmations are known so far; anything else is
+ * left to the AI fallback.
  */
 @Component
 @ConditionalOnLogisModule(VacationRentalConfiguration.MODULE_ID)
@@ -24,7 +25,12 @@ class HoliduDsParser implements MailParser {
 
     static final String AGENCY = "Holidu";
 
-    private static final Pattern REF = Pattern.compile("Buchungsmitteilung \\(Buchungsnummer:\\s*([^)\\s]+)\\)");
+    private static final int AGENCY_MAX_LENGTH = 64;
+
+    private static final Pattern INTERMEDIARY = Pattern.compile("(?m)^Vermittler \\(Stornierung/Änderung\\):[ \\t]*(.+)$");
+    private static final Pattern COOPERATION_SUFFIX = Pattern.compile("\\s+in Kooperation mit\\b.*$");
+    private static final Pattern BOOKED = Pattern.compile("wurde wie folgt\\s+gebucht");
+    private static final Pattern REF =Pattern.compile("Buchungsmitteilung \\(Buchungsnummer:\\s*([^)\\s]+)\\)");
     private static final Pattern PROPERTY = Pattern.compile("Ihre Unterkunft:\\s*(.+?)\\s*\\(Kategorie");
     private static final Pattern ARRIVAL = Pattern.compile("Anreise:\\s*(\\d{2}\\.\\d{2}\\.\\d{4})");
     private static final Pattern DEPARTURE = Pattern.compile("Abreise:\\s*(\\d{2}\\.\\d{2}\\.\\d{4})");
@@ -40,17 +46,35 @@ class HoliduDsParser implements MailParser {
         var text = mail.text();
         var sender = mail.sender() == null ? "" : mail.sender().toLowerCase(Locale.ROOT);
         var ref = find(REF, text);
-        if (ref == null || !(sender.contains("ds-destinationsolutions") || text.contains("Holidu"))) {
+        var intermediary = find(INTERMEDIARY, text);
+        if (ref == null || !(sender.contains("ds-destinationsolutions") || text.contains("Holidu")
+                || intermediary != null)) {
             return Optional.empty();
         }
         // A confirmation says what was booked; cancellations and changes have other wording.
-        if (!text.contains("wurde wie folgt gebucht")) {
+        if (!BOOKED.matcher(text).find()) {
             return Optional.empty();
         }
         var travellers = find(TRAVELLERS, text);
-        return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.CONFIRMATION, ref, find(PROPERTY, text),
+        return Optional.of(new ParsedMail(agency(intermediary), ParsedMail.MailType.CONFIRMATION, ref,
+                find(PROPERTY, text),
                 date(find(ARRIVAL, text)), date(find(DEPARTURE, text)), GermanText.adults(travellers),
                 GermanText.children(travellers), null, amount(find(TOTAL, text)), guest(text)));
+    }
+
+    /**
+     * "Holidu" for Holidu or when the mail names no intermediary, so existing Holidu bookings keep matching;
+     * otherwise the intermediary's name without "in Kooperation mit …".
+     */
+    static String agency(String intermediary) {
+        if (intermediary == null || intermediary.toLowerCase(Locale.ROOT).contains("holidu")) {
+            return AGENCY;
+        }
+        var name = COOPERATION_SUFFIX.matcher(intermediary).replaceFirst("").strip();
+        if (name.isEmpty()) {
+            return AGENCY;
+        }
+        return name.length() > AGENCY_MAX_LENGTH ? name.substring(0, AGENCY_MAX_LENGTH).strip() : name;
     }
 
     private static Guest guest(String text) {

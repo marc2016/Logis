@@ -28,6 +28,11 @@ final class GermanText {
         }
     }
 
+    /** "15.05.2027" for messages in the interface. */
+    static String format(LocalDate date) {
+        return date == null ? "?" : DATE.format(date);
+    }
+
     static BigDecimal amount(String text) {
         if (text == null) {
             return null;

@@ -176,6 +176,7 @@ export const mailKindLabel: Record<string, string> = {
   SHORT_NOTICE: 'Last-Minute',
   CHANGE: 'Änderung',
   CANCELLATION: 'Stornierung',
+  BLOCK_NOTICE: 'Blockung',
 }
 
 export const mailResultLabel: Record<string, string> = {

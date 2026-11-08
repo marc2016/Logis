@@ -28,6 +28,10 @@ class FewoUndMeerParser implements MailParser {
             "^Last-Minute Buchung (\\S+), (.+?), vom " + DATE + " bis " + DATE);
     private static final Pattern CANCELLATION_SUBJECT = Pattern.compile(
             "^Stornierung (\\S+), (.+?), vom " + DATE + " bis zum " + DATE);
+    // "Neue Blockung für Haus Seeufer - Nordhorn,275206, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn"
+    private static final Pattern BLOCK_NOTICE_SUBJECT = Pattern.compile(
+            "^Neue Blockung für (.+?),\\s*(\\S+), vom " + DATE + " bis " + DATE
+                    + "(?: durch (?:den |die |das )?(.+))?$");
 
     @Override
     public Optional<ParsedMail> parse(MailContent mail) {
@@ -48,13 +52,21 @@ class FewoUndMeerParser implements MailParser {
             return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.CANCELLATION, m.group(1),
                     m.group(2).strip(), date(m.group(3)), date(m.group(4)), null, null, null, null, null));
         }
+        m = BLOCK_NOTICE_SUBJECT.matcher(subject);
+        if (m.find()) {
+            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.BLOCK_NOTICE, m.group(2),
+                    m.group(1).strip(), date(m.group(3)), date(m.group(4)), null, null, null, null, null,
+                    blankToNull(m.group(5))));
+        }
         return Optional.empty();
     }
 
     private static boolean fromAgency(MailContent mail) {
         var sender = mail.sender() == null ? "" : mail.sender().toLowerCase(Locale.ROOT);
+        // FeWoScout is Fewo & Meer's booking portal; its mails may carry no signature at all.
         // Forwarded mails come from the user: then the agency shows in the forwarded text.
-        return sender.endsWith("fewoundmeer.de") || mail.text().contains("Fewo & Meer")
+        return sender.endsWith("fewoundmeer.de") || sender.endsWith("fewoscout.com")
+                || mail.text().contains("Fewo & Meer")
                 || mail.text().contains("fewoundmeer.de");
     }
 

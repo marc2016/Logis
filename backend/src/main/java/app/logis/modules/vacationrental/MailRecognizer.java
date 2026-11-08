@@ -63,6 +63,10 @@ class MailRecognizer {
         } catch (IllegalArgumentException | NullPointerException ex) {
             return Optional.empty();
         }
+        if (type == ParsedMail.MailType.BLOCK_NOTICE) {
+            // Only the rules know block notices; the AI is not asked for them.
+            return Optional.empty();
+        }
         var guest = new Guest(text(e.guestName()), text(e.guestStreet()), text(e.guestPostalCode()),
                 text(e.guestCity()), text(e.guestCountry()), text(e.guestPhone()), text(e.guestEmail()));
         return Optional.of(new ParsedMail(text(e.agency()), type, text(e.bookingRef()), text(e.propertyName()),

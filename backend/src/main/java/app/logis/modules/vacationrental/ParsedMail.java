@@ -8,15 +8,26 @@ import java.time.LocalDate;
  *
  * @param agency       the rental agency, e.g. "Fewo & Meer" or "Holidu"
  * @param propertyName the property as the agency calls it, mapped to a unit per agency
+ * @param intermediary who a block notice was made for, e.g. "VVV Nordhorn"; {@code null} for other mails
  */
 record ParsedMail(String agency, MailType type, String bookingRef, String propertyName, LocalDate arrival,
-        LocalDate departure, Integer adults, Integer children, Integer pets, BigDecimal expectedRent, Guest guest) {
+        LocalDate departure, Integer adults, Integer children, Integer pets, BigDecimal expectedRent, Guest guest,
+        String intermediary) {
 
     enum MailType {
         CONFIRMATION,
         SHORT_NOTICE,
         CHANGE,
-        CANCELLATION
+        CANCELLATION,
+        /** The agency blocked its calendar for a stay booked elsewhere; never creates a booking. */
+        BLOCK_NOTICE
+    }
+
+    ParsedMail(String agency, MailType type, String bookingRef, String propertyName, LocalDate arrival,
+            LocalDate departure, Integer adults, Integer children, Integer pets, BigDecimal expectedRent,
+            Guest guest) {
+        this(agency, type, bookingRef, propertyName, arrival, departure, adults, children, pets, expectedRent, guest,
+                null);
     }
 
     /** Complete enough to act on: agency, type and booking number, and dates unless it is a cancellation. */
