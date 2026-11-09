@@ -2,7 +2,7 @@
 
 ## Why
 
-Fewo & Meer confirmations that the user forwards (for example with Apple Mail) arrive as „Nicht erkannt“. In the forwarded text, a field label is followed by a space and then a tab („Buchungsnummer ⇥274907“), and the value may start with a space. The Fewo & Meer rule only accepts a tab or at least two spaces directly after the label, so it reads no field and drops the mail. The AI fallback is off, so nothing else catches it. Test mails so far only used the original layout.
+Fewo & Meer confirmations that the user forwards (for example with Apple Mail) arrive as „Nicht erkannt“. In the forwarded text, a field label is followed by a space and then a tab („Buchungsnummer ⇥250902“), and the value may start with a space. The Fewo & Meer rule only accepts a tab or at least two spaces directly after the label, so it reads no field and drops the mail. The AI fallback is off, so nothing else catches it. Test mails so far only used the original layout.
 
 ## What Changes
 

@@ -37,7 +37,7 @@ function inboxItem(overrides: Partial<InboxItem> = {}): InboxItem {
     handler: 'vacationrental.booking',
     kind: 'CONFIRMATION',
     source: 'Fewo & Meer',
-    reference: '275031',
+    reference: '250903',
     subjectName: 'Haus Seeufer - Nordhorn',
     parsedBy: 'RULE',
     result: 'UNASSIGNED_UNIT',
@@ -87,7 +87,7 @@ describe('Inbox', () => {
       ...base,
       'GET /api/mail/mailbox': { body: mailbox },
       'GET /api/mail/inbox': { body: [inboxItem()] },
-      'GET /api/mail/inbox/31/text': { body: { id: 31, subject: 'x', text: 'Buchungsnummer 275031' } },
+      'GET /api/mail/inbox/31/text': { body: { id: 31, subject: 'x', text: 'Buchungsnummer 250903' } },
       'POST /api/vacationrental/mail/31/assign': (init) => {
         assigned = JSON.parse(String(init?.body))
         return { status: 204 }
@@ -97,7 +97,7 @@ describe('Inbox', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('row', { name: /Neue Buchung/ }))
     const dialog = await screen.findByRole('dialog')
-    expect(await within(dialog).findByText('Buchungsnummer 275031')).toBeInTheDocument()
+    expect(await within(dialog).findByText('Buchungsnummer 250903')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('combobox', { name: /Einheit für/ }))
     await user.click(await screen.findByRole('option', { name: 'Haus Seeufer' }))
     await user.click(within(dialog).getByRole('button', { name: 'Zuordnen' }))
@@ -109,7 +109,7 @@ describe('Inbox', () => {
     mockApi({
       ...base,
       'GET /api/mail/mailbox': { body: mailbox },
-      'GET /api/mail/inbox': { body: [inboxItem({ result: 'NOT_RECOGNISED', subject: 'Umbuchung 275505', handler: null, kind: null, retryable: true })] },
+      'GET /api/mail/inbox': { body: [inboxItem({ result: 'NOT_RECOGNISED', subject: 'Umbuchung 250905', handler: null, kind: null, retryable: true })] },
       'GET /api/mail/inbox/31/text': { body: { id: 31, subject: 'x', text: '...' } },
       'POST /api/mail/inbox/31/retry': () => {
         retried = true

@@ -29,11 +29,11 @@ describe('Bookings grid', () => {
 
   it('takes filters and sorting from the URL', async () => {
     const fetch = mockApi({ ...base, 'GET /api/vacationrental/bookings': { body: bookingPage([]) } })
-    renderApp('/ferienvermietung/buchungen?status=PLANNED&q=275505&sort=nights,asc')
+    renderApp('/ferienvermietung/buchungen?status=PLANNED&q=250905&sort=nights,asc')
     expect(await screen.findByText('Keine Buchungen gefunden.')).toBeInTheDocument()
     const url = fetch.mock.calls.map((c) => String(c[0])).find((u) => u.startsWith('/api/vacationrental/bookings'))!
     expect(url).toContain('status=PLANNED')
-    expect(url).toContain('q=275505')
+    expect(url).toContain('q=250905')
     expect(url).toContain('sort=nights%2Casc')
     expect(screen.getByRole('columnheader', { name: /Nächte/ })).toHaveAttribute('aria-sort', 'ascending')
   })
@@ -120,13 +120,13 @@ describe('Booking dialog', () => {
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
     await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
-    await user.type(within(dialog).getByLabelText('Buchungsnummer'), '275505')
+    await user.type(within(dialog).getByLabelText('Buchungsnummer'), '250905')
     await user.upload(within(dialog).getByLabelText('Dokument auswählen'), pdf())
     expect(within(dialog).getByText('Bestätigung.pdf')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
 
     await waitFor(() => expect(uploads).toEqual(['vacationrental.booking:501:Bestätigung.pdf']))
-    expect(created).toMatchObject({ unitId: 70, externalRef: '275505' })
+    expect(created).toMatchObject({ unitId: 70, externalRef: '250905' })
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
@@ -162,7 +162,7 @@ describe('Booking dialog', () => {
     })
     renderApp('/ferienvermietung/buchungen')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('row', { name: /Buchung 275505/ }))
+    await user.click(await screen.findByRole('row', { name: /Buchung 250905/ }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: 'Buchung' })).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Name')).toHaveValue('Max Gast')
@@ -202,7 +202,7 @@ describe('Statements', () => {
     await user.click(await screen.findByRole('button', { name: 'Buchung zuordnen' }))
     const dialog = await screen.findByRole('dialog')
     await user.click(within(dialog).getByRole('combobox', { name: 'Buchung' }))
-    await user.click(await screen.findByRole('option', { name: /275505/ }))
+    await user.click(await screen.findByRole('option', { name: /250905/ }))
     expect(within(dialog).getByLabelText('Brutto (€)')).toHaveValue('248,58')
     await user.type(within(dialog).getByLabelText('Provision (€)'), '37,29')
     await user.type(within(dialog).getByLabelText('Reinigung (€)'), '60,00')

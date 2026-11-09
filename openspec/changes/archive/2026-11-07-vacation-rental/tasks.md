@@ -43,7 +43,7 @@
 
 - [x] 7.1 Run the full test suites: `./mvnw verify` and `npm test && npm run lint && npm run build`. Verify: Everything is green.
 - [x] 7.2 Manual run with `./start.sh`:
-  1. Using „+ Buchung“ in the grid, record booking "275505" on "Haus Seeufer" with the confirmation screenshot attached, then see it in the calendar as planned and find it by searching "275505".
+  1. Using „+ Buchung“ in the grid, record booking "250905" on "Haus Seeufer" with the confirmation screenshot attached, then see it in the calendar as planned and find it by searching "250905".
   2. Create a statement, assign the booking, and check the net, the payout and the status settled.
   3. As a `VIEWER`, open the booking and check that there are no contact details.
   4. Delete the guest data and check the overview for November.

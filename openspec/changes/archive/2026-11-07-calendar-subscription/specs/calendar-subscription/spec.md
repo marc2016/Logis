@@ -21,12 +21,12 @@ A user who can see a vacation rental unit SHALL be able to create subscription l
 Fetching the address of a valid link without signing in SHALL return an iCalendar feed of the unit's bookings that are not cancelled and whose departure lies at most 12 months in the past. Each booking MUST be one all-day event from the arrival date through the departure date, and its identifier MUST stay the same when the booking changes. Without guest data the title MUST be „Belegt“ and the event MUST NOT contain any guest data or booking number. With guest data the title SHALL be the guest name and the booking number, and MUST NOT contain address, phone or email. A booking still to be reviewed SHALL be marked with „?“ in the title.
 
 #### Scenario: Feed without guest data
-- **WHEN** the cleaning service's calendar app fetches the link „Reinigung“ while booking "275505" of Erika Musterfrau runs from 2026-11-06 to 2026-11-08
+- **WHEN** the cleaning service's calendar app fetches the link „Reinigung“ while booking "250905" of Erika Musterfrau runs from 2026-11-06 to 2026-11-08
 - **THEN** the feed contains an all-day event „Belegt“ from 6 through 8 November and the name „Erika Musterfrau“ appears nowhere in it
 
 #### Scenario: Feed with guest data
 - **WHEN** Anna's calendar app fetches their link with guest data
-- **THEN** the same booking is titled „Erika Musterfrau (275505)“
+- **THEN** the same booking is titled „Erika Musterfrau (250905)“
 
 #### Scenario: Cancelled booking
 - **WHEN** a booking is cancelled

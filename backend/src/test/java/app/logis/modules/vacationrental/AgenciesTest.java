@@ -60,7 +60,7 @@ class AgenciesTest extends VacationRentalTest {
         var id = id(postJson(BASE, Map.of("name", longName), anna.session()));
         var body = stay(unit, "2027-05-15", "2027-05-18");
         body.put("agencyId", id);
-        body.put("externalRef", "6a29b55l9j");
+        body.put("externalRef", "3e98f765kl");
         var bookingId = id(book(anna, body).andExpect(status().isCreated()));
 
         var shortName = unique("VVV Nordhorn");
@@ -74,7 +74,7 @@ class AgenciesTest extends VacationRentalTest {
         // Booking numbers stay unique per agency identity, whatever its name.
         var again = stay(unit, "2027-06-15", "2027-06-18");
         again.put("agencyId", id);
-        again.put("externalRef", "6A29B55L9J");
+        again.put("externalRef", "3E98F765KL");
         book(anna, again).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Diese Buchungsnummer ist bereits erfasst"));
 

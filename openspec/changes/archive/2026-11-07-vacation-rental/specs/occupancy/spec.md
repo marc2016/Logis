@@ -11,7 +11,7 @@ The system SHALL show a monthly calendar per property with one row per vacation 
 
 #### Scenario: November at the holiday home
 - **WHEN** Anna opens the calendar of "Haus Seeufer" for November 2026
-- **THEN** they see a bar from 6 to 8 November for booking "275505", marked as planned
+- **THEN** they see a bar from 6 to 8 November for booking "250905", marked as planned
 
 #### Scenario: Record from the calendar
 - **WHEN** Anna records a booking from the calendar view

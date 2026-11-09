@@ -2,7 +2,7 @@
 
 ## Context
 
-`MailContent` turns the HTML part of a mail into text; table cells are joined with a tab, so the original confirmation reads „Buchungsnummer⇥274907“. `FewoUndMeerParser.field()` matches `^Label(?:\t+| {2,})(.*)$`, and the address uses the same separator. When a mail program forwards the confirmation, cell contents keep surrounding spaces (or the plain-text part uses „Label ⇥ value“), giving „Buchungsnummer ␣⇥274907“ or „Anreise ␣⇥␣01.11.2026“. Neither alternative matches, all fields stay empty, `ParsedMail.usable()` fails, and the mail is stored as not recognised. Motivation is in proposal.md.
+`MailContent` turns the HTML part of a mail into text; table cells are joined with a tab, so the original confirmation reads „Buchungsnummer⇥250902“. `FewoUndMeerParser.field()` matches `^Label(?:\t+| {2,})(.*)$`, and the address uses the same separator. When a mail program forwards the confirmation, cell contents keep surrounding spaces (or the plain-text part uses „Label ⇥ value“), giving „Buchungsnummer ␣⇥250902“ or „Anreise ␣⇥␣01.11.2026“. Neither alternative matches, all fields stay empty, `ParsedMail.usable()` fails, and the mail is stored as not recognised. Motivation is in proposal.md.
 
 ## Goals / Non-Goals
 

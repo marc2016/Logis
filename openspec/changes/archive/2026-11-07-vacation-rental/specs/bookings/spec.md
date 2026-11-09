@@ -10,7 +10,7 @@ Bookings record who stays in a vacation rental unit and when, from the service p
 A user with at least `EDITOR` as effective role on a unit SHALL be able to record a booking on it with arrival, departure, adults, and optionally children, external booking number, channel and expected rent. Only active units with usage `VACATION_RENTAL` MUST accept new bookings. Departure MUST be after arrival. A new booking SHALL have the status planned.
 
 #### Scenario: Booking from the provider's confirmation
-- **WHEN** Anna records booking number "275505" on "Haus Seeufer" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
+- **WHEN** Anna records booking number "250905" on "Haus Seeufer" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
 - **THEN** the booking appears as planned with 2 nights
 
 #### Scenario: Unit not used for vacation rental
@@ -36,7 +36,7 @@ Two bookings of the same unit that are not cancelled MUST NOT overlap. A stay SH
 An external booking number, if given, MUST be unique among all bookings of a unit, including cancelled ones.
 
 #### Scenario: Same confirmation entered twice
-- **WHEN** Anna records booking number "275505" a second time on the same unit
+- **WHEN** Anna records booking number "250905" a second time on the same unit
 - **THEN** the system rejects this with the message „Diese Buchungsnummer ist bereits erfasst“
 
 ### Requirement: Edit, cancel and delete a booking
@@ -68,7 +68,7 @@ A user with at least `EDITOR` on the unit SHALL be able to delete the guest data
 A user with at least `EDITOR` on the unit SHALL be able to attach documents to a booking, download them and delete them one by one. Only PDF, JPEG, PNG, WebP and HEIC files of at most 10 MB MUST be accepted. Documents MUST be visible only to users with at least `EDITOR`. Deleting the guest data MUST NOT delete documents. Deleting the booking MUST delete them.
 
 #### Scenario: Attach the confirmation
-- **WHEN** Anna attaches a screenshot of the provider's confirmation to booking "275505"
+- **WHEN** Anna attaches a screenshot of the provider's confirmation to booking "250905"
 - **THEN** the booking lists the document with its name, and Anna can download it
 
 #### Scenario: Wrong file type or too large
@@ -87,7 +87,7 @@ The system SHALL list the bookings visible to the user, filterable by property, 
 - **THEN** they see the planned bookings of that unit, earliest first
 
 #### Scenario: Search by booking number
-- **WHEN** Anna searches for "275505"
+- **WHEN** Anna searches for "250905"
 - **THEN** the list contains exactly that booking
 
 ### Requirement: Access through the unit

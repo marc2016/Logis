@@ -13,7 +13,7 @@ const finances: Finances = {
   months,
   total: { month: 0, income: '248.58', expenses: '417.29', result: '-168.71' },
   items: [
-    { date: '2026-11-30', unitId: 70, unitName: 'Haus Seeufer', kind: 'INCOME', label: 'Buchung 275505', amount: '248.58', sourceType: 'vacationrental.statement', sourceId: 900, categoryName: null, counterparty: null, editable: false },
+    { date: '2026-11-30', unitId: 70, unitName: 'Haus Seeufer', kind: 'INCOME', label: 'Buchung 250905', amount: '248.58', sourceType: 'vacationrental.statement', sourceId: 900, categoryName: null, counterparty: null, editable: false },
     { date: '2026-11-12', unitId: null, unitName: null, kind: 'EXPENSE', label: 'Handwerker Meyer', amount: '320.00', sourceType: 'realestate.cost', sourceId: 5, categoryName: 'Wohnen', counterparty: 'Handwerker Meyer', editable: true },
   ],
   canRecord: true,
@@ -26,7 +26,7 @@ function property(overrides: Partial<Property> = {}): Property {
     street: null,
     postalCode: null,
     city: 'Nordhorn',
-    legalEntity: { id: 10, name: 'Susanne Lammers GbR', kind: 'PARTNERSHIP' as Property['legalEntity']['kind'] },
+    legalEntity: { id: 10, name: 'Beispiel GbR', kind: 'PARTNERSHIP' as Property['legalEntity']['kind'] },
     multiUnit: false,
     archived: false,
     myRole: 'OWNER',
@@ -53,7 +53,7 @@ describe('Property finances', () => {
     expect(within(november).getByText('248,58 €')).toBeInTheDocument()
     expect(within(november).getByText('417,29 €')).toBeInTheDocument()
     expect(within(november).getByText('-168,71 €')).toBeInTheDocument()
-    expect(screen.getByRole('row', { name: /Buchung 275505/ })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Buchung 250905/ })).toBeInTheDocument()
     expect(screen.getByText('nicht im Ergebnis')).toBeInTheDocument()
     // Single-unit property: no unit column or unit filter.
     expect(screen.queryByRole('columnheader', { name: /Einheit/ })).not.toBeInTheDocument()

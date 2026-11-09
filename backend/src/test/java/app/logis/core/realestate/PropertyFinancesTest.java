@@ -49,7 +49,7 @@ class PropertyFinancesTest extends RealestateTest {
         var anna = actor();
         var property = singleUnitProperty(anna, "Haus Seeufer");
         var unit = unitIds(property).getFirst();
-        contribute(unit, "2026-11-30", FinanceItem.Kind.INCOME, "Buchung 275505", "248.58");
+        contribute(unit, "2026-11-30", FinanceItem.Kind.INCOME, "Buchung 250905", "248.58");
         contribute(unit, "2026-11-30", FinanceItem.Kind.EXPENSE, "Provision", "37.29");
         contribute(unit, "2026-11-30", FinanceItem.Kind.EXPENSE, "Reinigung", "60.00");
         contribute(unit, "2025-11-30", FinanceItem.Kind.INCOME, "Vorjahr", "999.00");

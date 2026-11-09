@@ -2,11 +2,11 @@
 
 ## 1. Sample mails
 
-- [x] 1.1 Add anonymised sample mails `ds-vvv-confirmation.eml` (DS booking 6a29b55l9j by VVV Nordhorn), `fewo-block-notice.eml` (block notice 275206, from `info@fewoscout.com`) and `fewoscout-confirmation.eml` (confirmation 274907 from `info@fewoscout.com` without signature) to `backend/src/test/resources/mails/`, and verify they load in `MailParsersTest`
+- [x] 1.1 Add anonymised sample mails `ds-vvv-confirmation.eml` (DS booking 3e98f765kl by VVV Nordhorn), `fewo-block-notice.eml` (block notice 250904, from `info@fewoscout.com`) and `fewoscout-confirmation.eml` (confirmation 250902 from `info@fewoscout.com` without signature) to `backend/src/test/resources/mails/`, and verify they load in `MailParsersTest`
 
 ## 1a. FeWoScout sender
 
-- [x] 1a.1 Accept `fewoscout.com` as a sender domain in `FewoUndMeerParser.fromAgency` (design D0); verify in `MailParsersTest` that `fewoscout-confirmation.eml` is read as a Fewo & Meer confirmation with 2 adults and 454.32, and in `MailImportTest` that it creates a booking „zu prüfen“
+- [x] 1a.1 Accept `fewoscout.com` as a sender domain in `FewoUndMeerParser.fromAgency` (design D0); verify in `MailParsersTest` that `fewoscout-confirmation.eml` is read as a Fewo & Meer confirmation with 2 adults and 432.10, and in `MailImportTest` that it creates a booking „zu prüfen“
 
 ## 2. DS agency
 

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MailRecognizerTest {
 
     private static AiExtraction change(String departure) {
-        return new AiExtraction(true, "Fewo & Meer", "change", "275505", "Haus Seeufer - Nordhorn", "2026-11-07",
+        return new AiExtraction(true, "Fewo & Meer", "change", "250905", "Haus Seeufer - Nordhorn", "2026-11-07",
                 departure, "4", "", "", "", "", "", "", "", "", "", "");
     }
 

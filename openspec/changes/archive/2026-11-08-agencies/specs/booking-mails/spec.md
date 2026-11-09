@@ -19,5 +19,5 @@ The system SHALL map the property name of a mail to a unit per agency, where the
 A booking created from a mail SHALL reference the agency resolved from the mail's agency name. Matching a mail to an existing booking by booking number MUST compare agencies by identity, so a booking of an agency matches mails naming any of its mail names. A booking entered by hand without agency SHALL get the resolved agency of the first mail that matches it by number.
 
 #### Scenario: Cancellation after renaming
-- **WHEN** booking 275505 references „Fewo & Meer“, Anna has added the mail name „FEWO & MEER e.K.“, and a cancellation naming „FEWO & MEER e.K.“ with number 275505 arrives
-- **THEN** booking 275505 shows a proposed cancellation „zu prüfen“
+- **WHEN** booking 250905 references „Fewo & Meer“, Anna has added the mail name „FEWO & MEER e.K.“, and a cancellation naming „FEWO & MEER e.K.“ with number 250905 arrives
+- **THEN** booking 250905 shows a proposed cancellation „zu prüfen“

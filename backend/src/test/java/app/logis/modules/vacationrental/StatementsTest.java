@@ -29,7 +29,7 @@ class StatementsTest extends VacationRentalTest {
 
     private Long confirmation(Actor anna, Long unit) throws Exception {
         var body = stay(unit, "2026-11-06", "2026-11-08");
-        body.put("externalRef", "275505");
+        body.put("externalRef", "250905");
         body.put("expectedRent", "248.58");
         return id(book(anna, body).andExpect(status().isCreated()));
     }

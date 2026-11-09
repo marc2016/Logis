@@ -6,7 +6,7 @@
 An external booking number, if given, MUST be unique among all bookings of a unit with the same agency, including cancelled ones. Bookings without agency count as one agency.
 
 #### Scenario: Same confirmation entered twice
-- **WHEN** Anna records booking number "275505" a second time on the same unit
+- **WHEN** Anna records booking number "250905" a second time on the same unit
 - **THEN** the system rejects this with the message „Diese Buchungsnummer ist bereits erfasst“
 
 #### Scenario: Same number at two agencies
@@ -26,7 +26,7 @@ A booking SHALL optionally carry the agency it came from (free text, e.g. "Fewo 
 A booking created from a mail SHALL have the review state „zu prüfen“ until a user with at least `EDITOR` confirms or discards it. It MUST occupy the calendar like a planned booking and MUST be marked in the booking list, the calendar and the dialog. Confirming SHALL make it an ordinary booking, possibly after editing. Discarding SHALL delete it together with its documents and mark the mail in the inbox as discarded.
 
 #### Scenario: Confirm an imported booking
-- **WHEN** Anna opens the booking 275031 „zu prüfen“, corrects the guest name and confirms
+- **WHEN** Anna opens the booking 250903 „zu prüfen“, corrects the guest name and confirms
 - **THEN** the booking is an ordinary planned booking without the marker
 
 #### Scenario: Filter bookings to review
@@ -37,7 +37,7 @@ A booking created from a mail SHALL have the review state „zu prüfen“ until
 A booking SHALL carry at most one proposed change from a mail: new values for period, guests, pets, expected rent and guest data, or a cancellation. The dialog MUST show old and new values. Applying SHALL take over the values or cancel the booking, subject to the usual rules such as the overlap check. Discarding SHALL keep the booking unchanged. A newer proposal MUST replace an older one.
 
 #### Scenario: Apply a cancellation
-- **WHEN** Anna applies the proposed cancellation of booking 275505
+- **WHEN** Anna applies the proposed cancellation of booking 250905
 - **THEN** the booking is cancelled and the calendar period is free
 
 #### Scenario: Change would overlap

@@ -28,7 +28,7 @@ class MailImportMigrationTest {
             config.target("20261107.1210").load().migrate();
             var db = new JdbcTemplate(ds);
             db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref) "
-                    + "VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, '275505')");
+                    + "VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, '250905')");
 
             // Up to the mail import; later migrations replace the free-text agency (see AgencyMigrationTest).
             config.target("20261109.1200").load().migrate();
@@ -40,7 +40,7 @@ class MailImportMigrationTest {
             assertThat(row.get("proposal")).isNull();
             // Same number at another agency on the same unit is allowed now.
             db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref, agency) "
-                    + "VALUES (1, DATE '2026-12-06', DATE '2026-12-08', 2, '275505', 'Holidu')");
+                    + "VALUES (1, DATE '2026-12-06', DATE '2026-12-08', 2, '250905', 'Holidu')");
         } finally {
             server.execute("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)");
         }

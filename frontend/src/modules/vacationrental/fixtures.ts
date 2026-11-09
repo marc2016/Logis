@@ -17,7 +17,7 @@ export function booking(overrides: Partial<Booking> = {}): Booking {
     arrival: '2026-11-06',
     departure: '2026-11-08',
     nights: 2,
-    externalRef: '275505',
+    externalRef: '250905',
     adults: 4,
     children: 0,
     expectedRent: '248.58',

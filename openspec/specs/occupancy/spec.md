@@ -11,7 +11,7 @@ The system SHALL show the occupancy calendar for one vacation rental unit chosen
 
 #### Scenario: November at the holiday home
 - **WHEN** Anna opens the calendar of the unit "Haus Seeufer" in November 2026
-- **THEN** they see in the row of November a bar from 6 to 8 November for booking "275505", marked as planned
+- **THEN** they see in the row of November a bar from 6 to 8 November for booking "250905", marked as planned
 
 #### Scenario: Record from the calendar
 - **WHEN** Anna records a booking from the calendar view

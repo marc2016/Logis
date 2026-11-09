@@ -15,7 +15,7 @@ class BookingsTest extends VacationRentalTest {
 
     private Map<String, Object> confirmation(Long unitId) {
         var body = stay(unitId, "2026-11-06", "2026-11-08");
-        body.put("externalRef", "275505");
+        body.put("externalRef", "250905");
         body.put("adults", 4);
         body.put("expectedRent", "248.58");
         body.put("guest", Map.of("name", "Max Gast", "street", "Seeweg 1", "postalCode", "48529",
@@ -157,7 +157,7 @@ class BookingsTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.guestDeleted").value(true))
                 .andExpect(jsonPath("$.guest.name").doesNotExist())
                 .andExpect(jsonPath("$.guest.email").doesNotExist())
-                .andExpect(jsonPath("$.externalRef").value("275505"))
+                .andExpect(jsonPath("$.externalRef").value("250905"))
                 .andExpect(jsonPath("$.adults").value(4))
                 .andExpect(jsonPath("$.expectedRent").value("248.58"));
         var stored = jdbc.queryForMap("SELECT guest_name, guest_street, guest_phone, guest_email "
@@ -197,7 +197,7 @@ class BookingsTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.items[*].id", contains(a.intValue())));
         getWith(base + "&from=2026-11-07&to=2026-11-30", anna.session())
                 .andExpect(jsonPath("$.items[*].id", contains(a.intValue())));
-        getWith(base + "&q=275505", anna.session()).andExpect(jsonPath("$.items", hasSize(1)));
+        getWith(base + "&q=250905", anna.session()).andExpect(jsonPath("$.items", hasSize(1)));
         getWith(base + "&q=max gast", anna.session()).andExpect(jsonPath("$.items[0].id").value(a));
         // Contact data is never searched.
         getWith(base + "&q=nordhorn", anna.session()).andExpect(jsonPath("$.totalItems").value(0));

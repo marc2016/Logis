@@ -109,7 +109,7 @@ class CalendarLinksTest extends VacationRentalTest {
         var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
         var today = LocalDate.now();
         var arrival = today.plusDays(10);
-        guestBooking(anna, unit, arrival.toString(), arrival.plusDays(2).toString(), "Erika Musterfrau", "275505");
+        guestBooking(anna, unit, arrival.toString(), arrival.plusDays(2).toString(), "Erika Musterfrau", "250905");
         var cancelled = guestBooking(anna, unit, arrival.plusDays(5).toString(), arrival.plusDays(7).toString(),
                 "Storno Gast", "999");
         postJson("/api/vacationrental/bookings/" + cancelled + "/cancel", Map.of(), anna.session())
@@ -123,11 +123,11 @@ class CalendarLinksTest extends VacationRentalTest {
         var plain = feed(createLink(anna, unit, "Reinigung", false).get("path").asText());
         assertThat(plain).startsWith("BEGIN:VCALENDAR\r\n").contains("X-WR-CALNAME:Reinigung")
                 .contains("DTSTART;VALUE=DATE:" + start, "DTEND;VALUE=DATE:" + endExclusive, "SUMMARY:Belegt\r\n")
-                .doesNotContain("Erika", "275505", "Storno", "Alter Gast");
+                .doesNotContain("Erika", "250905", "Storno", "Alter Gast");
         assertThat(plain.split("BEGIN:VEVENT")).hasSize(2);
 
         var full = feed(createLink(anna, unit, "Ich", true).get("path").asText());
-        assertThat(full).contains("SUMMARY:Erika Musterfrau (275505)").doesNotContain("Storno", "Alter Gast");
+        assertThat(full).contains("SUMMARY:Erika Musterfrau (250905)").doesNotContain("Storno", "Alter Gast");
     }
 
     @Test

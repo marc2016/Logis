@@ -82,7 +82,7 @@ class MailImportTest extends VacationRentalTest {
             text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         }
         text = text.replace("VVV-Stadt- und Citymarketing Nordhorn e.V.", intermediary)
-                .replace("6a29b55l9j", ref).replace("15.05.2027", arrival).replace("18.05.2027", departure);
+                .replace("3e98f765kl", ref).replace("15.05.2027", arrival).replace("18.05.2027", departure);
         var message = new MimeMessage(Session.getInstance(new Properties()),
                 new java.io.ByteArrayInputStream(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         message.setHeader("Message-ID", "<" + messageId + "@example.org>");
@@ -132,7 +132,7 @@ class MailImportTest extends VacationRentalTest {
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
                 .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"))
-                .andExpect(jsonPath("$.externalRef").value("275505"))
+                .andExpect(jsonPath("$.externalRef").value("250905"))
                 .andExpect(jsonPath("$.expectedRent").value("248.58"))
                 .andExpect(jsonPath("$.guest.email").value("erika@example.org"));
         getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
@@ -166,9 +166,9 @@ class MailImportTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.reviewState").value("NONE"))
                 .andExpect(jsonPath("$.proposal").doesNotExist());
 
-        deliver("fewo-cancellation-275505.eml", null);
+        deliver("fewo-cancellation-250905.eml", null);
         imports.pollNow(anna.id());
-        assertThat(inboxItem(anna, "Stornierung 275505").get("result")).isEqualTo("CHANGE_PROPOSED");
+        assertThat(inboxItem(anna, "Stornierung 250905").get("result")).isEqualTo("CHANGE_PROPOSED");
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.reviewState").value("CHANGE"))
                 .andExpect(jsonPath("$.proposal.type").value("CANCELLATION"));
@@ -180,7 +180,7 @@ class MailImportTest extends VacationRentalTest {
     void cancellationWithoutBookingAndOlderMails() throws Exception {
         deliver("fewo-cancellation-2025.eml", "2025-09-01T08:00:00Z");
         imports.fetchOlder(anna.id(), java.time.LocalDate.of(2025, 1, 1));
-        assertThat(inboxItem(anna, "Stornierung 256456").get("result")).isEqualTo("NOT_MATCHED");
+        assertThat(inboxItem(anna, "Stornierung 250901").get("result")).isEqualTo("NOT_MATCHED");
         imports.fetchOlder(anna.id(), java.time.LocalDate.of(2025, 1, 1));
         assertThat(inbox(anna)).hasSize(1);
     }
@@ -217,7 +217,7 @@ class MailImportTest extends VacationRentalTest {
     @Test
     void manualBookingIsMatchedByNumberAndDiscardMarksTheMail() throws Exception {
         var body = stay(unit, "2026-11-06", "2026-11-08");
-        body.put("externalRef", "275505");
+        body.put("externalRef", "250905");
         body.put("adults", 4);
         body.put("expectedRent", "248.58");
         var manual = id(book(anna, body));
@@ -272,9 +272,9 @@ class MailImportTest extends VacationRentalTest {
         getWith("/api/vacationrental/bookings/" + ((Number) item.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
                 .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"))
-                .andExpect(jsonPath("$.externalRef").value("274907"))
+                .andExpect(jsonPath("$.externalRef").value("250902"))
                 .andExpect(jsonPath("$.adults").value(2))
-                .andExpect(jsonPath("$.expectedRent").value("454.32"));
+                .andExpect(jsonPath("$.expectedRent").value("432.10"));
     }
 
     @Test
@@ -282,12 +282,12 @@ class MailImportTest extends VacationRentalTest {
         deliver("holidu-confirmation.eml", "2026-11-02T13:00:00Z");
         deliver("ds-vvv-confirmation.eml", "2026-11-02T13:10:00Z");
         imports.pollNow(anna.id());
-        assign("Buchungsmitteilung 6a31h227wy");
+        assign("Buchungsmitteilung 3e12f345gh");
         // The Holidu mapping does not cover VVV: its first mail asks for the unit once.
-        var vvv = inboxItem(anna, "Buchungsmitteilung 6a29b55l9j");
+        var vvv = inboxItem(anna, "Buchungsmitteilung 3e98f765kl");
         assertThat(vvv.get("result")).isEqualTo("UNASSIGNED_UNIT");
-        assign("Buchungsmitteilung 6a29b55l9j");
-        vvv = inboxItem(anna, "Buchungsmitteilung 6a29b55l9j");
+        assign("Buchungsmitteilung 3e98f765kl");
+        vvv = inboxItem(anna, "Buchungsmitteilung 3e98f765kl");
         assertThat(vvv.get("result")).isEqualTo("BOOKING_CREATED");
         assertThat(vvv.get("source")).isEqualTo("VVV-Stadt- und Citymarketing Nordhorn e.V.");
         getWith("/api/vacationrental/bookings/" + ((Number) vvv.get("linkId")).longValue(), anna.session())
@@ -296,7 +296,7 @@ class MailImportTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.adults").value(2))
                 .andExpect(jsonPath("$.children").value(2))
                 .andExpect(jsonPath("$.expectedRent").value("447.00"));
-        var holidu = inboxItem(anna, "Buchungsmitteilung 6a31h227wy");
+        var holidu = inboxItem(anna, "Buchungsmitteilung 3e12f345gh");
         getWith("/api/vacationrental/bookings/" + ((Number) holidu.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.agency.name").value("Holidu"));
     }
@@ -305,8 +305,8 @@ class MailImportTest extends VacationRentalTest {
     void blockNoticeIsAttachedToTheStayWithTheSamePeriod() throws Exception {
         deliver("ds-vvv-confirmation.eml", "2026-11-02T10:50:00Z");
         imports.pollNow(anna.id());
-        assign("Buchungsmitteilung 6a29b55l9j");
-        var bookingId = ((Number) inboxItem(anna, "Buchungsmitteilung 6a29b55l9j").get("linkId")).longValue();
+        assign("Buchungsmitteilung 3e98f765kl");
+        var bookingId = ((Number) inboxItem(anna, "Buchungsmitteilung 3e98f765kl").get("linkId")).longValue();
 
         deliver("fewo-block-notice.eml", null);
         imports.pollNow(anna.id());
@@ -317,12 +317,12 @@ class MailImportTest extends VacationRentalTest {
         assertThat(item.get("resultDetail")).isEqualTo("Blockung durch VVV Nordhorn");
         assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(bookingId);
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
-                .andExpect(jsonPath("$.externalRef").value("6a29b55l9j"))
+                .andExpect(jsonPath("$.externalRef").value("3e98f765kl"))
                 .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
                 .andExpect(jsonPath("$.proposal").doesNotExist());
         getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].fileName", hasItem(containsString("Blockung 275206"))));
+                .andExpect(jsonPath("$[*].fileName", hasItem(containsString("Blockung 250904"))));
         getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
     }
 
@@ -423,11 +423,11 @@ class MailImportTest extends VacationRentalTest {
         deliver("holidu-forward-attachment.eml", "2026-11-02T13:30:00Z");
         imports.pollNow(anna.id());
         assign("WG: Neue Buchung");
-        assign("Buchungsmitteilung 6a31h227wy");
+        assign("Buchungsmitteilung 3e12f345gh");
         var fewo = inboxItem(anna, "WG: Neue Buchung");
         assertThat(fewo.get("result")).isEqualTo("BOOKING_CREATED");
         assertThat(fewo.get("source")).isEqualTo("Fewo & Meer");
-        assertThat(inboxItem(anna, "Buchungsmitteilung 6a31h227wy").get("result")).isEqualTo("BOOKING_CREATED");
+        assertThat(inboxItem(anna, "Buchungsmitteilung 3e12f345gh").get("result")).isEqualTo("BOOKING_CREATED");
         var bookingId = ((Number) fewo.get("linkId")).longValue();
         postJson("/api/vacationrental/bookings/" + bookingId + "/confirm", Map.of(), anna.session())
                 .andExpect(status().isOk());

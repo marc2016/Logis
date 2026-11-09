@@ -6,7 +6,7 @@
 A user with at least `EDITOR` as effective role on a unit SHALL be able to record a booking on it with arrival, departure, adults, and optionally children, external booking number, agency and expected rent. Only active units with usage `VACATION_RENTAL` MUST accept new bookings. Departure MUST be after arrival. A new booking SHALL have the status planned. A booking MUST NOT carry a channel.
 
 #### Scenario: Booking from the provider's confirmation
-- **WHEN** Anna records booking number "275505" on "Haus Seeufer" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
+- **WHEN** Anna records booking number "250905" on "Haus Seeufer" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
 - **THEN** the booking appears as planned with 2 nights
 
 #### Scenario: Unit not used for vacation rental
@@ -21,7 +21,7 @@ A user with at least `EDITOR` as effective role on a unit SHALL be able to recor
 An external booking number, if given, MUST be unique among all bookings of a unit with the same agency, including cancelled ones. Bookings without agency count as one agency. Agencies are compared by identity, not by name, so renaming an agency MUST NOT change which numbers collide.
 
 #### Scenario: Same confirmation entered twice
-- **WHEN** Anna records booking number "275505" a second time on the same unit
+- **WHEN** Anna records booking number "250905" a second time on the same unit
 - **THEN** the system rejects this with the message „Diese Buchungsnummer ist bereits erfasst“
 
 #### Scenario: Same number at two agencies

@@ -21,7 +21,7 @@ A user with at least `EDITOR` as effective role on a unit SHALL be able to creat
 A user with at least `EDITOR` on the unit SHALL be able to assign bookings of the same unit to a statement with gross, commission and cleaning. Net MUST be gross minus commission minus cleaning. The payout of a statement MUST be the sum of its net amounts. A booking MUST be assigned to at most one statement. When it is assigned, its gross SHALL default to its expected rent.
 
 #### Scenario: Assign a booking
-- **WHEN** Anna assigns booking "275505" with gross 248.58, commission 37.29 and cleaning 60.00 to the November statement
+- **WHEN** Anna assigns booking "250905" with gross 248.58, commission 37.29 and cleaning 60.00 to the November statement
 - **THEN** the line shows a net of 151.29, the payout rises by 151.29, and the booking shows the status settled
 
 #### Scenario: Booking of another unit
@@ -43,7 +43,7 @@ A cancelled booking SHALL be assignable to a statement like any other booking, s
 A user with at least `EDITOR` on the unit SHALL be able to change a statement's data and lines, remove a booking from it and delete it. A removed booking SHALL lose its amounts from the statement and become planned again, or stay cancelled. Deleting a statement MUST do this for all its bookings.
 
 #### Scenario: Remove a line
-- **WHEN** Anna removes booking "275505" from the November statement
+- **WHEN** Anna removes booking "250905" from the November statement
 - **THEN** the payout drops by its net, and the booking shows the status planned
 
 ### Requirement: Access through the unit

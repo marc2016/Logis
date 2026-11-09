@@ -16,7 +16,7 @@ class StatementFinancesTest extends VacationRentalTest {
         var property = singleUnitProperty(anna, "Haus Seeufer");
         var unit = unitIds(property).getFirst();
         var body = stay(unit, "2026-11-06", "2026-11-08");
-        body.put("externalRef", "275505");
+        body.put("externalRef", "250905");
         body.put("expectedRent", "248.58");
         var booking = id(book(anna, body));
         booking(anna, unit, "2026-11-20", "2026-11-22"); // planned: contributes nothing
@@ -32,7 +32,7 @@ class StatementFinancesTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.months[10].expenses").value("417.29"))
                 .andExpect(jsonPath("$.months[10].result").value("-168.71"))
                 .andExpect(jsonPath("$.items[*].label",
-                        containsInAnyOrder("Buchung 275505", "Provision", "Reinigung", "Handwerker Meyer")))
+                        containsInAnyOrder("Buchung 250905", "Provision", "Reinigung", "Handwerker Meyer")))
                 .andExpect(jsonPath("$.items[?(@.label == 'Provision')].date").value("2026-11-30"))
                 .andExpect(jsonPath("$.items[?(@.label == 'Provision')].sourceType")
                         .value("vacationrental.statement"));

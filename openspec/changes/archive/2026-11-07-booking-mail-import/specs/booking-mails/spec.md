@@ -10,18 +10,18 @@ Booking mails turn the mails of rental agencies (confirmations, short-notice not
 The system SHALL recognise the mail type and read its fields with fixed rules for known agencies: Fewo & Meer confirmations, short-notice notices and cancellations, and Holidu/DS confirmations. Read fields MUST include agency, booking number, property name, arrival, departure, adults, children, and where present pets, rent and guest data. Amounts and dates MUST be read in German notation. For Holidu/DS the total price MUST be used as the expected rent.
 
 #### Scenario: Fewo & Meer confirmation
-- **WHEN** the mail "Neue Buchung für Haus Seeufer - Nordhorn" with booking number 275031, "2 Erwachsene, 1 Kind", 23.12.2026–27.12.2026 and "559,00 EUR" arrives
+- **WHEN** the mail "Neue Buchung für Haus Seeufer - Nordhorn" with booking number 250903, "2 Erwachsene, 1 Kind", 23.12.2026–27.12.2026 and "559,00 EUR" arrives
 - **THEN** it is read as a confirmation of Fewo & Meer with 2 adults, 1 child and an expected rent of 559.00
 
 #### Scenario: Holidu/DS confirmation
-- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 6a31h227wy)" with "REISEPREIS: 309,08 EUR" for "Ferienhaus Seeufer" arrives
-- **THEN** it is read as a confirmation of Holidu with booking number "6a31h227wy" and an expected rent of 309.08
+- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 3e12f345gh)" with "REISEPREIS: 309,08 EUR" for "Ferienhaus Seeufer" arrives
+- **THEN** it is read as a confirmation of Holidu with booking number "3e12f345gh" and an expected rent of 309.08
 
 ### Requirement: Forwarded mails
 Forwarded booking mails MUST be recognised like the originals, whether forwarded inline (with „WG:“ or „Fwd:“ and quoted text) or as an attachment.
 
 #### Scenario: Forwarded by the user
-- **WHEN** Anna forwards the confirmation of booking 275505 to the mailbox with the subject "WG: Neue Buchung für Haus Seeufer - Nordhorn"
+- **WHEN** Anna forwards the confirmation of booking 250905 to the mailbox with the subject "WG: Neue Buchung für Haus Seeufer - Nordhorn"
 - **THEN** it is read as a confirmation of Fewo & Meer like the original
 
 #### Scenario: Forwarded as attachment
@@ -32,7 +32,7 @@ Forwarded booking mails MUST be recognised like the originals, whether forwarded
 If AI is enabled by the administrator, mails that no rule recognises SHALL be read by an AI model into the same fields, including the mail type. If AI is disabled or the result is incomplete, the mail MUST be listed as not recognised. Mails recognised by a rule MUST NOT be sent to the AI.
 
 #### Scenario: Unknown change mail with AI
-- **WHEN** AI is enabled and an unknown change mail for booking 275505 arrives
+- **WHEN** AI is enabled and an unknown change mail for booking 250905 arrives
 - **THEN** the AI result proposes the change on that booking like a rule result would
 
 #### Scenario: AI disabled
@@ -50,16 +50,16 @@ The system SHALL map the property name of a mail to a unit per agency. The first
 A recognised mail SHALL have exactly one of these effects, decided by agency and booking number: a new booking awaiting review, a proposed change or cancellation on the existing booking, or only attaching the mail when nothing differs. Whenever a booking is created or changed, the original mail MUST be attached to it as a document.
 
 #### Scenario: Confirmation creates a booking to review
-- **WHEN** the confirmation for booking 275031 is fetched
+- **WHEN** the confirmation for booking 250903 is fetched
 - **THEN** a booking „zu prüfen“ from 23.12.2026 to 27.12.2026 exists with the mail attached
 
 #### Scenario: Short-notice notice for a known booking
-- **WHEN** the „Last-Minute Buchung 275505“ mail has the same period and guests as booking 275505
+- **WHEN** the „Last-Minute Buchung 250905“ mail has the same period and guests as booking 250905
 - **THEN** the mail is attached to the booking and nothing else changes
 
 #### Scenario: Cancellation mail
-- **WHEN** the mail "Stornierung 275505, Haus Seeufer - Nordhorn" is fetched
-- **THEN** booking 275505 shows a proposed cancellation „zu prüfen“ with the mail attached
+- **WHEN** the mail "Stornierung 250905, Haus Seeufer - Nordhorn" is fetched
+- **THEN** booking 250905 shows a proposed cancellation „zu prüfen“ with the mail attached
 
 ### Requirement: Mails without a booking effect
 A cancellation or change for an unknown booking number MUST stay in the inbox as „nicht zugeordnet“. A new booking that would overlap another booking MUST NOT be created and MUST stay in the inbox as „Zeitraum belegt“.

@@ -25,7 +25,7 @@ class MailParsersTest {
         var p = fewo.parse(mail("fewo-confirmation-adults.eml")).orElseThrow();
         assertThat(p.agency()).isEqualTo("Fewo & Meer");
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
-        assertThat(p.bookingRef()).isEqualTo("275505");
+        assertThat(p.bookingRef()).isEqualTo("250905");
         assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 11, 6));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2026, 11, 8));
@@ -40,7 +40,7 @@ class MailParsersTest {
     @Test
     void fewoConfirmationWithChildAndOnlyMobile() throws Exception {
         var p = fewo.parse(mail("fewo-confirmation-child.eml")).orElseThrow();
-        assertThat(p.bookingRef()).isEqualTo("275031");
+        assertThat(p.bookingRef()).isEqualTo("250903");
         assertThat(p.adults()).isEqualTo(2);
         assertThat(p.children()).isEqualTo(1);
         assertThat(p.expectedRent()).isEqualByComparingTo("559.00");
@@ -52,7 +52,7 @@ class MailParsersTest {
     void fewoShortNotice() throws Exception {
         var p = fewo.parse(mail("fewo-last-minute.eml")).orElseThrow();
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.SHORT_NOTICE);
-        assertThat(p.bookingRef()).isEqualTo("275505");
+        assertThat(p.bookingRef()).isEqualTo("250905");
         assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 11, 6));
         assertThat(p.adults()).isEqualTo(4);
@@ -64,13 +64,13 @@ class MailParsersTest {
 
     @Test
     void fewoCancellations() throws Exception {
-        for (var name : new String[] {"fewo-cancellation-2025.eml", "fewo-cancellation-275505.eml"}) {
+        for (var name : new String[] {"fewo-cancellation-2025.eml", "fewo-cancellation-250905.eml"}) {
             var p = fewo.parse(mail(name)).orElseThrow();
             assertThat(p.type()).isEqualTo(ParsedMail.MailType.CANCELLATION);
             assertThat(p.usable()).isTrue();
         }
         var p = fewo.parse(mail("fewo-cancellation-2025.eml")).orElseThrow();
-        assertThat(p.bookingRef()).isEqualTo("256456");
+        assertThat(p.bookingRef()).isEqualTo("250901");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2025, 9, 23));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2025, 9, 26));
     }
@@ -79,7 +79,7 @@ class MailParsersTest {
     void holiduConfirmationUsesTheTotalPrice() throws Exception {
         var p = holidu.parse(mail("holidu-confirmation.eml")).orElseThrow();
         assertThat(p.agency()).isEqualTo("Holidu");
-        assertThat(p.bookingRef()).isEqualTo("6a31h227wy");
+        assertThat(p.bookingRef()).isEqualTo("3e12f345gh");
         assertThat(p.propertyName()).isEqualTo("Ferienhaus Seeufer");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 12, 4));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2026, 12, 6));
@@ -105,7 +105,7 @@ class MailParsersTest {
         assertThat(mail.businessSubject()).isEqualTo("Neue Buchung für Haus Seeufer - Nordhorn");
         var p = fewo.parse(mail).orElseThrow();
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
-        assertThat(p.bookingRef()).isEqualTo("275505");
+        assertThat(p.bookingRef()).isEqualTo("250905");
         assertThat(p.expectedRent()).isEqualByComparingTo("248.58");
         assertThat(p.guest().email()).isEqualTo("erika@example.org");
     }
@@ -116,16 +116,16 @@ class MailParsersTest {
         assertThat(mail.text()).contains("Sehr geehrter Gast").doesNotContain("> Sehr");
         var p = fewo.parse(mail).orElseThrow();
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.CANCELLATION);
-        assertThat(p.bookingRef()).isEqualTo("275505");
+        assertThat(p.bookingRef()).isEqualTo("250905");
     }
 
     @Test
     void confirmationForwardedAsAttachment() throws Exception {
         var mail = mail("holidu-forward-attachment.eml");
-        assertThat(mail.messageId()).isEqualTo("<fwd-attachment-6a31h227wy@example.org>");
+        assertThat(mail.messageId()).isEqualTo("<fwd-attachment-3e12f345gh@example.org>");
         assertThat(mail.sender()).isEqualTo("buchungsservice@ds-destinationsolutions.com");
         var p = holidu.parse(mail).orElseThrow();
-        assertThat(p.bookingRef()).isEqualTo("6a31h227wy");
+        assertThat(p.bookingRef()).isEqualTo("3e12f345gh");
         assertThat(p.expectedRent()).isEqualByComparingTo("309.08");
     }
 
@@ -137,11 +137,11 @@ class MailParsersTest {
         var p = fewo.parse(mail).orElseThrow();
         assertThat(p.agency()).isEqualTo("Fewo & Meer");
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
-        assertThat(p.bookingRef()).isEqualTo("274907");
+        assertThat(p.bookingRef()).isEqualTo("250902");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 11, 1));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2026, 11, 6));
         assertThat(p.adults()).isEqualTo(2);
-        assertThat(p.expectedRent()).isEqualByComparingTo("454.32");
+        assertThat(p.expectedRent()).isEqualByComparingTo("432.10");
         assertThat(p.usable()).isTrue();
     }
 
@@ -160,7 +160,7 @@ class MailParsersTest {
         var p = holidu.parse(mail("ds-vvv-confirmation.eml")).orElseThrow();
         assertThat(p.agency()).isEqualTo("VVV-Stadt- und Citymarketing Nordhorn e.V.");
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
-        assertThat(p.bookingRef()).isEqualTo("6a29b55l9j");
+        assertThat(p.bookingRef()).isEqualTo("3e98f765kl");
         assertThat(p.propertyName()).isEqualTo("Ferienhaus Seeufer");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2027, 5, 15));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2027, 5, 18));
@@ -186,7 +186,7 @@ class MailParsersTest {
         var p = fewo.parse(mail("fewo-block-notice.eml")).orElseThrow();
         assertThat(p.agency()).isEqualTo("Fewo & Meer");
         assertThat(p.type()).isEqualTo(ParsedMail.MailType.BLOCK_NOTICE);
-        assertThat(p.bookingRef()).isEqualTo("275206");
+        assertThat(p.bookingRef()).isEqualTo("250904");
         assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
         assertThat(p.arrival()).isEqualTo(LocalDate.of(2027, 5, 15));
         assertThat(p.departure()).isEqualTo(LocalDate.of(2027, 5, 18));
@@ -199,17 +199,17 @@ class MailParsersTest {
     @Test
     void fewoBlockNoticeVariants() throws Exception {
         var spaced = blockNotice("info@fewoscout.com",
-                "Neue Blockung für Haus Seeufer - Nordhorn, 275206, vom 15.05.2027 bis 18.05.2027");
+                "Neue Blockung für Haus Seeufer - Nordhorn, 250904, vom 15.05.2027 bis 18.05.2027");
         var p = fewo.parse(spaced).orElseThrow();
-        assertThat(p.bookingRef()).isEqualTo("275206");
+        assertThat(p.bookingRef()).isEqualTo("250904");
         assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
         assertThat(p.intermediary()).isNull();
 
         var forwarded = blockNotice("anna@example.org",
-                "WG: Neue Blockung für Haus Seeufer - Nordhorn,275206, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn");
+                "WG: Neue Blockung für Haus Seeufer - Nordhorn,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn");
         var f = fewo.parse(forwarded).orElseThrow();
         assertThat(f.type()).isEqualTo(ParsedMail.MailType.BLOCK_NOTICE);
-        assertThat(f.bookingRef()).isEqualTo("275206");
+        assertThat(f.bookingRef()).isEqualTo("250904");
         assertThat(f.intermediary()).isEqualTo("VVV Nordhorn");
     }
 
