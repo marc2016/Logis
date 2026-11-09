@@ -24,6 +24,12 @@
 - Never edit an applied Flyway migration. Every schema or data change gets a new migration (`V<yyyyMMdd>.<HHmm>__<module>_<topic>.sql` in the module's folder), including data migration for existing rows.
 - Warn before fundamental changes (dropping or restructuring tables, changing ownership or relations, data that cannot be migrated cleanly) and get confirmation first. Such changes are still possible if needed, but only knowingly and with a migration path.
 
+## Test data
+
+- No real data in git: no guest, tenant or owner names, addresses, phone numbers, emails, booking or customer numbers, amounts or postal codes from real mails or bookings. This covers test mails, tests, specs, docs and commit messages.
+- Real samples (e.g. mails the user pastes) are only used for their structure. Test files get invented values (names like „Erika Musterfrau“, `example.org` addresses, made-up booking numbers).
+- Before committing anything derived from a real sample, check that none of its values remain.
+
 ## Workflow
 
 - New features as an OpenSpec change: propose → apply → archive.
