@@ -70,9 +70,17 @@ class FewoUndMeerParser implements MailParser {
                 || mail.text().contains("fewoundmeer.de");
     }
 
+    /**
+     * Between a table label and its value: a tab or two spaces, with any further blanks around them.
+     * Forwarding often leaves a space before or after the tab; a single space
+     * stays too little, so prose lines starting with a label word are not read as fields.
+     */
+    private static final String SEPARATOR = "[ \\t\\u00a0]*(?:\\t|[ \\u00a0]{2})[ \\t\\u00a0]*";
+    private static final Pattern ADDRESS = Pattern.compile("^Adresse" + SEPARATOR + "(.*?)\\s*$");
+
     /** "Label\tValue" lines from the HTML table. */
     private static String field(String label, String text) {
-        return find(Pattern.compile("(?m)^" + Pattern.quote(label) + "(?:\\t+| {2,})(.*)$"), text);
+        return find(Pattern.compile("(?m)^" + Pattern.quote(label) + SEPARATOR + "(.*?)[ \\t\\u00a0]*$"), text);
     }
 
     private static ParsedMail confirmation(String property, String text) {
@@ -94,7 +102,7 @@ class FewoUndMeerParser implements MailParser {
         var result = new String[4];
         var lines = text.split("\n");
         for (int i = 0; i < lines.length; i++) {
-            var m = Pattern.compile("^Adresse(?:\\t+| {2,})(.*)$").matcher(lines[i]);
+            var m = ADDRESS.matcher(lines[i]);
             if (!m.find()) {
                 continue;
             }

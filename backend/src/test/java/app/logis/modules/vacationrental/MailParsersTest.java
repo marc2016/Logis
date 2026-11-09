@@ -2,6 +2,8 @@ package app.logis.modules.vacationrental;
 
 import app.logis.core.mail.MailContent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -108,6 +110,32 @@ class MailParsersTest {
         assertThat(p.bookingRef()).isEqualTo("250905");
         assertThat(p.expectedRent()).isEqualByComparingTo("248.58");
         assertThat(p.guest().email()).isEqualTo("erika@example.org");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"fewo-forward-apple-plain.eml", "fewo-forward-apple-html.eml"})
+    void forwardedWithSpacesAroundTheTab(String name) throws Exception {
+        // Forwarding leaves a space before and after the tab between label and value.
+        var mail = mail(name);
+        assertThat(mail.text()).contains("Buchungsnummer \t");
+        var p = fewo.parse(mail).orElseThrow();
+        assertThat(p.agency()).isEqualTo("Fewo & Meer");
+        assertThat(p.type()).isEqualTo(ParsedMail.MailType.CONFIRMATION);
+        assertThat(p.bookingRef()).isEqualTo("250906");
+        assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
+        assertThat(p.arrival()).isEqualTo(LocalDate.of(2026, 11, 9));
+        assertThat(p.departure()).isEqualTo(LocalDate.of(2026, 11, 13));
+        assertThat(p.adults()).isEqualTo(2);
+        assertThat(p.children()).isEqualTo(1);
+        assertThat(p.expectedRent()).isEqualByComparingTo("387.45");
+        assertThat(p.guest().name()).isEqualTo("Johanna Beispiel");
+        assertThat(p.guest().street()).isEqualTo("Beispielallee 3");
+        assertThat(p.guest().postalCode()).isEqualTo("12345");
+        assertThat(p.guest().city()).isEqualTo("Beispielstadt");
+        assertThat(p.guest().country()).isEqualTo("Deutschland");
+        assertThat(p.guest().phone()).isEqualTo("0170 0000005");
+        assertThat(p.guest().email()).isEqualTo("johanna@example.org");
+        assertThat(p.usable()).isTrue();
     }
 
     @Test

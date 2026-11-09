@@ -262,6 +262,44 @@ class MailImportTest extends VacationRentalTest {
     }
 
     @Test
+    void forwardedConfirmationWithSpacesAroundTheTabCreatesABooking() throws Exception {
+        deliver("fewo-forward-apple-plain.eml", "2026-11-09T08:12:00Z");
+        imports.pollNow(anna.id());
+        assign("Neue Buchung");
+        var item = inboxItem(anna, "Neue Buchung");
+        assertThat(item.get("result")).isEqualTo("BOOKING_CREATED");
+        assertThat(item.get("parsedBy")).isEqualTo("RULE");
+        getWith("/api/vacationrental/bookings/" + ((Number) item.get("linkId")).longValue(), anna.session())
+                .andExpect(jsonPath("$.externalRef").value("250906"))
+                .andExpect(jsonPath("$.arrival").value("2026-11-09"))
+                .andExpect(jsonPath("$.departure").value("2026-11-13"))
+                .andExpect(jsonPath("$.guest.name").value("Johanna Beispiel"))
+                .andExpect(jsonPath("$.expectedRent").value("387.45"));
+    }
+
+    @Test
+    void unrecognisedForwardIsRecognisedOnRetry() throws Exception {
+        // Stored as not recognised before the separator fix ...
+        byte[] raw;
+        try (var in = getClass().getResourceAsStream("/mails/fewo-forward-apple-html.eml")) {
+            raw = in.readAllBytes();
+        }
+        var id = jdbc.queryForObject("INSERT INTO core.mails (owner_user_id, message_id, received_at, raw, result) "
+                + "VALUES (?, '<fwd@example.org>', now(), ?, 'NOT_RECOGNISED') RETURNING id", Long.class, anna.id(),
+                raw);
+        // ... and read once the user retries it.
+        postJson("/api/mail/inbox/" + id + "/retry", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("UNASSIGNED_UNIT"));
+        postJson("/api/vacationrental/mail/" + id + "/assign", Map.of("unitId", unit), anna.session())
+                .andExpect(status().isNoContent());
+        var item = inboxItem(anna, "Neue Buchung");
+        assertThat(item.get("result")).isEqualTo("BOOKING_CREATED");
+        getWith("/api/vacationrental/bookings/" + ((Number) item.get("linkId")).longValue(), anna.session())
+                .andExpect(jsonPath("$.externalRef").value("250906"));
+    }
+
+    @Test
     void fewoScoutConfirmationWithoutSignatureCreatesABooking() throws Exception {
         deliver("fewoscout-confirmation.eml", "2026-11-02T08:44:46Z");
         imports.pollNow(anna.id());

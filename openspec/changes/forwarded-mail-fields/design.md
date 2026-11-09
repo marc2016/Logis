@@ -24,7 +24,7 @@
 
 ### D2: Test mail
 
-`fewo-forward-apple-spacing.eml`: a forward („Anfang der weitergeleiteten Nachricht:“) of a confirmation with the separators from the sample, sent from the user's own address, guest „Johanna Beispiel“ with an invented address. Parser test checks every field; an import test checks that the mail creates the booking instead of „Nicht erkannt“.
+`fewo-forward-apple-plain.eml` and `fewo-forward-apple-html.eml`: the same forward as plain text and as HTML (logis prefers the HTML part, so both layouts need a sample), („Anfang der weitergeleiteten Nachricht:“) of a confirmation with the separators from the sample, sent from the user's own address, guest „Johanna Beispiel“ with an invented address. Parser test checks every field; an import test checks that the mail creates the booking instead of „Nicht erkannt“.
 
 ## Risks / Trade-offs
 

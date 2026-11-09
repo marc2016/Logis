@@ -23,6 +23,6 @@ Fewo & Meer confirmations that the user forwards (for example with Apple Mail) a
 
 ## Impact
 
-- **Backend:** `FewoUndMeerParser` (field and address patterns), `MailParsersTest`, `MailImportTest`, a new test mail under `src/test/resources/mails/`.
+- **Backend:** `FewoUndMeerParser` (field and address patterns), `MailParsersTest`, `MailImportTest`, two new test mails under `src/test/resources/mails/`.
 - **Frontend, API, data:** unchanged.
 - **Data protection:** the sample the user sent contains a real guest; only its structure is used, the test mail gets invented guest data.
