@@ -6,6 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -47,6 +49,27 @@ public class Documents {
     /** Deletes all documents of the owner; call it in the same transaction that deletes the owner. */
     public void deleteAll(String ownerType, Long ownerId) {
         jdbc.update("DELETE FROM core.documents WHERE owner_type = ? AND owner_id = ?", ownerType, ownerId);
+    }
+
+    /** A stored document with its content, for owners that read their own documents again. */
+    public record Stored(Long id, Long ownerId, String fileName, Instant createdAt, byte[] content) {
+    }
+
+    /** Owners of this type that have at least one document of the content type. */
+    @Transactional(readOnly = true)
+    public List<Long> ownerIds(String ownerType, String contentType) {
+        return jdbc.queryForList("SELECT DISTINCT owner_id FROM core.documents WHERE owner_type = ? "
+                + "AND content_type = ? ORDER BY owner_id", Long.class, ownerType, contentType);
+    }
+
+    /** The owner's documents of the content type with their content, oldest first. */
+    @Transactional(readOnly = true)
+    public List<Stored> contents(String ownerType, Long ownerId, String contentType) {
+        return jdbc.query("SELECT id, owner_id, file_name, created_at, content FROM core.documents "
+                        + "WHERE owner_type = ? AND owner_id = ? AND content_type = ? ORDER BY created_at, id",
+                (rs, i) -> new Stored(rs.getLong("id"), rs.getLong("owner_id"), rs.getString("file_name"),
+                        rs.getTimestamp("created_at").toInstant(), rs.getBytes("content")),
+                ownerType, ownerId, contentType);
     }
 
     /** Number of documents of the owner. */

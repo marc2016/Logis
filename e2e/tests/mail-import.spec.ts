@@ -38,12 +38,18 @@ test('import a booking from a forwarded agency mail and confirm it', async ({ pa
   await page.goto(`/ferienvermietung/buchungen?q=${ref}`)
   const bookingRow = page.getByRole('row', { name: new RegExp(`Buchung ${ref}`) })
   await bookingRow.click()
-  const booking = page.getByRole('dialog')
-  await expect(booking.getByText('zu prüfen')).toBeVisible()
-  await expect(booking.getByRole('textbox', { name: 'Name' })).toHaveValue('Lena Testgast')
-  await booking.getByRole('button', { name: 'Bestätigen' }).click()
-  await expect(booking.getByText('zu prüfen')).toBeHidden()
-  await page.keyboard.press('Escape')
+  // The booking opens as its own page, with the mail it came from as its source.
+  await expect(page).toHaveURL(/\/ferienvermietung\/buchungen\/\d+$/)
+  await expect(page.getByRole('heading', { name: 'Lena Testgast' })).toBeVisible()
+  await expect(page.getByText('Aus E-Mail übernommen – bitte prüfen')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Lena Testgast')
+  await page.getByRole('button', { name: 'Name in der Quelle zeigen' }).click()
+  // On narrow screens the source is a tab of its own.
+  const sourceTab = page.getByRole('tab', { name: 'Quelle' })
+  if (await sourceTab.isVisible()) await sourceTab.click()
+  await expect(page.locator('mark[data-active="true"]')).toHaveText('Lena Testgast')
+  await page.getByRole('button', { name: 'Bestätigen' }).click()
+  await expect(page.getByText('Aus E-Mail übernommen – bitte prüfen')).toBeHidden()
 
   // A stay across a month boundary shows in both months: look at the month of arrival only.
   const [y, m] = arrival.split('-').map(Number)

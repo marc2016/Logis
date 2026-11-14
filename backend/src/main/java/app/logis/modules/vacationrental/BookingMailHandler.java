@@ -42,7 +42,7 @@ class BookingMailHandler implements MailHandler {
         if (parsed == null) {
             return Optional.empty();
         }
-        var outcome = engine.apply(ownerUserId, parsed, raw);
+        var outcome = engine.apply(ownerUserId, parsed, mail, raw);
         return Optional.of(new Handled(outcome.result().name(), outcome.detail(), parsed.type().name(),
                 parsed.agency(), parsed.bookingRef(), parsed.propertyName(),
                 outcome.bookingId() == null ? null : Booking.DOCUMENT_TYPE, outcome.bookingId(), parsed,

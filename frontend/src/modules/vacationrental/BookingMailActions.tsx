@@ -9,6 +9,7 @@ import type { MailInboxItem } from '@/app/types'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { unitLabel, useRentalUnits } from './api'
+import { bookingPath } from './BookingPage.paths'
 
 /** Inbox actions for booking mails: assign the agency's property name to a unit, open the booking. */
 export function BookingMailActions({ item, onDone }: { item: MailInboxItem; onDone: () => void }) {
@@ -52,9 +53,9 @@ export function BookingMailActions({ item, onDone }: { item: MailInboxItem; onDo
           <p className="text-xs text-muted-foreground">Logis merkt sich die Zuordnung für weitere Mails dieses Vermittlers.</p>
         </div>
       )}
-      {item.linkId && item.reference && (
+      {item.linkId && (
         <div>
-          <Button type="button" size="sm" onClick={() => navigate(`/ferienvermietung/buchungen?q=${encodeURIComponent(item.reference!)}`)}>
+          <Button type="button" size="sm" onClick={() => navigate(bookingPath(item.linkId!), { state: { back: '/posteingang' } })}>
             Zur Buchung
           </Button>
         </div>

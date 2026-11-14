@@ -1,34 +1,26 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { useMutation } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
-import { api } from '@/lib/api'
-import { errorMessage } from '@/lib/errors'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { IdSelect } from '../RentalFilters'
 import { StatementDialog } from '../StatementDialog'
-import { StatementLineDialog } from '../StatementLineDialog'
-import { statusLabel, unitLabel, useInvalidateRental, useRentalUnits, useStatement, useStatements, type Statement, type StatementLine } from '../api'
-
-type DialogState = { kind: 'statement'; statement: Statement | null } | { kind: 'line'; line: StatementLine | null } | null
+import { backTo, statementPath } from '../BookingPage.paths'
+import { unitLabel, useRentalUnits, useStatements } from '../api'
 
 /** Statements of the rental service provider per unit, with their booking lines and payout. */
 export function AbrechnungenPage() {
   const [params, setParams] = useSearchParams()
   const unitId = params.get('unitId') ? Number(params.get('unitId')) : undefined
-  const selectedId = params.get('statement') ? Number(params.get('statement')) : null
+  const oldLink = params.get('statement')
   const { data: units = [] } = useRentalUnits()
   const { data: statements = [], isLoading } = useStatements(unitId)
-  const { data: selected } = useStatement(selectedId)
-  const [dialog, setDialog] = useState<DialogState>(null)
-  const invalidate = useInvalidateRental()
+  const [creating, setCreating] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
   const canCreate = units.some((u) => !u.archived && u.myRole !== 'VIEWER')
 
   function update(changes: Record<string, number | undefined>) {
@@ -37,15 +29,15 @@ export function AbrechnungenPage() {
     setParams(next, { replace: true })
   }
 
-  const remove = useMutation({
-    mutationFn: ({ url }: { url: string; done: string; clear?: boolean }) => api(url, { method: 'DELETE' }),
-    onSuccess: async (_, { done, clear }) => {
-      await invalidate()
-      toast.success(done)
-      if (clear) update({ statement: undefined })
-    },
-    onError: (err) => toast.error(errorMessage(err)),
-  })
+  const open = (id: number) => navigate(statementPath(id), { state: backTo(location) })
+
+  // Earlier addresses selected a statement in the list; it has its own page now.
+  if (oldLink && Number.isInteger(Number(oldLink))) {
+    const rest = new URLSearchParams(params)
+    rest.delete('statement')
+    const listUrl = `${location.pathname}${rest.size ? `?${rest}` : ''}`
+    return <Navigate to={statementPath(Number(oldLink))} state={{ back: listUrl }} replace />
+  }
 
   return (
     <>
@@ -54,7 +46,7 @@ export function AbrechnungenPage() {
         description="Abrechnungen des Dienstleisters je Einheit."
         actions={
           canCreate && (
-            <Button onClick={() => setDialog({ kind: 'statement', statement: null })}>
+            <Button onClick={() => setCreating(true)}>
               <PlusIcon />
               Abrechnung
             </Button>
@@ -67,7 +59,7 @@ export function AbrechnungenPage() {
           label="Einheit"
           value={unitId}
           options={units.map((u) => ({ id: u.id, name: unitLabel(u) }))}
-          onChange={(v) => update({ unitId: v, statement: undefined })}
+          onChange={(v) => update({ unitId: v })}
         />
       </div>
       <div className="rounded-lg border">
@@ -95,9 +87,9 @@ export function AbrechnungenPage() {
                   key={s.id}
                   tabIndex={0}
                   className="cursor-pointer"
-                  data-state={s.id === selectedId ? 'selected' : undefined}
-                  onClick={() => update({ statement: s.id })}
-                  onKeyDown={(e) => e.key === 'Enter' && update({ statement: s.id })}
+                  aria-label={`Abrechnung ${s.provider} ${formatDate(s.statementDate)}`}
+                  onClick={() => open(s.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && open(s.id)}
                 >
                   <TableCell>{formatDate(s.statementDate)}</TableCell>
                   <TableCell>{unitLabel(s.unit)}</TableCell>
@@ -116,131 +108,17 @@ export function AbrechnungenPage() {
         </Table>
       </div>
 
-      {selected && (
-        <section className="mt-8" aria-label="Abrechnung">
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">
-                {selected.provider} · {formatDate(selected.statementDate)}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {unitLabel(selected.unit)} · {formatDate(selected.periodFrom)} – {formatDate(selected.periodTo)}
-              </p>
-            </div>
-            {selected.canEdit && (
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setDialog({ kind: 'line', line: null })}>
-                  <PlusIcon />
-                  Buchung zuordnen
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setDialog({ kind: 'statement', statement: selected })}>
-                  <PencilIcon />
-                  Bearbeiten
-                </Button>
-                <ConfirmButton
-                  question="Abrechnung löschen? Die Buchungen werden wieder geplant."
-                  disabled={remove.isPending}
-                  onConfirm={() => remove.mutate({ url: `/api/vacationrental/statements/${selected.id}`, done: 'Abrechnung gelöscht.', clear: true })}
-                >
-                  <Trash2Icon />
-                  Löschen
-                </ConfirmButton>
-              </div>
-            )}
-          </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aufenthalt</TableHead>
-                  <TableHead>Gast</TableHead>
-                  <TableHead className="text-right">Brutto</TableHead>
-                  <TableHead className="text-right">Provision</TableHead>
-                  <TableHead className="text-right">Reinigung</TableHead>
-                  <TableHead className="text-right">Netto</TableHead>
-                  {selected.canEdit && <TableHead className="w-24" />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {selected.lines.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
-                      Noch keine Buchung zugeordnet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  selected.lines.map((l) => (
-                    <TableRow key={l.booking.id}>
-                      <TableCell>
-                        {formatDate(l.booking.arrival)} – {formatDate(l.booking.departure)}
-                        {l.booking.externalRef && <span className="text-muted-foreground"> · {l.booking.externalRef}</span>}
-                        {l.booking.status === 'CANCELLED' && (
-                          <Badge variant="secondary" className="ml-2">
-                            {statusLabel.CANCELLED}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{l.booking.guest?.name ?? '–'}</TableCell>
-                      <TableCell className="text-right">
-                        <Money amount={l.gross} colored={false} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Money amount={l.commission} colored={false} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Money amount={l.cleaning} colored={false} />
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        <Money amount={l.net} />
-                      </TableCell>
-                      {selected.canEdit && (
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" aria-label="Position bearbeiten" onClick={() => setDialog({ kind: 'line', line: l })}>
-                            <PencilIcon />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Position entfernen"
-                            disabled={remove.isPending}
-                            onClick={() =>
-                              remove.mutate({ url: `/api/vacationrental/statements/${selected.id}/lines/${l.booking.id}`, done: 'Position entfernt.' })
-                            }
-                          >
-                            <Trash2Icon />
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={5}>Auszahlung</TableCell>
-                  <TableCell className="text-right font-semibold" data-testid="payout">
-                    <Money amount={selected.payout} />
-                  </TableCell>
-                  {selected.canEdit && <TableCell />}
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </div>
-        </section>
-      )}
-
-      {dialog?.kind === 'statement' && (
+      {creating && (
         <StatementDialog
-          statement={dialog.statement}
+          statement={null}
           defaultUnitId={unitId}
-          onSaved={(s) => {
-            setDialog(null)
-            update({ statement: s.id })
+          onSaved={(saved) => {
+            setCreating(false)
+            open(saved.id)
           }}
-          onClose={() => setDialog(null)}
+          onClose={() => setCreating(false)}
         />
       )}
-      {dialog?.kind === 'line' && selected && <StatementLineDialog statement={selected} line={dialog.line} onClose={() => setDialog(null)} />}
     </>
   )
 }

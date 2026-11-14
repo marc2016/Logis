@@ -16,95 +16,91 @@ const base = {
 
 describe('Review of imported bookings', () => {
   it('confirms a booking taken from a mail', async () => {
-    const imported = booking({ reviewState: 'NEW', agency: { id: 1, name: 'Fewo & Meer', archived: false } })
-    let confirmed = false
+    let current = booking({ reviewState: 'NEW', agency: { id: 1, name: 'Fewo & Meer', archived: false } })
     mockApi({
       ...base,
-      'GET /api/vacationrental/bookings': { body: bookingPage([imported]) },
+      'GET /api/vacationrental/bookings': () => ({ body: bookingPage([current]) }),
+      'GET /api/vacationrental/bookings/500': () => ({ body: current }),
       'POST /api/vacationrental/bookings/500/confirm': () => {
-        confirmed = true
-        return { body: { ...imported, reviewState: 'NONE' } }
+        current = { ...current, reviewState: 'NONE' }
+        return { body: current }
       },
     })
-    renderApp('/ferienvermietung/buchungen')
+    const { router } = renderApp('/ferienvermietung/buchungen')
     const user = userEvent.setup()
     const row = await screen.findByRole('row', { name: /Buchung 250905/ })
     expect(within(row).getByText('zu prüfen')).toBeInTheDocument()
     expect(within(row).getByText('Fewo & Meer')).toBeInTheDocument()
     await user.click(row)
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Aus E-Mail übernommen – bitte prüfen')).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Bestätigen' }))
-    await waitFor(() => expect(confirmed).toBe(true))
-    await waitFor(() => expect(within(dialog).queryByText('Aus E-Mail übernommen – bitte prüfen')).not.toBeInTheDocument())
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen/500'))
+    expect(await screen.findByText('Aus E-Mail übernommen – bitte prüfen')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Bestätigen' }))
+    await waitFor(() => expect(screen.queryByText('Aus E-Mail übernommen – bitte prüfen')).not.toBeInTheDocument())
+    expect(current.reviewState).toBe('NONE')
   })
 
-  it('discards a booking taken from a mail', async () => {
+  it('discards a booking taken from a mail and returns to the list', async () => {
     let discarded = false
+    const imported = booking({ reviewState: 'NEW' })
     mockApi({
       ...base,
-      'GET /api/vacationrental/bookings': { body: bookingPage([booking({ reviewState: 'NEW' })]) },
+      'GET /api/vacationrental/bookings': () => ({ body: bookingPage(discarded ? [] : [imported]) }),
+      'GET /api/vacationrental/bookings/500': { body: imported },
       'POST /api/vacationrental/bookings/500/discard': () => {
         discarded = true
         return { status: 204 }
       },
     })
-    renderApp('/ferienvermietung/buchungen')
+    const { router } = renderApp('/ferienvermietung/buchungen?review=true')
     const user = userEvent.setup()
     await user.click(await screen.findByRole('row', { name: /Buchung 250905/ }))
-    const dialog = await screen.findByRole('dialog')
-    await user.click(within(dialog).getByRole('button', { name: 'Verwerfen' }))
+    await user.click(await screen.findByRole('button', { name: 'Verwerfen' }))
     await waitFor(() => expect(discarded).toBe(true))
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen'))
+    expect(router.state.location.search).toBe('?review=true')
   })
 
-  it('shows a proposed change and applies a cancellation', async () => {
-    const changed = booking({
+  it('shows a proposed change and applies it', async () => {
+    let current = booking({
       reviewState: 'CHANGE',
       proposal: { type: 'CHANGE', arrival: null, departure: '2026-11-09', adults: null, children: null, pets: null, expectedRent: null, guest: null },
     })
-    let applied = false
     mockApi({
       ...base,
-      'GET /api/vacationrental/bookings': { body: bookingPage([changed]) },
+      'GET /api/vacationrental/bookings/500': () => ({ body: current }),
       'POST /api/vacationrental/bookings/500/proposal/apply': () => {
-        applied = true
-        return { body: { ...changed, departure: '2026-11-09', reviewState: 'NONE', proposal: null } }
+        current = { ...current, departure: '2026-11-09', reviewState: 'NONE', proposal: null, version: current.version + 1 }
+        return { body: current }
       },
     })
-    renderApp('/ferienvermietung/buchungen')
+    renderApp('/ferienvermietung/buchungen/500')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('row', { name: /Buchung 250905/ }))
-    const dialog = await screen.findByRole('dialog')
-    const diff = within(dialog).getByRole('table', { name: 'Vorgeschlagene Änderung' })
+    const diff = await screen.findByRole('table', { name: 'Vorgeschlagene Änderung' })
     expect(within(diff).getByText('08.11.2026')).toBeInTheDocument()
     expect(within(diff).getByText('09.11.2026')).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Übernehmen' }))
-    await waitFor(() => expect(applied).toBe(true))
-    expect(await within(dialog).findByLabelText('Abreise')).toHaveValue('2026-11-09')
+    await user.click(screen.getByRole('button', { name: 'Übernehmen' }))
+    await waitFor(() => expect(screen.getByLabelText('Abreise')).toHaveValue('2026-11-09'))
+    expect(screen.queryByRole('table', { name: 'Vorgeschlagene Änderung' })).not.toBeInTheDocument()
   })
 
   it('applies a proposed cancellation', async () => {
-    let applied = false
-    const cancelled = booking({
+    let current = booking({
       reviewState: 'CHANGE',
       proposal: { type: 'CANCELLATION', arrival: null, departure: null, adults: null, children: null, pets: null, expectedRent: null, guest: null },
     })
     mockApi({
       ...base,
-      'GET /api/vacationrental/bookings': { body: bookingPage([cancelled]) },
+      'GET /api/vacationrental/bookings/500': () => ({ body: current }),
       'POST /api/vacationrental/bookings/500/proposal/apply': () => {
-        applied = true
-        return { body: { ...cancelled, status: 'CANCELLED', reviewState: 'NONE', proposal: null } }
+        current = { ...current, status: 'CANCELLED', reviewState: 'NONE', proposal: null }
+        return { body: current }
       },
     })
-    renderApp('/ferienvermietung/buchungen')
+    renderApp('/ferienvermietung/buchungen/500')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('row', { name: /Buchung 250905/ }))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Stornierung per E-Mail – bitte prüfen')).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Stornierung übernehmen' }))
-    await waitFor(() => expect(applied).toBe(true))
+    expect(await screen.findByText('Stornierung per E-Mail – bitte prüfen')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stornierung übernehmen' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Stornierung aufheben' })).toBeInTheDocument())
   })
 
   it('filters the list to bookings awaiting review', async () => {

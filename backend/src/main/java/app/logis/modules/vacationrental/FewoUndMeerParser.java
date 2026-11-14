@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import static app.logis.modules.vacationrental.GermanText.amount;
 import static app.logis.modules.vacationrental.GermanText.blankToNull;
 import static app.logis.modules.vacationrental.GermanText.date;
-import static app.logis.modules.vacationrental.GermanText.find;
 
 /** Rules for Fewo & Meer: confirmation, short-notice notice and cancellation. */
 @Component
@@ -39,24 +38,33 @@ class FewoUndMeerParser implements MailParser {
             return Optional.empty();
         }
         var subject = mail.businessSubject();
+        var r = new Reading(subject, mail.text());
         var m = CONFIRMATION_SUBJECT.matcher(subject);
         if (m.find()) {
-            return Optional.of(confirmation(m.group(1).strip(), mail.text()));
+            var property = r.group(Location.Part.SUBJECT, m, 1, BookingField.PROPERTY_NAME);
+            return Optional.of(confirmation(property, r));
         }
         m = SHORT_NOTICE_SUBJECT.matcher(subject);
         if (m.find()) {
-            return Optional.of(shortNotice(m.group(1), m.group(2).strip(), m.group(3), m.group(4), mail.text()));
+            return Optional.of(shortNotice(m, r));
         }
         m = CANCELLATION_SUBJECT.matcher(subject);
         if (m.find()) {
-            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.CANCELLATION, m.group(1),
-                    m.group(2).strip(), date(m.group(3)), date(m.group(4)), null, null, null, null, null));
+            var ref = r.group(Location.Part.SUBJECT, m, 1, BookingField.EXTERNAL_REF);
+            var property = r.group(Location.Part.SUBJECT, m, 2, BookingField.PROPERTY_NAME);
+            var from = r.group(Location.Part.SUBJECT, m, 3, BookingField.ARRIVAL);
+            var to = r.group(Location.Part.SUBJECT, m, 4, BookingField.DEPARTURE);
+            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.CANCELLATION, ref, property, date(from),
+                    date(to), null, null, null, null, null).withLocations(r.locations()));
         }
         m = BLOCK_NOTICE_SUBJECT.matcher(subject);
         if (m.find()) {
-            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.BLOCK_NOTICE, m.group(2),
-                    m.group(1).strip(), date(m.group(3)), date(m.group(4)), null, null, null, null, null,
-                    blankToNull(m.group(5))));
+            var property = r.group(Location.Part.SUBJECT, m, 1, BookingField.PROPERTY_NAME);
+            var ref = r.group(Location.Part.SUBJECT, m, 2, BookingField.EXTERNAL_REF);
+            var from = r.group(Location.Part.SUBJECT, m, 3, BookingField.ARRIVAL);
+            var to = r.group(Location.Part.SUBJECT, m, 4, BookingField.DEPARTURE);
+            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.BLOCK_NOTICE, ref, property, date(from),
+                    date(to), null, null, null, null, null, blankToNull(m.group(5))).withLocations(r.locations()));
         }
         return Optional.empty();
     }
@@ -79,45 +87,56 @@ class FewoUndMeerParser implements MailParser {
     private static final Pattern ADDRESS = Pattern.compile("^Adresse" + SEPARATOR + "(.*?)\\s*$");
 
     /** "Label\tValue" lines from the HTML table. */
-    private static String field(String label, String text) {
-        return find(Pattern.compile("(?m)^" + Pattern.quote(label) + SEPARATOR + "(.*?)[ \\t\\u00a0]*$"), text);
+    private static String field(Reading r, String label, BookingField... fields) {
+        return r.text(Pattern.compile("(?m)^" + Pattern.quote(label) + SEPARATOR + "(.*?)[ \\t\\u00a0]*$"), fields);
     }
 
-    private static ParsedMail confirmation(String property, String text) {
-        var guests = field("Anzahl Gäste", text);
-        var rent = field("Mietpreis", text);
-        var phone = blankToNull(field("Telefon", text));
-        var mobile = blankToNull(field("Telefon (mobil)", text));
-        var address = address(text);
-        var guest = new Guest(field("Name", text), address[0], address[1], address[2], address[3],
-                phone != null ? phone : mobile, field("Email", text));
-        return new ParsedMail(AGENCY, ParsedMail.MailType.CONFIRMATION, field("Buchungsnummer", text), property,
-                date(field("Anreise", text)), date(field("Abreise", text)), GermanText.adults(guests),
-                GermanText.children(guests), null,
-                rent == null ? null : amount(rent.replaceAll("[^0-9.,]", "")), guest);
+    private static ParsedMail confirmation(String property, Reading r) {
+        var guests = field(r, "Anzahl Gäste", BookingField.ADULTS, BookingField.CHILDREN);
+        var rent = field(r, "Mietpreis", BookingField.EXPECTED_RENT);
+        var phone = blankToNull(field(r, "Telefon", BookingField.GUEST_PHONE));
+        String mobile = null;
+        if (phone == null) {
+            mobile = blankToNull(field(r, "Telefon (mobil)", BookingField.GUEST_PHONE));
+        }
+        var address = address(r);
+        var guest = new Guest(field(r, "Name", BookingField.GUEST_NAME), address[0], address[1], address[2],
+                address[3], phone != null ? phone : mobile, field(r, "Email", BookingField.GUEST_EMAIL));
+        var ref = field(r, "Buchungsnummer", BookingField.EXTERNAL_REF);
+        var arrival = field(r, "Anreise", BookingField.ARRIVAL);
+        var departure = field(r, "Abreise", BookingField.DEPARTURE);
+        return new ParsedMail(AGENCY, ParsedMail.MailType.CONFIRMATION, ref, property, date(arrival), date(departure),
+                GermanText.adults(guests), GermanText.children(guests), null,
+                rent == null ? null : amount(rent.replaceAll("[^0-9.,]", "")), guest).withLocations(r.locations());
     }
 
     /** Street, postal code, city and country from the multi-line address cell. */
-    private static String[] address(String text) {
+    private static String[] address(Reading r) {
         var result = new String[4];
-        var lines = text.split("\n");
-        for (int i = 0; i < lines.length; i++) {
+        var lines = r.text().split("\n", -1);
+        var offset = 0;
+        for (int i = 0; i < lines.length; offset += lines[i].length() + 1, i++) {
             var m = ADDRESS.matcher(lines[i]);
             if (!m.find()) {
                 continue;
             }
-            result[0] = blankToNull(m.group(1));
+            result[0] = blankToNull(r.value(Location.Part.TEXT, offset + m.start(1), offset + m.end(1),
+                    BookingField.GUEST_STREET));
+            var lineStart = offset + lines[i].length() + 1;
             for (int j = i + 1; j < lines.length && !lines[j].startsWith("Telefon") && !lines[j].startsWith("Email");
-                    j++) {
+                    lineStart += lines[j].length() + 1, j++) {
                 if (lines[j].isBlank()) {
                     continue;
                 }
                 var place = Pattern.compile("^(\\d{4,5})\\s+(.+)$").matcher(lines[j]);
                 if (place.find()) {
-                    result[1] = place.group(1);
-                    result[2] = place.group(2).strip();
+                    result[1] = r.value(Location.Part.TEXT, lineStart + place.start(1), lineStart + place.end(1),
+                            BookingField.GUEST_POSTAL_CODE);
+                    result[2] = r.value(Location.Part.TEXT, lineStart + place.start(2), lineStart + place.end(2),
+                            BookingField.GUEST_CITY);
                 } else {
-                    result[3] = lines[j].strip();
+                    result[3] = r.value(Location.Part.TEXT, lineStart, lineStart + lines[j].length(),
+                            BookingField.GUEST_COUNTRY);
                 }
             }
             break;
@@ -125,15 +144,23 @@ class FewoUndMeerParser implements MailParser {
         return result;
     }
 
-    private static ParsedMail shortNotice(String ref, String property, String from, String to, String text) {
-        var persons = find(Pattern.compile("(?m)^Personenzahl:\\s*(.*)$"), text);
-        var pets = find(Pattern.compile("(?m)^Haustiere:\\s*(\\d+)"), text);
-        var phone = blankToNull(find(Pattern.compile("(?m)^Telefon-Nr\\.:[ \\t]*(.*)$"), text));
-        var mobile = blankToNull(find(Pattern.compile("(?m)^Mobil-Nr\\.:[ \\t]*(.*)$"), text));
-        var name = find(Pattern.compile("(?m)^Gast-Name:\\s*(.*)$"), text);
+    private static ParsedMail shortNotice(java.util.regex.Matcher subject, Reading r) {
+        var ref = r.group(Location.Part.SUBJECT, subject, 1, BookingField.EXTERNAL_REF);
+        var property = r.group(Location.Part.SUBJECT, subject, 2, BookingField.PROPERTY_NAME);
+        var from = r.group(Location.Part.SUBJECT, subject, 3, BookingField.ARRIVAL);
+        var to = r.group(Location.Part.SUBJECT, subject, 4, BookingField.DEPARTURE);
+        var persons = r.text(Pattern.compile("(?m)^Personenzahl:\\s*(.*)$"), BookingField.ADULTS,
+                BookingField.CHILDREN);
+        var pets = r.text(Pattern.compile("(?m)^Haustiere:\\s*(\\d+)"), BookingField.PETS);
+        var phone = blankToNull(r.text(Pattern.compile("(?m)^Telefon-Nr\\.:[ \\t]*(.*)$"), BookingField.GUEST_PHONE));
+        String mobile = null;
+        if (phone == null) {
+            mobile = blankToNull(r.text(Pattern.compile("(?m)^Mobil-Nr\\.:[ \\t]*(.*)$"), BookingField.GUEST_PHONE));
+        }
+        var name = r.text(Pattern.compile("(?m)^Gast-Name:\\s*(.*)$"), BookingField.GUEST_NAME);
         var guest = new Guest(name, null, null, null, null, phone != null ? phone : mobile, null);
         return new ParsedMail(AGENCY, ParsedMail.MailType.SHORT_NOTICE, ref, property, date(from), date(to),
                 GermanText.adults(persons), GermanText.children(persons), pets == null ? null : Integer.valueOf(pets),
-                null, guest);
+                null, guest).withLocations(r.locations());
     }
 }

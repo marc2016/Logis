@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
-import { seeufer } from '@/modules/vacationrental/fixtures'
+import { booking, seeufer } from '@/modules/vacationrental/fixtures'
 import type { InboxItem, MailboxSettings } from './api'
 
 const base = {
@@ -102,6 +102,24 @@ describe('Inbox', () => {
     await user.click(await screen.findByRole('option', { name: 'Haus Seeufer' }))
     await user.click(within(dialog).getByRole('button', { name: 'Zuordnen' }))
     await waitFor(() => expect(assigned).toEqual({ unitId: 70 }))
+  })
+
+  it('opens the booking a mail created on its own page', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': { body: [inboxItem({ result: 'BOOKING_CREATED', resultDetail: null, linkType: 'vacationrental.booking', linkId: 500 })] },
+      'GET /api/mail/inbox/31/text': { body: { id: 31, subject: 'x', text: 'Buchungsnummer 250903' } },
+      'GET /api/vacationrental/bookings/500': { body: booking() },
+      'GET /api/vacationrental/agencies': { body: [] },
+      'GET /api/documents': { body: [] },
+    })
+    const { router } = renderApp('/posteingang')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('row', { name: /Neue Buchung/ }))
+    await user.click(await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Zur Buchung' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen/500'))
+    expect(await screen.findByRole('link', { name: 'Zurück zum Posteingang' })).toHaveAttribute('href', '/posteingang')
   })
 
   it('retries a mail that was not recognised', async () => {

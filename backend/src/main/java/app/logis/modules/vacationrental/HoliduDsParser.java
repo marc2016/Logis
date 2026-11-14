@@ -55,11 +55,17 @@ class HoliduDsParser implements MailParser {
         if (!BOOKED.matcher(text).find()) {
             return Optional.empty();
         }
-        var travellers = find(TRAVELLERS, text);
-        return Optional.of(new ParsedMail(agency(intermediary), ParsedMail.MailType.CONFIRMATION, ref,
-                find(PROPERTY, text),
-                date(find(ARRIVAL, text)), date(find(DEPARTURE, text)), GermanText.adults(travellers),
-                GermanText.children(travellers), null, amount(find(TOTAL, text)), guest(text)));
+        var r = new Reading(mail.businessSubject(), text);
+        r.text(REF, BookingField.EXTERNAL_REF);
+        var travellers = r.text(TRAVELLERS, BookingField.ADULTS, BookingField.CHILDREN);
+        var property = r.text(PROPERTY, BookingField.PROPERTY_NAME);
+        var arrival = date(r.text(ARRIVAL, BookingField.ARRIVAL));
+        var departure = date(r.text(DEPARTURE, BookingField.DEPARTURE));
+        var total = amount(r.text(TOTAL, BookingField.EXPECTED_RENT));
+        var guest = guest(r);
+        return Optional.of(new ParsedMail(agency(intermediary), ParsedMail.MailType.CONFIRMATION, ref, property,
+                arrival, departure, GermanText.adults(travellers), GermanText.children(travellers), null, total, guest)
+                .withLocations(r.locations()));
     }
 
     /**
@@ -77,24 +83,35 @@ class HoliduDsParser implements MailParser {
         return name.length() > AGENCY_MAX_LENGTH ? name.substring(0, AGENCY_MAX_LENGTH).strip() : name;
     }
 
-    private static Guest guest(String text) {
+    private static Guest guest(Reading r) {
         String name = null;
         String[] address = new String[4];
-        var lines = text.split("\n");
-        for (int i = 0; i < lines.length; i++) {
+        var lines = r.text().split("\n", -1);
+        var offset = 0;
+        for (int i = 0; i < lines.length; offset += lines[i].length() + 1, i++) {
             var m = GUEST.matcher(lines[i]);
             if (m.find()) {
-                name = m.group(1);
+                name = r.value(Location.Part.TEXT, offset + m.start(1), offset + m.end(1), BookingField.GUEST_NAME);
                 if (i + 1 < lines.length) {
+                    var next = offset + lines[i].length() + 1;
                     var a = ADDRESS.matcher(lines[i + 1]);
                     if (a.find()) {
-                        address = new String[] {a.group(1), a.group(2), a.group(3), a.group(4)};
+                        address = new String[] {part(r, a, 1, next, BookingField.GUEST_STREET),
+                                part(r, a, 2, next, BookingField.GUEST_POSTAL_CODE),
+                                part(r, a, 3, next, BookingField.GUEST_CITY),
+                                part(r, a, 4, next, BookingField.GUEST_COUNTRY)};
                     }
                 }
                 break;
             }
         }
-        return new Guest(name, address[0], address[1], address[2], address[3], find(PHONE, text),
-                find(EMAIL, text));
+        return new Guest(name, address[0], address[1], address[2], address[3],
+                r.text(PHONE, BookingField.GUEST_PHONE), r.text(EMAIL, BookingField.GUEST_EMAIL));
+    }
+
+    /** A group of a match on the line starting at {@code lineStart}, located in the whole text. */
+    private static String part(Reading r, java.util.regex.Matcher m, int group, int lineStart, BookingField field) {
+        return m.group(group) == null ? null
+                : r.value(Location.Part.TEXT, lineStart + m.start(group), lineStart + m.end(group), field);
     }
 }

@@ -135,10 +135,11 @@ describe('Booking dialog', () => {
       ...base,
       'GET /api/vacationrental/bookings': { body: bookingPage([]) },
       'POST /api/vacationrental/bookings': { status: 201, body: booking({ id: 502 }) },
+      'GET /api/vacationrental/bookings/502': { body: booking({ id: 502 }) },
       'POST /api/documents': { status: 400, body: { detail: 'Nur PDF- oder Bilddateien bis 10 MB' } },
       'GET /api/documents': { body: [] },
     })
-    renderApp('/ferienvermietung/buchungen')
+    const { router } = renderApp('/ferienvermietung/buchungen')
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
@@ -146,8 +147,10 @@ describe('Booking dialog', () => {
     await user.upload(within(dialog).getByLabelText('Dokument auswählen'), pdf('kaputt.pdf'))
     await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
 
-    expect(await within(dialog).findByText('kaputt.pdf: Nur PDF- oder Bilddateien bis 10 MB')).toBeInTheDocument()
-    expect(within(dialog).getByRole('heading', { name: 'Buchung bearbeiten' })).toBeInTheDocument()
+    // The booking is saved: its page opens, where the document can be tried again.
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen/502'))
+    expect(await screen.findByText(/kaputt\.pdf: Nur PDF- oder Bilddateien bis 10 MB/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('Dokument auswählen')).toBeInTheDocument()
   })
 
   it('shows viewers neither contact data nor documents', async () => {
@@ -159,18 +162,20 @@ describe('Booking dialog', () => {
       ...base,
       'GET /api/vacationrental/units': { body: [{ ...seeufer, myRole: 'VIEWER' }] },
       'GET /api/vacationrental/bookings': { body: bookingPage([viewerBooking]) },
+      'GET /api/vacationrental/bookings/500': { body: viewerBooking },
     })
     renderApp('/ferienvermietung/buchungen')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('row', { name: /Buchung 250905/ }))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByRole('heading', { name: 'Buchung' })).toBeInTheDocument()
-    expect(within(dialog).getByLabelText('Name')).toHaveValue('Max Gast')
-    expect(within(dialog).queryByLabelText('E-Mail')).not.toBeInTheDocument()
-    expect(within(dialog).queryByLabelText('Telefon')).not.toBeInTheDocument()
-    expect(within(dialog).queryByText('Dokumente')).not.toBeInTheDocument()
-    expect(within(dialog).queryByRole('button', { name: 'Speichern' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('row', { name: /Buchung 250905/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Buchung' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('row', { name: /Buchung 250905/ }))
+    expect(await screen.findByRole('heading', { name: 'Max Gast' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Max Gast')
+    expect(screen.queryByLabelText('E-Mail')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Telefon')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dokumente')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Speichern' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Quelle' })).not.toBeInTheDocument()
   })
 })
 
@@ -197,8 +202,10 @@ describe('Statements', () => {
         return { body: statement({ payout: '151.29', lineCount: 1, lines: [settledLine] }) }
       },
     })
-    renderApp('/ferienvermietung/abrechnungen?statement=900')
+    // An old link that selected the statement in the list opens its page.
+    const { router } = renderApp('/ferienvermietung/abrechnungen?statement=900')
     const user = userEvent.setup()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/abrechnungen/900'))
     await user.click(await screen.findByRole('button', { name: 'Buchung zuordnen' }))
     const dialog = await screen.findByRole('dialog')
     await user.click(within(dialog).getByRole('combobox', { name: 'Buchung' }))
@@ -208,9 +215,10 @@ describe('Statements', () => {
     await user.type(within(dialog).getByLabelText('Reinigung (€)'), '60,00')
     await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
 
-    const section = await screen.findByRole('region', { name: 'Abrechnung' })
-    expect(await within(section).findByText('151,29 €', { selector: 'td:not([data-testid]) span' })).toBeInTheDocument()
+    const lines = await screen.findByRole('table')
+    expect(await within(lines).findByText('151,29 €', { selector: 'td:not([data-testid]) span' })).toBeInTheDocument()
     expect(within(screen.getByTestId('payout')).getByText('151,29 €')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ferienwohnungen Nord' })).toBeInTheDocument()
   })
 })
 

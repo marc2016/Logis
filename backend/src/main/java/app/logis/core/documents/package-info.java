@@ -1,6 +1,6 @@
 /**
  * File storage for any owner type (e.g. receipts on costs, documents on bookings). Public API for domain modules:
- * {@link DocumentOwnerType} and {@link Documents}.
+ * {@link DocumentOwnerType}, {@link Documents} and {@link DocumentDeleted}.
  */
 @NamedInterface("documents")
 package app.logis.core.documents;

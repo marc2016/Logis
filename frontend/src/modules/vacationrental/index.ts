@@ -22,8 +22,10 @@ export const vacationRentalModule: LogisModule = {
   routes: [
     { index: true, element: createElement(Navigate, { to: 'buchungen', replace: true }) },
     { path: 'buchungen', lazy: async () => ({ Component: (await import('./pages/BuchungenPage')).BuchungenPage }) },
+    { path: 'buchungen/:bookingId', lazy: async () => ({ Component: (await import('./pages/BookingPage')).BookingPage }) },
     { path: 'kalender', lazy: async () => ({ Component: (await import('./pages/KalenderPage')).KalenderPage }) },
     { path: 'abrechnungen', lazy: async () => ({ Component: (await import('./pages/AbrechnungenPage')).AbrechnungenPage }) },
+    { path: 'abrechnungen/:statementId', lazy: async () => ({ Component: (await import('./pages/StatementPage')).StatementPage }) },
     { path: 'auswertung', lazy: async () => ({ Component: (await import('./pages/AuswertungPage')).AuswertungPage }) },
     { path: 'vermittler', lazy: async () => ({ Component: (await import('./pages/VermittlerPage')).VermittlerPage }) },
   ],

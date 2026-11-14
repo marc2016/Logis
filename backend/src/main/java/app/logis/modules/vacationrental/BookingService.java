@@ -34,6 +34,7 @@ class BookingService {
     static final String NOT_FOUND = "Buchung nicht gefunden";
     static final String UNIT_NOT_FOUND = "Einheit nicht gefunden";
     static final String OVERLAP = "Die Einheit ist in diesem Zeitraum bereits belegt";
+    static final String SOURCE_NOT_FOUND = "Quelle nicht gefunden";
 
     private final BookingRepository bookings;
     private final StatementLineRepository lines;
@@ -41,16 +42,19 @@ class BookingService {
     private final Documents documents;
     private final ApplicationEventPublisher events;
     private final AgencyService agencies;
+    private final BookingSources sources;
     private final Clock clock;
 
     BookingService(BookingRepository bookings, StatementLineRepository lines, RentalAccess access,
-            Documents documents, ApplicationEventPublisher events, AgencyService agencies, Clock clock) {
+            Documents documents, ApplicationEventPublisher events, AgencyService agencies, BookingSources sources,
+            Clock clock) {
         this.bookings = bookings;
         this.lines = lines;
         this.access = access;
         this.documents = documents;
         this.events = events;
         this.agencies = agencies;
+        this.sources = sources;
         this.clock = clock;
     }
 
@@ -173,6 +177,22 @@ class BookingService {
         return get(userId, id);
     }
 
+    /** Sources and locations of a visible booking: empty below EDITOR, like documents. */
+    @Transactional(readOnly = true)
+    BookingSources.SourcesView sources(BookingDetails details) {
+        return details.canEdit() ? sources.view(details.booking()) : BookingSources.SourcesView.NONE;
+    }
+
+    /** The text of one source of a booking; HTTP 404 below EDITOR or for a source of another booking. */
+    @Transactional(readOnly = true)
+    BookingSources.SourceText sourceText(Long userId, Long id, Long sourceId) {
+        var details = get(userId, id);
+        if (!details.canEdit()) {
+            throw ApiException.notFound(SOURCE_NOT_FOUND);
+        }
+        return sources.text(id, sourceId).orElseThrow(() -> ApiException.notFound(SOURCE_NOT_FOUND));
+    }
+
     void delete(Long userId, Long id) {
         var booking = requireEditable(userId, id);
         if (settled(id)) {
@@ -184,6 +204,7 @@ class BookingService {
 
     BookingDetails deleteGuest(Long userId, Long id) {
         requireEditable(userId, id).deleteGuest();
+        sources.guestDeleted(id);
         return get(userId, id);
     }
 
@@ -280,11 +301,13 @@ class BookingService {
         }
         booking.setProposal(null);
         save(booking);
+        sources.proposalApplied(id, p);
         return get(userId, id);
     }
 
     BookingDetails discardProposal(Long userId, Long id) {
         requireEditable(userId, id).setProposal(null);
+        sources.proposalDropped(id);
         return get(userId, id);
     }
 

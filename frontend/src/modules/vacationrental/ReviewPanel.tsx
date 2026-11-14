@@ -12,9 +12,21 @@ import { useInvalidateRental, type Booking, type Guest } from './api'
 interface Props {
   booking: Booking
   onChanged: (booking: Booking | null) => void
+  /** Shows where in the proposing mail a new value was found. */
+  onShowProposal?: (field: string) => void
 }
 
-type Row = { label: string; before: React.ReactNode; after: React.ReactNode }
+type Row = { field: string; label: string; before: React.ReactNode; after: React.ReactNode }
+
+const guestFields: Record<keyof Guest, string> = {
+  name: 'guestName',
+  street: 'guestStreet',
+  postalCode: 'guestPostalCode',
+  city: 'guestCity',
+  country: 'guestCountry',
+  phone: 'guestPhone',
+  email: 'guestEmail',
+}
 
 const guestLabels: Record<keyof Guest, string> = {
   name: 'Gast',
@@ -31,13 +43,14 @@ function proposalRows(b: Booking): Row[] {
   const p = b.proposal
   if (!p || p.type === 'CANCELLATION') return []
   const rows: Row[] = []
-  if (p.arrival) rows.push({ label: 'Anreise', before: formatDate(b.arrival), after: formatDate(p.arrival) })
-  if (p.departure) rows.push({ label: 'Abreise', before: formatDate(b.departure), after: formatDate(p.departure) })
-  if (p.adults != null) rows.push({ label: 'Erwachsene', before: b.adults, after: p.adults })
-  if (p.children != null) rows.push({ label: 'Kinder', before: b.children, after: p.children })
-  if (p.pets != null) rows.push({ label: 'Haustiere', before: b.pets, after: p.pets })
+  if (p.arrival) rows.push({ field: 'arrival', label: 'Anreise', before: formatDate(b.arrival), after: formatDate(p.arrival) })
+  if (p.departure) rows.push({ field: 'departure', label: 'Abreise', before: formatDate(b.departure), after: formatDate(p.departure) })
+  if (p.adults != null) rows.push({ field: 'adults', label: 'Erwachsene', before: b.adults, after: p.adults })
+  if (p.children != null) rows.push({ field: 'children', label: 'Kinder', before: b.children, after: p.children })
+  if (p.pets != null) rows.push({ field: 'pets', label: 'Haustiere', before: b.pets, after: p.pets })
   if (p.expectedRent)
     rows.push({
+      field: 'expectedRent',
       label: 'Mietpreis',
       before: b.expectedRent ? <Money amount={b.expectedRent} colored={false} /> : '–',
       after: <Money amount={p.expectedRent} colored={false} />,
@@ -45,14 +58,14 @@ function proposalRows(b: Booking): Row[] {
   if (p.guest) {
     ;(Object.keys(guestLabels) as (keyof Guest)[]).forEach((k) => {
       const value = p.guest?.[k]
-      if (value) rows.push({ label: guestLabels[k], before: b.guest?.[k] ?? '–', after: value })
+      if (value) rows.push({ field: guestFields[k], label: guestLabels[k], before: b.guest?.[k] ?? '–', after: value })
     })
   }
   return rows
 }
 
 /** Confirm or discard a booking taken from a mail, or apply or discard a change a mail proposes. */
-export function ReviewPanel({ booking, onChanged }: Props) {
+export function ReviewPanel({ booking, onChanged, onShowProposal }: Props) {
   const invalidate = useInvalidateRental()
   const base = `/api/vacationrental/bookings/${booking.id}`
   const action = useMutation({
@@ -112,7 +125,20 @@ export function ReviewPanel({ booking, onChanged }: Props) {
                 <TableRow key={r.label}>
                   <TableCell>{r.label}</TableCell>
                   <TableCell className="text-muted-foreground">{r.before}</TableCell>
-                  <TableCell className="font-medium">{r.after}</TableCell>
+                  <TableCell className="font-medium">
+                    {onShowProposal && booking.proposalLocations?.[r.field] ? (
+                      <button
+                        type="button"
+                        className="underline decoration-dotted underline-offset-4 hover:decoration-solid"
+                        title="In der Mail zeigen"
+                        onClick={() => onShowProposal(r.field)}
+                      >
+                        {r.after}
+                      </button>
+                    ) : (
+                      r.after
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

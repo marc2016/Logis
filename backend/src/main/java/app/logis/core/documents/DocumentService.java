@@ -1,6 +1,7 @@
 package app.logis.core.documents;
 
 import app.logis.core.web.ApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
@@ -28,8 +29,11 @@ class DocumentService {
     private final JdbcTemplate jdbc;
     private final Map<String, DocumentOwnerType> ownerTypes;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    DocumentService(JdbcTemplate jdbc, List<DocumentOwnerType> ownerTypes, Clock clock) {
+    DocumentService(JdbcTemplate jdbc, List<DocumentOwnerType> ownerTypes, Clock clock,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.jdbc = jdbc;
         this.ownerTypes = ownerTypes.stream().collect(Collectors.toMap(DocumentOwnerType::type, Function.identity()));
         this.clock = clock;
@@ -92,6 +96,7 @@ class DocumentService {
         var owner = owner(documentId);
         requireWrite(userId, owner.type(), owner.id());
         jdbc.update("DELETE FROM core.documents WHERE id = ?", documentId);
+        events.publishEvent(new DocumentDeleted(owner.type(), owner.id(), documentId));
     }
 
     private Owner owner(Long documentId) {

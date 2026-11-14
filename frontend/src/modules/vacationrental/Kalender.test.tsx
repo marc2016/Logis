@@ -117,6 +117,16 @@ describe('Calendar by year', () => {
     expect(router.state.location.search).not.toContain('month=')
   })
 
+  it('opens a booking on its own page and returns to the year', async () => {
+    mockApi({ ...base, ...years([stay(1, '2026-11-06', '2026-11-08', 'Gast Geplant')]), 'GET /api/vacationrental/bookings/1': { body: booking({ id: 1 }) },
+      'GET /api/vacationrental/agencies': { body: [] }, 'GET /api/documents': { body: [] } })
+    const { router } = renderApp('/ferienvermietung/kalender?year=2026')
+    const user = userEvent.setup()
+    await user.click(await within(await screen.findByRole('row', { name: 'November 2026' })).findByRole('button', { name: 'Gast Geplant, Geplant' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen/1'))
+    expect(await screen.findByRole('link', { name: 'Zurück zum Kalender' })).toHaveAttribute('href', '/ferienvermietung/kalender?year=2026')
+  })
+
   it('shows only the chosen unit', async () => {
     const units = { 'GET /api/vacationrental/units': { body: [whg(70, 'Whg. 1'), whg(71, 'Whg. 2')] } }
     mockApi({ ...base, ...units, ...years([stay(1, '2026-11-06', '2026-11-08', 'Gast Eins')], ['Whg. 1', 'Whg. 2']) })

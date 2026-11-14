@@ -81,6 +81,37 @@ export interface Booking {
   pets: number
   reviewState: ReviewState
   proposal: BookingProposal | null
+  /** Only on a single booking, empty below EDITOR. */
+  sources?: SourceRef[]
+  /** Where each field's current value was found, keyed by field (`arrival`, `guestName`, …). */
+  locations?: Record<string, FieldLocation>
+  /** Where the proposed values were found. */
+  proposalLocations?: Record<string, FieldLocation>
+}
+
+export interface SourceRef {
+  id: number
+  kind: 'MAIL' | string
+  label: string
+  receivedAt: string | null
+}
+
+export interface FieldLocation {
+  sourceId: number
+  part: 'SUBJECT' | 'TEXT'
+  start: number
+  end: number
+  sourceValue: string | null
+  differs: boolean
+}
+
+export interface SourceText {
+  id: number
+  label: string
+  sender: string | null
+  receivedAt: string | null
+  subject: string | null
+  text: string
 }
 
 export interface BookingPage {
@@ -253,6 +284,16 @@ export function useBooking(id: number | null) {
     queryKey: rentalKeys.booking(id ?? 0),
     queryFn: () => api<Booking>(`/api/vacationrental/bookings/${id}`),
     enabled: id !== null,
+  })
+}
+
+/** The text of a booking's source; it never changes once stored. */
+export function useBookingSource(bookingId: number, sourceId: number | null) {
+  return useQuery({
+    queryKey: ['vacationrental', 'booking', bookingId, 'source', sourceId ?? 0] as const,
+    queryFn: () => api<SourceText>(`/api/vacationrental/bookings/${bookingId}/sources/${sourceId}`),
+    enabled: sourceId !== null,
+    staleTime: Infinity,
   })
 }
 

@@ -33,6 +33,14 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   const row = page.getByRole('row', { name: monthName })
   await expect(row.getByRole('button', { name: 'Max Testgast, Geplant' })).toBeVisible()
 
+  // An existing booking opens as its own page; the back link returns to the calendar.
+  await row.getByRole('button', { name: 'Max Testgast, Geplant' }).click()
+  await expect(page).toHaveURL(/\/ferienvermietung\/buchungen\/\d+$/)
+  await expect(page.getByRole('heading', { name: 'Max Testgast' })).toBeVisible()
+  await expect(page.getByLabel('Wichtige Angaben')).toContainText(agency.name)
+  await page.getByRole('link', { name: 'Zurück zum Kalender' }).click()
+  await expect(page).toHaveURL(new RegExp(`/ferienvermietung/kalender\\?year=${y}`))
+
   // Statement through the API, the booking is assigned in the UI.
   const statement = await call<{ id: number }>(api, 'POST', '/api/vacationrental/statements', {
     unitId: home.unitId,
@@ -41,7 +49,10 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
     periodTo: departure,
     statementDate: departure,
   })
+  // An old link that selected the statement in the list opens the statement's own page.
   await page.goto(`/ferienvermietung/abrechnungen?statement=${statement.id}`)
+  await expect(page).toHaveURL(new RegExp(`/ferienvermietung/abrechnungen/${statement.id}$`))
+  await expect(page.getByRole('heading', { name: 'Fewo & Meer' })).toBeVisible()
   await page.getByRole('button', { name: 'Buchung zuordnen' }).click()
   const line = page.getByRole('dialog', { name: 'Buchung zuordnen' })
   await line.getByRole('combobox', { name: 'Buchung' }).click()

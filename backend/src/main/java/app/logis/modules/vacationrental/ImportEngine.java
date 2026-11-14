@@ -1,14 +1,12 @@
 package app.logis.modules.vacationrental;
 
 import app.logis.core.documents.Documents;
+import app.logis.core.mail.MailContent;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.web.ApiException;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Decides what a recognised mail does to the bookings of the mailbox owner (design.md D3). Every booking call runs
@@ -26,34 +24,45 @@ class ImportEngine {
     private final RentalAccess access;
     private final Documents documents;
     private final AgencyService agencies;
+    private final BookingSources sources;
 
     ImportEngine(BookingService bookings, UnitMappingRepository mappings, RentalAccess access, Documents documents,
-            AgencyService agencies) {
+            AgencyService agencies, BookingSources sources) {
         this.bookings = bookings;
         this.mappings = mappings;
         this.access = access;
         this.documents = documents;
         this.agencies = agencies;
+        this.sources = sources;
     }
 
-    Outcome apply(Long ownerId, ParsedMail mail, byte[] raw) {
+    /** The mail as it was recognised: the parsed values, the text they were read from and the raw mail. */
+    record Mail(ParsedMail parsed, MailContent content, byte[] raw) {
+    }
+
+    Outcome apply(Long ownerId, ParsedMail mail, MailContent content, byte[] raw) {
+        return apply(ownerId, new Mail(mail, content, raw));
+    }
+
+    private Outcome apply(Long ownerId, Mail in) {
+        var mail = in.parsed();
         // The mail's agency name, resolved through the shared list (an unknown name creates the agency).
         var agencyId = agencies.resolve(mail.agency()).map(Agency::getId).orElse(null);
         if (mail.type() == ParsedMail.MailType.BLOCK_NOTICE) {
-            return blockNotice(ownerId, agencyId, mail, raw);
+            return blockNotice(ownerId, agencyId, in);
         }
         var existing = bookings.findByRef(ownerId, agencyId, mail.bookingRef()).stream().findFirst();
         try {
             return switch (mail.type()) {
                 case CONFIRMATION, SHORT_NOTICE -> existing.isPresent()
-                        ? update(ownerId, agencyId, existing.get(), mail, raw)
-                        : create(ownerId, agencyId, mail, raw);
+                        ? update(ownerId, agencyId, existing.get(), in)
+                        : create(ownerId, agencyId, in);
                 case CHANGE -> existing.isPresent()
-                        ? update(ownerId, agencyId, existing.get(), mail, raw)
+                        ? update(ownerId, agencyId, existing.get(), in)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
                 case CANCELLATION -> existing.isPresent()
-                        ? cancel(ownerId, agencyId, existing.get(), mail, raw)
+                        ? cancel(ownerId, agencyId, existing.get(), in)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
                 case BLOCK_NOTICE -> throw new IllegalStateException("handled above");
@@ -67,7 +76,8 @@ class ImportEngine {
      * The agency only blocked its calendar for a stay booked elsewhere: the number is the agency's, the booking
      * carries the intermediary's, so the stay is found by its exact period (design.md D3). Never creates a booking.
      */
-    private Outcome blockNotice(Long ownerId, Long agencyId, ParsedMail mail, byte[] raw) {
+    private Outcome blockNotice(Long ownerId, Long agencyId, Mail in) {
+        var mail = in.parsed();
         var unit = editableUnit(ownerId, agencyId, mail);
         if (unit.outcome() != null) {
             return unit.outcome();
@@ -78,7 +88,7 @@ class ImportEngine {
                     + GermanText.format(mail.arrival()) + " bis " + GermanText.format(mail.departure()));
         }
         var id = booking.get().getId();
-        attach(id, mail, raw);
+        attach(id, in);
         return new Outcome(BookingMailResult.ATTACHED, id,
                 mail.intermediary() == null ? "Blockung" : "Blockung durch " + mail.intermediary());
     }
@@ -102,14 +112,16 @@ class ImportEngine {
         return new UnitLookup(mapping.getUnitId(), null);
     }
 
-    private Outcome create(Long ownerId, Long agencyId, ParsedMail mail, byte[] raw) {
+    private Outcome create(Long ownerId, Long agencyId, Mail in) {
+        var mail = in.parsed();
         var unit = editableUnit(ownerId, agencyId, mail);
         if (unit.outcome() != null) {
             return unit.outcome();
         }
         try {
             var created = bookings.createImported(ownerId, input(unit.unitId(), agencyId, mail, null));
-            attach(created.booking().getId(), mail, raw);
+            var id = created.booking().getId();
+            sources.setCurrent(id, attach(id, in), mail, BookingSources.fields(mail));
             return new Outcome(BookingMailResult.BOOKING_CREATED, created.booking().getId(), null);
         } catch (ApiException e) {
             if (BookingService.OVERLAP.equals(e.getMessage())) {
@@ -119,47 +131,64 @@ class ImportEngine {
         }
     }
 
-    private Outcome update(Long ownerId, Long agencyId, Booking booking, ParsedMail mail, byte[] raw) {
+    private Outcome update(Long ownerId, Long agencyId, Booking booking, Mail in) {
+        var mail = in.parsed();
         var id = booking.getId();
         bookings.adoptAgency(ownerId, id, agencyId);
         var proposal = differences(booking, mail);
+        var carried = BookingSources.fields(mail);
         if (proposal == null) {
-            attach(id, mail, raw);
+            sources.fillCurrent(id, attach(id, in), mail, carried);
             return new Outcome(BookingMailResult.ATTACHED, id, null);
         }
+        var changed = BookingSources.fields(proposal);
+        var unchanged = carried.stream().filter(f -> !changed.contains(f)).toList();
         if (booking.getReviewState() == ReviewState.NEW) {
             // Not confirmed yet: the mail simply completes the prepared booking.
             bookings.updateImported(ownerId, id, input(booking.getUnitId(), agencyId, merged(booking, proposal),
                     booking));
-            attach(id, mail, raw);
+            var source = attach(id, in);
+            sources.setCurrent(id, source, mail, changed);
+            sources.fillCurrent(id, source, mail, unchanged);
             return new Outcome(BookingMailResult.ATTACHED, id, "Angaben ergänzt");
         }
         bookings.propose(ownerId, id, proposal);
-        attach(id, mail, raw);
+        var source = attach(id, in);
+        sources.setProposal(id, source, mail, changed);
+        sources.fillCurrent(id, source, mail, unchanged);
         return new Outcome(BookingMailResult.CHANGE_PROPOSED, id, null);
     }
 
-    private Outcome cancel(Long ownerId, Long agencyId, Booking booking, ParsedMail mail, byte[] raw) {
+    private Outcome cancel(Long ownerId, Long agencyId, Booking booking, Mail in) {
         var id = booking.getId();
         bookings.adoptAgency(ownerId, id, agencyId);
-        attach(id, mail, raw);
+        var source = attach(id, in);
         if (booking.isCancelled()) {
             return new Outcome(BookingMailResult.ATTACHED, id, "Bereits storniert");
         }
         bookings.propose(ownerId, id, BookingProposal.cancellation(null));
+        sources.setProposal(id, source, in.parsed(), java.util.Set.of());
         return new Outcome(BookingMailResult.CHANGE_PROPOSED, id, "Stornierung");
     }
 
-    private void attach(Long bookingId, ParsedMail mail, byte[] raw) {
-        var label = switch (mail.type()) {
+    /** Stores the raw mail as a document of the booking and its text as a source; returns the source. */
+    private Long attach(Long bookingId, Mail in) {
+        var mail = in.parsed();
+        var label = label(mail.type());
+        var documentId = documents.store(Booking.DOCUMENT_TYPE, bookingId, mail.agency() + " " + label + " "
+                + mail.bookingRef() + ".eml", "message/rfc822", in.raw());
+        return sources.addMail(bookingId, documentId, mail.agency() + " " + label, in.content());
+    }
+
+    /** The kind of mail in document names and source labels. */
+    static String label(ParsedMail.MailType type) {
+        return switch (type) {
             case CONFIRMATION -> "Buchungsbestätigung";
             case SHORT_NOTICE -> "Last-Minute";
             case CHANGE -> "Änderung";
             case CANCELLATION -> "Stornierung";
             case BLOCK_NOTICE -> "Blockung";
         };
-        documents.store(Booking.DOCUMENT_TYPE, bookingId, mail.agency() + " " + label + " " + mail.bookingRef() + ".eml",
-                "message/rfc822", raw);
     }
 
     /** Fields the mail carries that differ from the booking, or {@code null} if nothing differs. */
@@ -184,10 +213,10 @@ class ImportEngine {
         if (mail == null || mail.isEmpty()) {
             return null;
         }
-        var name = mail.name() != null && !sameName(current.name(), mail.name()) ? mail.name() : null;
+        var name = mail.name() != null && !FieldValues.sameName(current.name(), mail.name()) ? mail.name() : null;
         var g = new Guest(name, differs(current.street(), mail.street()), differs(current.postalCode(),
                 mail.postalCode()), differs(current.city(), mail.city()), differs(current.country(), mail.country()),
-                samePhone(current.phone(), mail.phone()) ? null : differs(current.phone(), mail.phone()), differs(current.email(), mail.email()));
+                FieldValues.samePhone(current.phone(), mail.phone()) ? null : differs(current.phone(), mail.phone()), differs(current.email(), mail.email()));
         return g.isEmpty() ? null : g;
     }
 
@@ -196,35 +225,6 @@ class ImportEngine {
             return null;
         }
         return current != null && current.strip().equalsIgnoreCase(mail.strip()) ? null : mail.strip();
-    }
-
-    /** "+49 151 0000001" and "0151 0000001" are the same number. */
-    static boolean samePhone(String a, String b) {
-        return a != null && b != null && phoneDigits(a).equals(phoneDigits(b));
-    }
-
-    private static String phoneDigits(String s) {
-        var digits = s.strip().replaceAll("[^0-9+]", "");
-        if (digits.startsWith("+49")) {
-            return "0" + digits.substring(3);
-        }
-        if (digits.startsWith("0049")) {
-            return "0" + digits.substring(4);
-        }
-        return digits.replace("+", "");
-    }
-
-    /** Names match regardless of word order ("Erika Musterfrau" = "Musterfrau Erika") and case. */
-    static boolean sameName(String a, String b) {
-        if (a == null || b == null) {
-            return Objects.equals(a, b);
-        }
-        return words(a).equals(words(b));
-    }
-
-    private static String words(String s) {
-        return Arrays.stream(s.toLowerCase(Locale.ROOT).split("[\\s,]+")).filter(w -> !w.isBlank()).sorted()
-                .collect(Collectors.joining(" "));
     }
 
     /** The mail values on top of the booking, for completing a booking that awaits review. */

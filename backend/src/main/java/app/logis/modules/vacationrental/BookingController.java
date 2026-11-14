@@ -5,6 +5,7 @@ import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.sharing.ShareRole;
 import app.logis.core.web.ApiException;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/vacationrental")
@@ -63,9 +65,17 @@ class BookingController {
             String externalRef, int adults, int children,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status,
             Long statementId, Guest guest, boolean guestDeleted, boolean canEdit, long version, AgencyRef agency,
-            int pets, ReviewState reviewState, ProposalView proposal) {
+            int pets, ReviewState reviewState, ProposalView proposal,
+            @JsonInclude(JsonInclude.Include.NON_NULL) List<BookingSources.SourceRef> sources,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, BookingSources.LocationView> locations,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, BookingSources.LocationView> proposalLocations) {
 
+        /** For lists: without sources and locations. */
         static BookingView of(BookingService.BookingDetails d) {
+            return of(d, null);
+        }
+
+        static BookingView of(BookingService.BookingDetails d, BookingSources.SourcesView sources) {
             var b = d.booking();
             var u = d.unit();
             return new BookingView(b.getId(),
@@ -73,8 +83,15 @@ class BookingController {
                     b.getArrival(), b.getDeparture(), b.nights(), b.getExternalRef(),
                     b.getAdults(), b.getChildren(), b.getExpectedRent(), d.status(), d.statementId(), d.guest(),
                     b.isGuestDeleted(), d.canEdit(), b.getVersion(), AgencyRef.of(d.agency()), b.getPets(), b.getReviewState(),
-                    ProposalView.of(b.getProposal(), d.canEdit()));
+                    ProposalView.of(b.getProposal(), d.canEdit()),
+                    sources == null ? null : sources.sources(), sources == null ? null : sources.locations(),
+                    sources == null ? null : sources.proposalLocations());
         }
+    }
+
+    /** A single booking with its sources and locations (empty below EDITOR). */
+    private BookingView view(BookingService.BookingDetails d) {
+        return BookingView.of(d, service.sources(d));
     }
 
     /** A proposed change; guest contact data only for editors, like on the booking itself. */
@@ -141,34 +158,40 @@ class BookingController {
 
     @GetMapping("/bookings/{id}")
     BookingView get(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.get(me.userId(), id));
+        return view(service.get(me.userId(), id));
+    }
+
+    @GetMapping("/bookings/{id}/sources/{sourceId}")
+    BookingSources.SourceText source(@PathVariable Long id, @PathVariable Long sourceId,
+            @AuthenticationPrincipal LogisPrincipal me) {
+        return service.sourceText(me.userId(), id, sourceId);
     }
 
     @PostMapping("/bookings")
     @ResponseStatus(HttpStatus.CREATED)
     BookingView create(@RequestBody BookingRequest body, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.create(me.userId(), body.input()));
+        return view(service.create(me.userId(), body.input()));
     }
 
     @PutMapping("/bookings/{id}")
     BookingView update(@PathVariable Long id, @RequestBody BookingRequest body,
             @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.update(me.userId(), id, body.input(), body.version()));
+        return view(service.update(me.userId(), id, body.input(), body.version()));
     }
 
     @PostMapping("/bookings/{id}/cancel")
     BookingView cancel(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.setCancelled(me.userId(), id, true));
+        return view(service.setCancelled(me.userId(), id, true));
     }
 
     @PostMapping("/bookings/{id}/reinstate")
     BookingView reinstate(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.setCancelled(me.userId(), id, false));
+        return view(service.setCancelled(me.userId(), id, false));
     }
 
     @PostMapping("/bookings/{id}/confirm")
     BookingView confirm(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.confirm(me.userId(), id));
+        return view(service.confirm(me.userId(), id));
     }
 
     @PostMapping("/bookings/{id}/discard")
@@ -179,17 +202,17 @@ class BookingController {
 
     @PostMapping("/bookings/{id}/proposal/apply")
     BookingView applyProposal(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.applyProposal(me.userId(), id));
+        return view(service.applyProposal(me.userId(), id));
     }
 
     @PostMapping("/bookings/{id}/proposal/discard")
     BookingView discardProposal(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.discardProposal(me.userId(), id));
+        return view(service.discardProposal(me.userId(), id));
     }
 
     @DeleteMapping("/bookings/{id}/guest")
     BookingView deleteGuest(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return BookingView.of(service.deleteGuest(me.userId(), id));
+        return view(service.deleteGuest(me.userId(), id));
     }
 
     @DeleteMapping("/bookings/{id}")

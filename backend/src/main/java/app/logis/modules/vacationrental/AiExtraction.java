@@ -2,6 +2,8 @@ package app.logis.modules.vacationrental;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
+import java.util.List;
+
 /**
  * What the AI returns for a mail. All fields are strings so the schema stays simple; an empty string means
  * "not in the mail". Converted and validated by {@link AiMailParser}.
@@ -25,5 +27,22 @@ record AiExtraction(
         String guestCity,
         String guestCountry,
         String guestPhone,
-        String guestEmail) {
+        String guestEmail,
+        @JsonPropertyDescription("For each value you filled in, the exact passage of the mail you read it from, copied "
+                + "character by character (e.g. \"Anreise: 23.12.2026\"). field is the property name, e.g. arrival, "
+                + "guestName or bookingRef.")
+        List<Quote> quotes) {
+
+    record Quote(@JsonPropertyDescription("Name of the property the passage belongs to") String field,
+            @JsonPropertyDescription("The passage, copied exactly from the mail") String passage) {
+    }
+
+    AiExtraction(boolean bookingMail, String agency, String type, String bookingRef, String propertyName,
+            String arrival, String departure, String adults, String children, String pets, String expectedRent,
+            String guestName, String guestStreet, String guestPostalCode, String guestCity, String guestCountry,
+            String guestPhone, String guestEmail) {
+        this(bookingMail, agency, type, bookingRef, propertyName, arrival, departure, adults, children, pets,
+                expectedRent, guestName, guestStreet, guestPostalCode, guestCity, guestCountry, guestPhone, guestEmail,
+                List.of());
+    }
 }

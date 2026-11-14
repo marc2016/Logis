@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CalendarPlusIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
 import { todayIso } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
+import { backTo, bookingPath } from '../BookingPage.paths'
 import { CalendarGrid } from '../CalendarGrid'
 import { monthRange } from '../calendar'
 import { IdSelect } from '../RentalFilters'
 import { SubscriptionDialog } from '../SubscriptionDialog'
-import { unitLabel, useBooking, useCalendarYear, useRentalUnits } from '../api'
+import { unitLabel, useCalendarYear, useRentalUnits } from '../api'
 
 /** The year from the address: `year`, or the year of an old `month` link, otherwise the current year. */
 function yearFrom(params: URLSearchParams, currentYear: number) {
@@ -32,9 +33,10 @@ export function KalenderPage() {
   const currentYear = Number(currentMonth.slice(0, 4))
   const year = yearFrom(params, currentYear)
   const calendar = useCalendarYear(propertyId, year)
-  const [dialog, setDialog] = useState<{ bookingId: number | null } | null>(null)
+  const [recording, setRecording] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
   const [subscribing, setSubscribing] = useState(false)
-  const { data: openBooking } = useBooking(dialog?.bookingId ?? null)
   const canRecord = !!unit && !unit.archived && unit.myRole !== 'VIEWER'
   const data = calendar.data
   const bookings = data?.units.find((u) => u.id === unit?.id)?.bookings ?? []
@@ -57,7 +59,7 @@ export function KalenderPage() {
         description="Belegung der Ferienwohnungen, Monat für Monat."
         actions={
           canRecord && (
-            <Button onClick={() => setDialog({ bookingId: null })}>
+            <Button onClick={() => setRecording(true)}>
               <PlusIcon />
               Buchung
             </Button>
@@ -117,7 +119,7 @@ export function KalenderPage() {
               year={data.year}
               currentMonth={currentMonth}
               bookings={bookings}
-              onOpen={(bookingId) => setDialog({ bookingId })}
+              onOpen={(bookingId) => navigate(bookingPath(bookingId), { state: backTo(location) })}
             />
           )}
         </>
@@ -125,14 +127,7 @@ export function KalenderPage() {
       {subscribing && unit && (
         <SubscriptionDialog unitId={unit.id} unitName={unitLabel(unit)} onClose={() => setSubscribing(false)} />
       )}
-      {dialog && (dialog.bookingId === null || openBooking) && (
-        <BookingDialog
-          key={dialog.bookingId ?? 'new'}
-          booking={dialog.bookingId === null ? null : openBooking!}
-          defaultUnitId={unit?.id}
-          onClose={() => setDialog(null)}
-        />
-      )}
+      {recording && <BookingDialog defaultUnitId={unit?.id} onClose={() => setRecording(false)} />}
     </>
   )
 }

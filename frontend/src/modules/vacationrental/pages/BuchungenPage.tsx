@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { createColumnHelper } from '@tanstack/react-table'
 import { PlusIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
+import { backTo, bookingPath } from '../BookingPage.paths'
 import { IdSelect } from '../RentalFilters'
 import { rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useRentalUnits, type Booking, type BookingStatus } from '../api'
 
@@ -62,7 +63,9 @@ export function BuchungenPage() {
   const [params, setParams] = useSearchParams()
   const { data: units = [] } = useRentalUnits()
   const { data: agencies = [] } = useAgencies()
-  const [dialog, setDialog] = useState<{ booking: Booking | null } | null>(null)
+  const [recording, setRecording] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const num = (key: string) => (params.get(key) ? Number(params.get(key)) : undefined)
   const filter = {
@@ -100,7 +103,7 @@ export function BuchungenPage() {
         description="Alle Buchungen der Ferienwohnungen."
         actions={
           canRecord && (
-            <Button onClick={() => setDialog({ booking: null })}>
+            <Button onClick={() => setRecording(true)}>
               <PlusIcon />
               Buchung
             </Button>
@@ -163,15 +166,13 @@ export function BuchungenPage() {
         pageSize={PAGE_SIZE}
         total={data?.totalItems ?? 0}
         onPageChange={(p) => update({ page: p || undefined }, true)}
-        onRowClick={(booking) => setDialog({ booking })}
+        onRowClick={(booking) => navigate(bookingPath(booking.id), { state: backTo(location) })}
         rowLabel={(b) => `Buchung ${b.externalRef ?? ''} ${formatDate(b.arrival)}`.replace(/\s+/g, ' ')}
         rowClassName={(b) => (b.status === 'CANCELLED' ? 'text-muted-foreground' : undefined)}
         isLoading={isLoading}
         emptyText="Keine Buchungen gefunden."
       />
-      {dialog && (
-        <BookingDialog booking={dialog.booking} defaultPropertyId={filter.propertyId} defaultUnitId={filter.unitId} onClose={() => setDialog(null)} />
-      )}
+      {recording && <BookingDialog defaultPropertyId={filter.propertyId} defaultUnitId={filter.unitId} onClose={() => setRecording(false)} />}
     </>
   )
 }
