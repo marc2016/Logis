@@ -45,6 +45,9 @@ test('import a booking from a forwarded agency mail and confirm it', async ({ pa
   await expect(booking.getByText('zu prüfen')).toBeHidden()
   await page.keyboard.press('Escape')
 
-  await page.goto(`/ferienvermietung/kalender?year=${arrival.slice(0, 4)}`)
-  await expect(page.getByRole('button', { name: 'Lena Testgast, Geplant' })).toBeVisible()
+  // A stay across a month boundary shows in both months: look at the month of arrival only.
+  const [y, m] = arrival.split('-').map(Number)
+  const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1))
+  await page.goto(`/ferienvermietung/kalender?year=${y}`)
+  await expect(page.getByRole('row', { name: monthName }).getByRole('button', { name: 'Lena Testgast, Geplant' })).toBeVisible()
 })

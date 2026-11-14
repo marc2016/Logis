@@ -1,8 +1,11 @@
 import type { Page } from '@playwright/test'
+import { clientIp } from '../support/api'
 import { createUser, expect, openNavigation, test } from '../support/fixtures'
 import { freshTotp } from '../support/totp'
 
 async function firstStep(page: Page, username: string, password: string) {
+  // Three sign-ins in a row exceed the per-IP sign-in rate limit of nginx: each one comes from its own IP.
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': clientIp() })
   await expect(page).toHaveURL(/\/login/)
   await page.getByLabel('Benutzername').fill(username)
   await page.getByLabel('Passwort').fill(password)
