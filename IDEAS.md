@@ -7,6 +7,13 @@ Loose ideas for later. Each one becomes an OpenSpec change once it is picked up.
 - Open bookings (and similar records such as statements) as their own page with an address, instead of a modal dialog.
 - Split view on that page: the booking's data on the left, its source on the right, such as the booking mail or a PDF document.
 
+## PDF sources with field locations
+
+- Follows the booking pages with mail sources, whose design leaves room for PDF sources.
+- PDF preview with a text layer (pdf.js) next to a record's data, for example an agency statement next to its statement page.
+- Take a value into a field by marking it in the PDF; the location is stored, so clicking the field later highlights it in the PDF and the other way round.
+- No PDF is parsed today and statements are entered by hand, so locations only come from marking. Scanned PDFs without text get the preview only.
+
 ## Charts in the evaluation
 
 - Charts on the „Auswertung“ page, which today shows only a table per month: for example occupancy and nights per month, and settled net next to planned rent. shadcn offers chart components based on Recharts.
