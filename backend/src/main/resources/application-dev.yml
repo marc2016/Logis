@@ -10,6 +10,8 @@ logis:
   # Fixed dev key (32 bytes, Base64)
   encryption-key: ZGV2LW9ubHkta2V5LWRvLW5vdC11c2UtaW4tcHJvZCE=
   auth:
+    # Sign-in with password only, without TOTP; refused outside the dev profile (DevTotpBypassGuard).
+    dev-totp-bypass: true
     lockout:
       base-duration: 5s
       max-duration: 30s

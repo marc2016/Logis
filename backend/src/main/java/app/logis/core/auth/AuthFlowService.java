@@ -33,9 +33,11 @@ class AuthFlowService {
     private final SecretCipher cipher;
     private final Clock clock;
     private final String dummyHash;
+    private final boolean devTotpBypass;
 
     AuthFlowService(UserRepository users, PasswordEncoder encoder, LoginAttemptService attempts, TotpService totp,
-            RecoveryCodeService recoveryCodes, SecretCipher cipher, Clock clock) {
+            RecoveryCodeService recoveryCodes, SecretCipher cipher, Clock clock, AuthProperties properties) {
+        this.devTotpBypass = properties.devTotpBypass();
         this.users = users;
         this.encoder = encoder;
         this.attempts = attempts;
@@ -60,6 +62,10 @@ class AuthFlowService {
         if (password == null || !encoder.matches(password, user.getPasswordHash()) || !user.isEnabled()) {
             attempts.recordFailure(user, ip, "PASSWORD");
             throw ApiException.unauthorized(INVALID_CREDENTIALS);
+        }
+        if (devTotpBypass) {
+            // Development only (DevTotpBypassGuard): the password completes the sign-in.
+            return new StepResult(user, completeSecondFactor(user), List.of());
         }
         // The counter is only reset after the second factor, otherwise the code step could be guessed without limit.
         var stage = user.isTotpEnabled() ? AuthStage.TOTP_REQUIRED : AuthStage.TOTP_ENROLLMENT_REQUIRED;
