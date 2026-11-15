@@ -157,7 +157,7 @@ export function PropertyDetailPage() {
         Zugeordnete Buchungen
         <Badge variant="secondary">nicht im Ergebnis</Badge>
       </h2>
-      <TransactionTable items={transactions?.items ?? []} accounts={accounts} isLoading={txLoading} />
+      <TransactionTable selectionKey={String(page)} items={transactions?.items ?? []} accounts={accounts} isLoading={txLoading} />
       <Pagination page={page} size={PAGE_SIZE} total={transactions?.totalItems ?? 0} onChange={setPage} />
 
       {dialog?.kind === 'edit' && <PropertyDialog property={property} onClose={() => setDialog(null)} />}

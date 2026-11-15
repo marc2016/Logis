@@ -151,4 +151,75 @@ describe('Inbox', () => {
     expect(within(row).getByText('Bestätigung')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Posteingang/ })).toHaveAttribute('href', '/posteingang')
   })
+
+  describe('bulk actions', () => {
+    const toolbar = () => screen.getByRole('toolbar', { name: 'Aktionen für die Auswahl' })
+
+    it('ignores and deletes selected mails, and reports mails that cannot be retried', async () => {
+      let items = [
+        inboxItem({ id: 31, subject: 'Mail A', result: 'NOT_RECOGNISED', handler: null, retryable: true }),
+        inboxItem({ id: 32, subject: 'Mail B', result: 'IGNORED', handler: null, retryable: false }),
+      ]
+      const retried: number[] = []
+      mockApi({
+        ...base,
+        'GET /api/mail/mailbox': { body: mailbox },
+        'GET /api/mail/inbox': () => ({ body: items }),
+        'POST /api/mail/inbox/31/retry': () => {
+          retried.push(31)
+          return { body: items[0] }
+        },
+        'DELETE /api/mail/inbox/31': () => {
+          items = items.filter((m) => m.id !== 31)
+          return { status: 204 }
+        },
+        'DELETE /api/mail/inbox/32': () => {
+          items = items.filter((m) => m.id !== 32)
+          return { status: 204 }
+        },
+      })
+      renderApp('/posteingang')
+      const user = userEvent.setup()
+      await user.click(await screen.findByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+      await user.click(within(toolbar()).getByRole('button', { name: 'Erneut verarbeiten' }))
+      expect(await screen.findByText('1 erneut verarbeitet, 1 nicht: Die Mail kann nicht erneut verarbeitet werden')).toBeInTheDocument()
+      expect(retried).toEqual([31])
+
+      // The mail that could not be retried stays selected; select the whole page again.
+      expect(within(toolbar()).getByText('1 ausgewählt')).toBeInTheDocument()
+      await user.click(screen.getByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+      await user.click(within(toolbar()).getByRole('button', { name: 'Löschen' }))
+      await user.click(within(toolbar()).getByRole('button', { name: 'Ja' }))
+      expect(await screen.findByText('2 gelöscht')).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('row', { name: /^Mail/ })).not.toBeInTheDocument())
+    })
+
+    it('assigns one unit to several waiting booking mails', async () => {
+      const assigned: number[] = []
+      mockApi({
+        ...base,
+        'GET /api/mail/mailbox': { body: mailbox },
+        'GET /api/mail/inbox': {
+          body: [
+            inboxItem({ id: 31, subject: 'Neue Buchung 1' }),
+            inboxItem({ id: 32, subject: 'Neue Buchung 2' }),
+            inboxItem({ id: 33, subject: 'Neue Buchung 3', result: 'BOOKING_CREATED', resultDetail: null }),
+          ],
+        },
+        'POST /api/vacationrental/mail/31/assign': () => (assigned.push(31), { status: 204 }),
+        'POST /api/vacationrental/mail/32/assign': () => (assigned.push(32), { status: 204 }),
+      })
+      renderApp('/posteingang')
+      const user = userEvent.setup()
+      await user.click(await screen.findByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+      await user.click(within(toolbar()).getByRole('button', { name: 'Einheit zuordnen' }))
+      const dialog = await screen.findByRole('dialog', { name: 'Einheit zuordnen' })
+      expect(within(dialog).getByText(/2 Mails warten auf eine Einheit/)).toBeInTheDocument()
+      await user.click(within(dialog).getByRole('combobox', { name: 'Einheit' }))
+      await user.click(await screen.findByRole('option', { name: 'Haus Seeufer' }))
+      await user.click(within(dialog).getByRole('button', { name: 'Zuordnen' }))
+      expect(await screen.findByText('2 zugeordnet, 1 nicht: Die Mail wartet nicht auf eine Einheit')).toBeInTheDocument()
+      expect(assigned.sort()).toEqual([31, 32])
+    })
+  })
 })

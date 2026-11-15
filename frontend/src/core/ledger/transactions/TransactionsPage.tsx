@@ -131,7 +131,7 @@ export function TransactionsPage() {
         </Card>
       )}
 
-      <TransactionTable items={data?.items ?? []} accounts={accounts} isLoading={isLoading} />
+      <TransactionTable selectionKey={JSON.stringify(filter)} items={data?.items ?? []} accounts={accounts} isLoading={isLoading} />
       <Pagination page={page} size={PAGE_SIZE} total={data?.totalItems ?? 0} onChange={setPage} />
 
       {dialog === 'transaction' && <TransactionDialog transaction={null} accounts={writable} onClose={() => setDialog(null)} />}

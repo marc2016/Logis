@@ -4,6 +4,7 @@ import { BarChart3Icon, CalendarDaysIcon, HandshakeIcon, HouseIcon, ListIcon, Re
 import type { LogisModule } from '@/app/types'
 import { mailKindLabel, mailResultLabel } from './api'
 import { BookingMailActions } from './BookingMailActions'
+import { BulkMailActions } from './BulkMailActions'
 
 export const vacationRentalModule: LogisModule = {
   id: 'vacationrental',
@@ -32,4 +33,5 @@ export const vacationRentalModule: LogisModule = {
   mailResultLabels: mailResultLabel,
   mailKindLabels: mailKindLabel,
   MailActions: BookingMailActions,
+  BulkMailActions,
 }

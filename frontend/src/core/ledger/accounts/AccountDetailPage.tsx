@@ -101,7 +101,7 @@ export function AccountDetailPage() {
         )}
       </div>
 
-      <TransactionTable items={transactions?.items ?? []} accounts={accounts} showAccount={false} isLoading={txLoading} />
+      <TransactionTable selectionKey={String(page)} items={transactions?.items ?? []} accounts={accounts} showAccount={false} isLoading={txLoading} />
       <Pagination page={page} size={PAGE_SIZE} total={transactions?.totalItems ?? 0} onChange={setPage} />
 
       {dialog === 'edit' && <AccountDialog account={account} onClose={() => setDialog(null)} />}

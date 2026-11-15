@@ -14,12 +14,18 @@ import { errorMessage } from '@/lib/errors'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { StatementDialog } from '../StatementDialog'
 import { StatementLineDialog } from '../StatementLineDialog'
+import { AddBookingsDialog } from '../AddBookingsDialog'
+import { assignLine } from '../statementAssign'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { PageCheckbox, RowCheckbox } from '@/components/selection'
+import { useBulk } from '@/components/useBulk'
+import { useSelection } from '@/components/useSelection'
 import { backLabel, backTo, bookingPath, type BackState } from '../BookingPage.paths'
 import { statusLabel, unitLabel, useInvalidateRental, useStatement, type StatementLine } from '../api'
 
 const LIST = '/ferienvermietung/abrechnungen'
 
-type DialogState = { kind: 'statement' } | { kind: 'line'; line: StatementLine | null } | null
+type DialogState = { kind: 'statement' } | { kind: 'line'; line: StatementLine | null } | { kind: 'bookings' } | null
 
 /** A statement as its own page: header with the key figures, its booking lines and the payout. */
 export function StatementPage() {
@@ -41,6 +47,9 @@ export function StatementPage() {
     },
     onError: (err) => toast.error(errorMessage(err)),
   })
+
+  const lineSelection = useSelection(`lines:${statementId}`)
+  const bulk = useBulk(lineSelection, invalidate)
 
   const backLink = (
     <Link to={back} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -97,8 +106,11 @@ export function StatementPage() {
         </div>
         {selected.canEdit && (
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setDialog({ kind: 'line', line: null })}>
+            <Button size="sm" onClick={() => setDialog({ kind: 'bookings' })}>
               <PlusIcon />
+              Buchungen zuordnen
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setDialog({ kind: 'line', line: null })}>
               Buchung zuordnen
             </Button>
             <Button size="sm" variant="outline" onClick={() => setDialog({ kind: 'statement' })}>
@@ -120,6 +132,11 @@ export function StatementPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              {selected.canEdit && selected.lines.length > 0 && (
+                <TableHead className="w-10">
+                  <PageCheckbox ids={selected.lines.map((l) => String(l.booking.id))} selection={lineSelection} />
+                </TableHead>
+              )}
               <TableHead>Aufenthalt</TableHead>
               <TableHead>Gast</TableHead>
               <TableHead className="text-right">Brutto</TableHead>
@@ -138,7 +155,17 @@ export function StatementPage() {
               </TableRow>
             ) : (
               selected.lines.map((l) => (
-                <TableRow key={l.booking.id}>
+                <TableRow key={l.booking.id} data-state={lineSelection.isSelected(String(l.booking.id)) ? 'selected' : undefined}>
+                  {selected.canEdit && (
+                    <TableCell className="w-10">
+                      <RowCheckbox
+                        id={String(l.booking.id)}
+                        label={`Position ${formatDate(l.booking.arrival)} ${l.booking.guest?.name ?? ''}`.trim()}
+                        selection={lineSelection}
+                        order={selected.lines.map((x) => String(x.booking.id))}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Link to={bookingPath(l.booking.id)} state={backTo(location)} className="hover:underline">
                       {formatDate(l.booking.arrival)} – {formatDate(l.booking.departure)}
@@ -187,7 +214,7 @@ export function StatementPage() {
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell colSpan={5}>Auszahlung</TableCell>
+              <TableCell colSpan={selected.canEdit && selected.lines.length > 0 ? 6 : 5}>Auszahlung</TableCell>
               <TableCell className="text-right font-semibold" data-testid="payout">
                 <Money amount={selected.payout} />
               </TableCell>
@@ -197,6 +224,33 @@ export function StatementPage() {
         </Table>
       </div>
 
+      <BulkActionBar selection={lineSelection} busy={bulk.busy}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={bulk.busy}
+          onClick={() =>
+            bulk.run(
+              selected.lines.filter((l) => lineSelection.isSelected(String(l.booking.id))),
+              (l) => String(l.booking.id),
+              (l) => api(`/api/vacationrental/statements/${selected.id}/lines/${l.booking.id}`, { method: 'DELETE' }),
+              'entfernt',
+            )
+          }
+        >
+          Entfernen
+        </Button>
+      </BulkActionBar>
+      {dialog?.kind === 'bookings' && (
+        <AddBookingsDialog
+          statement={selected}
+          onClose={() => setDialog(null)}
+          onAssign={(bookings, amounts) => {
+            setDialog(null)
+            bulk.run(bookings, (b) => String(b.id), (b) => assignLine(selected.id, b, amounts.rate, amounts.cleaning), 'zugeordnet')
+          }}
+        />
+      )}
       {dialog?.kind === 'statement' && <StatementDialog statement={selected} onSaved={() => setDialog(null)} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'line' && <StatementLineDialog statement={selected} line={dialog.line} onClose={() => setDialog(null)} />}
     </div>

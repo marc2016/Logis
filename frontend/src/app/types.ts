@@ -20,7 +20,12 @@ export interface LogisModule {
   mailKindLabels?: Record<string, string>
   /** Extra actions in the core inbox dialog for mails this module handled (handler key starts with the module id). */
   MailActions?: ComponentType<{ item: MailInboxItem; onDone: () => void }>
+  /** Extra bulk actions in the core inbox for the selected mails this module handled. */
+  BulkMailActions?: ComponentType<{ items: MailInboxItem[]; busy: boolean; run: BulkMailRun }>
 }
+
+/** Runs an action for each mail, reports the summary and refreshes the inbox (see core/mail). */
+export type BulkMailRun = (items: MailInboxItem[], action: (item: MailInboxItem) => Promise<unknown>, verb: string) => Promise<unknown>
 
 /** The inbox item as the core sends it (see core/mail/api.ts). */
 export interface MailInboxItem {

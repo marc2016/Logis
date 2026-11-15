@@ -12,6 +12,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination } from '@/core/ledger/transactions/Pagination'
 import { cn } from '@/lib/utils'
+import { PageCheckbox, RowCheckbox } from './selection'
+import type { Selection } from './useSelection'
 
 /** Server-side sort state: column id and direction, e.g. `{ id: 'arrival', desc: true }`. */
 export interface SortState {
@@ -44,6 +46,9 @@ interface Props<T> {
   rowClassName?: (row: T) => string | undefined
   isLoading?: boolean
   emptyText?: string
+  /** Row selection for bulk actions; rows for which `selectable` is false get no checkbox. */
+  selection?: Selection
+  selectable?: (row: T) => boolean
 }
 
 function storageKey(tableId: string) {
@@ -89,6 +94,8 @@ export function DataTable<T>({
   rowClassName,
   isLoading,
   emptyText = 'Keine Einträge.',
+  selection,
+  selectable,
 }: Props<T>) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => loadHidden(tableId))
   const table = useReactTable({
@@ -107,6 +114,8 @@ export function DataTable<T>({
       })
     },
   })
+  const selectableIds = selection ? data.filter((row) => !selectable || selectable(row)).map(getRowId) : []
+  const withSelection = selection !== undefined && selectableIds.length > 0
   const hideable = table.getAllLeafColumns().filter((c) => c.getCanHide() && (c.columnDef.meta as DataTableColumnMeta | undefined)?.label)
 
   return (
@@ -141,6 +150,11 @@ export function DataTable<T>({
           <TableHeader>
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
+                {withSelection && (
+                  <TableHead className="w-10">
+                    <PageCheckbox ids={selectableIds} selection={selection} />
+                  </TableHead>
+                )}
                 {group.headers.map((header) => {
                   const meta = header.column.columnDef.meta as DataTableColumnMeta | undefined
                   const active = sort?.id === header.column.id
@@ -176,7 +190,7 @@ export function DataTable<T>({
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={table.getVisibleLeafColumns().length} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={table.getVisibleLeafColumns().length + (withSelection ? 1 : 0)} className="py-8 text-center text-muted-foreground">
                   {isLoading ? 'Wird geladen …' : emptyText}
                 </TableCell>
               </TableRow>
@@ -195,7 +209,15 @@ export function DataTable<T>({
                   }
                   tabIndex={onRowClick ? 0 : undefined}
                   aria-label={rowLabel?.(row.original)}
+                  data-state={selection?.isSelected(row.id) ? 'selected' : undefined}
                 >
+                  {withSelection && (
+                    <TableCell className="w-10">
+                      {selectableIds.includes(row.id) && (
+                        <RowCheckbox id={row.id} label={rowLabel?.(row.original) ?? 'Zeile'} selection={selection} order={selectableIds} />
+                      )}
+                    </TableCell>
+                  )}
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className={(cell.column.columnDef.meta as DataTableColumnMeta | undefined)?.className}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -21,7 +21,7 @@ export async function holidayHome(api: APIRequestContext, prefix = 'Haus'): Prom
   return { propertyId: property.id, unitId: property.units[0].id, name }
 }
 
-export async function booking(api: APIRequestContext, unitId: number, arrival: string, departure: string, guest: string, ref?: string) {
+export async function booking(api: APIRequestContext, unitId: number, arrival: string, departure: string, guest: string, ref?: string, expectedRent?: string) {
   return call<{ id: number }>(api, 'POST', '/api/vacationrental/bookings', {
     unitId,
     arrival,
@@ -29,6 +29,7 @@ export async function booking(api: APIRequestContext, unitId: number, arrival: s
     adults: 2,
     guest: { name: guest },
     ...(ref ? { externalRef: ref } : {}),
+    ...(expectedRent ? { expectedRent } : {}),
   })
 }
 

@@ -4,12 +4,18 @@ import { PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Money } from '@/components/Money'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { ConfirmButton } from '@/components/ConfirmButton'
+import { PageCheckbox, RowCheckbox } from '@/components/selection'
+import { useBulk } from '@/components/useBulk'
+import { useSelection } from '@/components/useSelection'
+import { api } from '@/lib/api'
 import { PageHeader } from '@/components/PageHeader'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { IdSelect } from '../RentalFilters'
 import { StatementDialog } from '../StatementDialog'
 import { backTo, statementPath } from '../BookingPage.paths'
-import { unitLabel, useRentalUnits, useStatements } from '../api'
+import { unitLabel, useInvalidateRental, useRentalUnits, useStatements } from '../api'
 
 /** Statements of the rental service provider per unit, with their booking lines and payout. */
 export function AbrechnungenPage() {
@@ -22,6 +28,11 @@ export function AbrechnungenPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const canCreate = units.some((u) => !u.archived && u.myRole !== 'VIEWER')
+  const selection = useSelection(params.toString())
+  const invalidate = useInvalidateRental()
+  const bulk = useBulk(selection, invalidate)
+  const selectableIds = statements.filter((s) => s.canEdit).map((s) => String(s.id))
+  const withSelection = selectableIds.length > 0
 
   function update(changes: Record<string, number | undefined>) {
     const next = new URLSearchParams(params)
@@ -66,6 +77,11 @@ export function AbrechnungenPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              {withSelection && (
+                <TableHead className="w-10">
+                  <PageCheckbox ids={selectableIds} selection={selection} />
+                </TableHead>
+              )}
               <TableHead>Datum</TableHead>
               <TableHead>Einheit</TableHead>
               <TableHead>Dienstleister</TableHead>
@@ -77,7 +93,7 @@ export function AbrechnungenPage() {
           <TableBody>
             {statements.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={withSelection ? 7 : 6} className="py-8 text-center text-muted-foreground">
                   {isLoading ? 'Wird geladen …' : 'Noch keine Abrechnungen.'}
                 </TableCell>
               </TableRow>
@@ -90,7 +106,15 @@ export function AbrechnungenPage() {
                   aria-label={`Abrechnung ${s.provider} ${formatDate(s.statementDate)}`}
                   onClick={() => open(s.id)}
                   onKeyDown={(e) => e.key === 'Enter' && open(s.id)}
+                  data-state={selection.isSelected(String(s.id)) ? 'selected' : undefined}
                 >
+                  {withSelection && (
+                    <TableCell className="w-10">
+                      {s.canEdit && (
+                        <RowCheckbox id={String(s.id)} label={`Abrechnung ${s.provider} ${formatDate(s.statementDate)}`} selection={selection} order={selectableIds} />
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>{formatDate(s.statementDate)}</TableCell>
                   <TableCell>{unitLabel(s.unit)}</TableCell>
                   <TableCell>{s.provider}</TableCell>
@@ -108,6 +132,22 @@ export function AbrechnungenPage() {
         </Table>
       </div>
 
+      <BulkActionBar selection={selection} busy={bulk.busy}>
+        <ConfirmButton
+          question={`${selection.ids.size} ${selection.ids.size === 1 ? 'Eintrag' : 'Einträge'} löschen?`}
+          disabled={bulk.busy}
+          onConfirm={() =>
+            bulk.run(
+              statements.filter((s) => selection.isSelected(String(s.id))),
+              (s) => String(s.id),
+              (s) => api(`/api/vacationrental/statements/${s.id}`, { method: 'DELETE' }),
+              'gelöscht',
+            )
+          }
+        >
+          Löschen
+        </ConfirmButton>
+      </BulkActionBar>
       {creating && (
         <StatementDialog
           statement={null}

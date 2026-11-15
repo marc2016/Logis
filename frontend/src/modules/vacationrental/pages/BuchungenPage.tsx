@@ -13,9 +13,17 @@ import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { BookingDialog } from '../BookingDialog'
+import { AssignToStatementDialog } from '../AssignToStatementDialog'
+import { assignLine } from '../statementAssign'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { ConfirmButton } from '@/components/ConfirmButton'
+import { useSelection } from '@/components/useSelection'
+import { useBulk } from '@/components/useBulk'
+import { api } from '@/lib/api'
+import { SkipError } from '@/lib/bulk'
 import { backTo, bookingPath } from '../BookingPage.paths'
 import { IdSelect } from '../RentalFilters'
-import { rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useRentalUnits, type Booking, type BookingStatus } from '../api'
+import { rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingStatus } from '../api'
 
 const PAGE_SIZE = 50
 const ALL = 'all'
@@ -87,6 +95,14 @@ export function BuchungenPage() {
     .filter((u) => filter.propertyId === undefined || u.propertyId === filter.propertyId)
     .map((u) => ({ id: u.id, name: unitLabel(u) }))
   const canRecord = units.some((u) => !u.archived && u.myRole !== 'VIEWER')
+  // Filters, sorting and paging all live in the URL: any change there clears the selection.
+  const selection = useSelection(params.toString())
+  const invalidate = useInvalidateRental()
+  const bulk = useBulk(selection, invalidate)
+  const [assigning, setAssigning] = useState(false)
+  const selected = (data?.items ?? []).filter((b) => selection.isSelected(String(b.id)))
+  const bookingId = (b: Booking) => String(b.id)
+  const base = (b: Booking) => `/api/vacationrental/bookings/${b.id}`
 
   /** Changes URL parameters; every filter change starts again on the first page. */
   function update(changes: Record<string, string | number | undefined>, keepPage = false) {
@@ -171,7 +187,58 @@ export function BuchungenPage() {
         rowClassName={(b) => (b.status === 'CANCELLED' ? 'text-muted-foreground' : undefined)}
         isLoading={isLoading}
         emptyText="Keine Buchungen gefunden."
+        selection={selection}
+        selectable={(b) => b.canEdit}
       />
+      <BulkActionBar selection={selection} busy={bulk.busy}>
+        <Button
+          size="sm"
+          disabled={bulk.busy}
+          onClick={() =>
+            bulk.run(selected, bookingId, (b) => {
+              if (b.reviewState === 'CHANGE') throw new SkipError('Änderungsvorschläge bitte einzeln prüfen')
+              if (b.reviewState !== 'NEW') throw new SkipError('Die Buchung ist nicht „zu prüfen“')
+              return api(`${base(b)}/confirm`, { method: 'POST' })
+            }, 'bestätigt')
+          }
+        >
+          Bestätigen
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={bulk.busy}
+          onClick={() =>
+            bulk.run(selected, bookingId, (b) => {
+              if (b.status === 'CANCELLED') throw new SkipError('Die Buchung ist bereits storniert')
+              return api(`${base(b)}/cancel`, { method: 'POST' })
+            }, 'storniert')
+          }
+        >
+          Stornieren
+        </Button>
+        <Button size="sm" variant="outline" disabled={bulk.busy} onClick={() => setAssigning(true)}>
+          Abrechnung zuordnen
+        </Button>
+        <ConfirmButton
+          question={`${selection.ids.size} ${selection.ids.size === 1 ? 'Eintrag' : 'Einträge'} löschen?`}
+          disabled={bulk.busy}
+          onConfirm={() => bulk.run(selected, bookingId, (b) => api(base(b), { method: 'DELETE' }), 'gelöscht')}
+        >
+          Löschen
+        </ConfirmButton>
+      </BulkActionBar>
+      {assigning && (
+        <AssignToStatementDialog
+          unitIds={[...new Set(selected.map((b) => b.unit.id))]}
+          count={selected.length}
+          onClose={() => setAssigning(false)}
+          onAssign={(statement, amounts) => {
+            setAssigning(false)
+            bulk.run(selected, bookingId, (b) => assignLine(statement.id, b, amounts.rate, amounts.cleaning), 'zugeordnet')
+          }}
+        />
+      )}
       {recording && <BookingDialog defaultPropertyId={filter.propertyId} defaultUnitId={filter.unitId} onClose={() => setRecording(false)} />}
     </>
   )
