@@ -1,8 +1,10 @@
+# booking-sources Specification
+
 ## Purpose
 
 Booking sources keep the documents a booking's data came from in a readable form, and record for each field where its value was found, so that a user can check every imported value against its source at a glance.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Sources of a booking
 When a mail creates, completes, changes, cancels or is attached to a booking, the system SHALL store the mail as a source of that booking. A source SHALL hold its kind, a label (agency and mail kind, such as „Fewo & Meer Buchungsbestätigung“), the date of the mail, its subject and the text the recognition read, exactly as it was read. A booking's sources SHALL be listed oldest first. A source MUST belong to the mail document attached to the booking: deleting that document or the booking MUST delete the source. The kind of a source SHALL allow other kinds than mails, such as PDF documents, without changing existing sources.
@@ -60,11 +62,15 @@ Sources and field locations MUST be visible only to users with at least `EDITOR`
 - **THEN** the guest fields have no locations any more, and arrival and departure still point to the mail
 
 ### Requirement: Sources of existing bookings
-After the update, the system SHALL derive sources and field locations once for existing bookings from the mail documents attached to them, reading them with the fixed rules only and in the order they were attached. A field's location SHALL come from the latest of these mails that carries the field. Fields whose current value differs from that mail SHALL be marked as differing. The derivation MUST NOT change any booking data, MUST NOT send mails to the AI, MUST skip mails no rule recognises, and MUST NOT create a second source for a mail document that already has one.
+After the update, the system SHALL derive sources and field locations once for existing bookings from the mail documents attached to them, reading them with the fixed rules only and in the order they were attached. A field's location SHALL come from the latest of these mails that carries the field. As on import, block notices and cancellations MUST only add a source and MUST NOT set locations. Fields whose current value differs from that mail SHALL be marked as differing. The derivation MUST NOT change any booking data, MUST NOT send mails to the AI, MUST skip mails no rule recognises, and MUST NOT create a second source for a mail document that already has one.
 
 #### Scenario: Booking imported before the update
 - **WHEN** the system is updated and booking 250902 has its confirmation `.eml` attached
 - **THEN** the booking shows the confirmation as its source with highlighted fields, and its data is unchanged
+
+#### Scenario: Block notice of an existing booking
+- **WHEN** the system is updated and booking 3e98f765kl has its confirmation and a block notice with the number 250904 attached
+- **THEN** both mails are sources, and the booking number points to the confirmation and does not differ
 
 #### Scenario: Restart
 - **WHEN** the system restarts after the derivation has run

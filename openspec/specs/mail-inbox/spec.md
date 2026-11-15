@@ -45,3 +45,10 @@ A user SHALL see the mails fetched from their mailbox with date, sender, subject
 #### Scenario: Delete a mail
 - **WHEN** Anna deletes a mail in the inbox
 - **THEN** it disappears from the list together with its content, and the next poll does not fetch it again
+
+### Requirement: Open the linked record
+If a handling part reports a linked record for a mail, the inbox SHALL offer to open that record directly on its own page.
+
+#### Scenario: Open the created booking
+- **WHEN** Anna opens a mail „Buchung angelegt“ in the inbox and chooses „Zur Buchung“
+- **THEN** the page of the created booking opens
