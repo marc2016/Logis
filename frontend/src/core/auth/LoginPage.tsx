@@ -36,7 +36,15 @@ export function LoginPage() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
   const current: Step = step ?? session?.stage ?? 'ANONYMOUS'
-  const restart = useCallback(() => setStep('ANONYMOUS'), [])
+  // Leaving an unfinished sign-in ends it on the server too, so a reload does not bring the step back.
+  const restart = useCallback(() => {
+    api('/api/auth/logout', { method: 'POST' })
+      .catch(() => undefined)
+      .finally(() => {
+        queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+        setStep('ANONYMOUS')
+      })
+  }, [queryClient])
 
   useEffect(() => {
     if (current === 'AUTHENTICATED') {
@@ -68,7 +76,7 @@ export function LoginPage() {
         {current === 'SHOW_RECOVERY_CODES' && (
           <RecoveryCodesStep codes={recoveryCodes} onDone={() => setStep(stageAfterCodes)} />
         )}
-        {current === 'PASSWORD_CHANGE_REQUIRED' && <PasswordChangeStep onDone={advance} />}
+        {current === 'PASSWORD_CHANGE_REQUIRED' && <PasswordChangeStep onDone={advance} onRestart={restart} />}
       </div>
     </div>
   )
@@ -76,6 +84,15 @@ export function LoginPage() {
 
 interface StepProps {
   onDone: (response: SessionResponse) => void
+}
+
+/** Ends the unfinished sign-in and shows the password step again. */
+function BackToSignIn({ onRestart }: { onRestart: () => void }) {
+  return (
+    <Button type="button" variant="link" className="w-full text-muted-foreground" onClick={onRestart}>
+      Zurück zur Anmeldung
+    </Button>
+  )
 }
 
 /** Back to the password step if an intermediate stage has expired. */
@@ -200,6 +217,7 @@ function TotpStep({ onDone, onRestart }: StepProps & { onRestart: () => void }) 
           >
             {useRecovery ? 'Code aus der App verwenden' : 'Wiederherstellungscode verwenden'}
           </Button>
+          <BackToSignIn onRestart={onRestart} />
         </form>
       </CardContent>
     </Card>
@@ -265,6 +283,7 @@ function EnrollmentStep({ onDone, onRestart }: StepProps & { onRestart: () => vo
           <Button type="submit" className="w-full" disabled={busy || !setup || code.length !== 6}>
             Bestätigen
           </Button>
+          <BackToSignIn onRestart={onRestart} />
         </form>
       </CardContent>
     </Card>
@@ -291,7 +310,7 @@ function RecoveryCodesStep({ codes, onDone }: { codes: string[]; onDone: () => v
   )
 }
 
-function PasswordChangeStep({ onDone }: StepProps) {
+function PasswordChangeStep({ onDone, onRestart }: StepProps & { onRestart: () => void }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -334,6 +353,7 @@ function PasswordChangeStep({ onDone }: StepProps) {
           <Button type="submit" className="w-full" disabled={busy}>
             Passwort speichern
           </Button>
+          <BackToSignIn onRestart={onRestart} />
         </form>
       </CardContent>
     </Card>

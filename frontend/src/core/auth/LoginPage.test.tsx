@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { adminUser, authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 
@@ -119,5 +119,59 @@ describe('Sign-in', () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
     const { router } = renderApp('/login?next=//evil.example.com')
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+  })
+
+  it('leaves a stale code step with „Zurück zur Anmeldung“, also after a reload', async () => {
+    let stage = 'TOTP_REQUIRED'
+    let loggedOut = false
+    mockApi({
+      'GET /api/auth/me': () => ({ body: { stage, user: null, recoveryCodes: null } }),
+      'POST /api/auth/logout': () => {
+        loggedOut = true
+        stage = 'ANONYMOUS'
+        return { status: 204 }
+      },
+    })
+    renderApp('/login')
+    const user = userEvent.setup()
+    // The server still holds an unfinished sign-in: the page opens on the code step.
+    await screen.findByText('Bestätigungscode')
+    await user.click(screen.getByRole('button', { name: 'Zurück zur Anmeldung' }))
+    expect(await screen.findByLabelText('Benutzername')).toHaveValue('')
+    expect(loggedOut).toBe(true)
+
+    cleanup()
+    renderApp('/login')
+    expect(await screen.findByLabelText('Benutzername')).toBeInTheDocument()
+    expect(screen.queryByText('Bestätigungscode')).not.toBeInTheDocument()
+  })
+
+  it('offers the way back during setup and the password change, even if signing out fails', async () => {
+    mockApi({
+      'GET /api/auth/me': { body: { stage: 'TOTP_ENROLLMENT_REQUIRED', user: null, recoveryCodes: null } },
+      'POST /api/auth/totp/setup': { body: { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/Logis:x?secret=JBSWY3DPEHPK3PXP' } },
+      'POST /api/auth/logout': { status: 500, body: { detail: 'kaputt' } },
+    })
+    renderApp('/login')
+    const user = userEvent.setup()
+    await screen.findByTestId('totp-secret')
+    await user.click(screen.getByRole('button', { name: 'Zurück zur Anmeldung' }))
+    expect(await screen.findByLabelText('Benutzername')).toBeInTheDocument()
+  })
+
+  it('offers the way back during the required password change', async () => {
+    let stage = 'PASSWORD_CHANGE_REQUIRED'
+    mockApi({
+      'GET /api/auth/me': () => ({ body: { stage, user: null, recoveryCodes: null } }),
+      'POST /api/auth/logout': () => {
+        stage = 'ANONYMOUS'
+        return { status: 204 }
+      },
+    })
+    renderApp('/login')
+    const user = userEvent.setup()
+    await screen.findByText('Neues Passwort festlegen')
+    await user.click(screen.getByRole('button', { name: 'Zurück zur Anmeldung' }))
+    expect(await screen.findByLabelText('Benutzername')).toBeInTheDocument()
   })
 })

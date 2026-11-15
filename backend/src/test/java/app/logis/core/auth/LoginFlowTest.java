@@ -42,6 +42,21 @@ class LoginFlowTest extends IntegrationTest {
     }
 
     @Test
+    void leavingAnUnfinishedSignInEndsIt() throws Exception {
+        var user = createUser(Role.USER, true);
+        var session = passwordStep(user);
+        postJson("/api/auth/logout", Map.of(), session).andExpect(status().isNoContent());
+
+        assertThat(session.isInvalid()).isTrue();
+        // A reload (no valid session) is anonymous, and the old session cannot finish the sign-in.
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/auth/me"))
+                .andExpect(jsonPath("$.stage").value("ANONYMOUS"));
+        var fresh = new MockHttpSession();
+        postJson("/api/auth/totp", Map.of("code", totp(user.totpSecret())), fresh)
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
     void userWithoutTotpMustEnroll() throws Exception {
         var user = createUser(Role.USER, false);
         var session = passwordStep(user);
