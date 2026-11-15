@@ -240,8 +240,11 @@ Quickest with the start script:
 ```sh
 ./start.sh          # Postgres + backend (dev profile) + frontend; Ctrl+C stops backend and frontend
 ./start.sh stop     # stop the development database
+./start.sh reset    # delete the development database and start with fresh test data
 ./start.sh prod     # production stack (checks .env for placeholders, pulls the images, docker compose up -d)
 ```
+
+An empty development database is filled with test accounts and data on the first start. The accounts, the shared password and the TOTP secret are listed in [dev/README.md](dev/README.md).
 
 Or individually:
 

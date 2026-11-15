@@ -3,6 +3,7 @@
 #   ./start.sh          development: Postgres (Docker) + backend (dev profile) + frontend (Vite)
 #   ./start.sh prod     production: full Docker stack from compose.yml with .env
 #   ./start.sh stop     stop the development database
+#   ./start.sh reset    delete the development database and start with fresh test data (dev/README.md)
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -103,8 +104,15 @@ case "${1:-dev}" in
     info "Stopping development database ..."
     docker compose -f compose.dev.yml stop
     ;;
-  -h | --help | help)
-    sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'
+  reset)
+    require docker "Please install or start Docker."
+    port_in_use 8080 && fail "Logis is still running. Stop it first (Ctrl+C), then run ./start.sh reset."
+    info "Deleting the development database ..."
+    docker compose -f compose.dev.yml down -v
+    start_dev
     ;;
-  *) fail "Unknown command '$1'. Available: dev (default), prod, stop" ;;
+  -h | --help | help)
+    sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  *) fail "Unknown command '$1'. Available: dev (default), prod, stop, reset" ;;
 esac

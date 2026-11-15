@@ -4,6 +4,9 @@ spring:
     password: logis
 
 logis:
+  # Test accounts and data for an empty development database (relative to backend/, see dev/README.md).
+  dev:
+    seed-file: ../dev/seed.sql
   admin:
     username: admin
     password: admin-dev-password
