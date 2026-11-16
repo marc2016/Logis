@@ -122,6 +122,31 @@ class AuthFlowService {
         return new StepResult(user, AuthStage.AUTHENTICATED, List.of());
     }
 
+    static final String PASSKEY_FAILED = "Anmeldung mit Passkey fehlgeschlagen";
+
+    /**
+     * A passkey signs a known user in completely, unless the user is locked or disabled; a disabled user counts as a
+     * failed attempt (design.md D4 of passkeys).
+     */
+    StepResult signInWithPasskey(Long userId, String ip) {
+        var user = load(userId);
+        requireNotLocked(user, ip, "PASSKEY");
+        if (!user.isEnabled()) {
+            attempts.recordFailure(user, ip, "PASSKEY");
+            throw ApiException.unauthorized(PASSKEY_FAILED);
+        }
+        return new StepResult(user, completeSecondFactor(user), List.of());
+    }
+
+    /** A failed passkey verification for a known user counts towards the lockout. */
+    void passkeyFailed(Long userId, String ip) {
+        users.findById(userId).ifPresent(user -> attempts.recordFailure(user, ip, "PASSKEY"));
+    }
+
+    void unknownPasskey(String ip) {
+        attempts.logFailure("(passkey)", ip, "PASSKEY");
+    }
+
     private AuthStage completeSecondFactor(User user) {
         attempts.recordSuccess(user);
         if (user.isPasswordChangeRequired()) {

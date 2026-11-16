@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { LandmarkIcon } from 'lucide-react'
+import { KeyRoundIcon, LandmarkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import { FormError } from '@/components/FormError'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
 import { RecoveryCodes } from '@/components/RecoveryCodes'
 import { api, ApiError } from '@/lib/api'
+import { isPasskeyCancel, signInWithPasskey } from '@/lib/passkeys'
 import { safeNext, sessionQueryKey, useSession, type AuthStage, type SessionResponse } from './session'
 
 type Step = AuthStage | 'SHOW_RECOVERY_CODES'
@@ -70,7 +71,7 @@ export function LoginPage() {
         <div className="flex items-center justify-center gap-2 text-xl font-semibold">
           <LandmarkIcon className="size-6" /> Logis
         </div>
-        {current === 'ANONYMOUS' && <PasswordStep onDone={advance} />}
+        {current === 'ANONYMOUS' && <PasswordStep onDone={advance} passkeys={session?.passkeys === true} />}
         {current === 'TOTP_REQUIRED' && <TotpStep onDone={advance} onRestart={restart} />}
         {current === 'TOTP_ENROLLMENT_REQUIRED' && <EnrollmentStep onDone={advance} onRestart={restart} />}
         {current === 'SHOW_RECOVERY_CODES' && (
@@ -104,7 +105,7 @@ function handleStepError(error: unknown, setError: (m: string) => void, onRestar
   setError(errorMessage(error))
 }
 
-function PasswordStep({ onDone }: StepProps) {
+function PasswordStep({ onDone, passkeys }: StepProps & { passkeys: boolean }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -118,6 +119,18 @@ function PasswordStep({ onDone }: StepProps) {
       onDone(await api<SessionResponse>('/api/auth/login', { json: { username, password } }))
     } catch (err) {
       setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function passkey() {
+    setBusy(true)
+    setError(null)
+    try {
+      onDone(await signInWithPasskey<SessionResponse>())
+    } catch (err) {
+      if (!isPasskeyCancel(err)) setError(errorMessage(err))
     } finally {
       setBusy(false)
     }
@@ -143,6 +156,12 @@ function PasswordStep({ onDone }: StepProps) {
           <Button type="submit" className="w-full" disabled={busy}>
             Weiter
           </Button>
+          {passkeys && (
+            <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={passkey}>
+              <KeyRoundIcon />
+              Mit Passkey anmelden
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>

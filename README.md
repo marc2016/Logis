@@ -63,6 +63,7 @@ GitHub Actions runs all tests on every push and publishes the images `ghcr.io/ma
 |---|---|
 | `LOGIS_BIND`, `LOGIS_PORT` | Address and port of the only published port. Default `127.0.0.1:8080`, i.e. reachable only for a proxy on the same host. |
 | `LOGIS_TRUSTED_PROXIES` | Addresses or networks whose `X-Forwarded-For` counts as the real client IP, comma-separated |
+| `LOGIS_PUBLIC_URL` | Address users open Logis under, e.g. `https://logis.example.org`. Enables passkeys, which are bound to this domain (see Users). Empty: no passkeys. |
 | `LOGIS_ENCRYPTION_KEY` | Key for the TOTP secrets, 32 bytes in Base64. **Back it up separately from the backups!** |
 | `LOGIS_ADMIN_USERNAME`, `LOGIS_ADMIN_PASSWORD` | Initial admin, used only at the very first start. At least 12 characters. |
 | `LOGIS_MODULES_<MODULE>_ENABLED` | Switch a module on or off, e.g. `LOGIS_MODULES_VACATIONRENTAL_ENABLED=false` |
@@ -117,6 +118,8 @@ http:
 - New users set their own password and set up 2FA at their first sign-in.
 - Admins can disable users and reset their password or 2FA. The affected person's sessions end immediately.
 - Under *Mein Konto* everyone changes their password and generates new recovery codes.
+- **Passkeys** (when `LOGIS_PUBLIC_URL` is set): under *Mein Konto* everyone can add passkeys after confirming their password. „Mit Passkey anmelden“ then signs in with Face ID, Touch ID or the device PIN, without password or code. 2FA stays mandatory as the way back. Resetting a user's 2FA also deletes their passkeys.
+  - Passkeys are bound to the domain in `LOGIS_PUBLIC_URL`. **Changing the domain later makes all existing passkeys unusable**; users then sign in with password and code and add new ones.
 
 ## Finances and sharing
 

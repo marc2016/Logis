@@ -27,7 +27,11 @@ class AuthController {
     private final UserRepository users;
     private final Clock clock;
 
-    AuthController(AuthFlowService flow, TotpService totp, UserRepository users, Clock clock) {
+    private final PasskeyService passkeys;
+
+    AuthController(AuthFlowService flow, TotpService totp, UserRepository users, Clock clock,
+            PasskeyService passkeys) {
+        this.passkeys = passkeys;
         this.flow = flow;
         this.totp = totp;
         this.users = users;
@@ -46,7 +50,12 @@ class AuthController {
     record SessionUser(Long id, String username, String displayName, Role role) {
     }
 
-    record SessionResponse(AuthStage stage, SessionUser user, List<String> recoveryCodes) {
+    /** {@code passkeys}: whether passkey sign-in is offered (only reported by {@code /me}). */
+    record SessionResponse(AuthStage stage, SessionUser user, List<String> recoveryCodes, Boolean passkeys) {
+
+        SessionResponse(AuthStage stage, SessionUser user, List<String> recoveryCodes) {
+            this(stage, user, recoveryCodes, null);
+        }
     }
 
     record TotpSetupResponse(String secret, String otpauthUri) {
@@ -56,12 +65,13 @@ class AuthController {
     SessionResponse me(HttpServletRequest request) {
         var stage = AuthSession.stage(request);
         if (stage != AuthStage.AUTHENTICATED) {
-            return new SessionResponse(stage, null, null);
+            return new SessionResponse(stage, null, null, passkeys.enabled());
         }
         var userId = (Long) request.getSession(false).getAttribute(AuthSession.USER_ID);
         var user = users.findById(userId).orElseThrow();
         return new SessionResponse(stage,
-                new SessionUser(user.getId(), user.getUsername(), user.getDisplayName(), user.getRole()), null);
+                new SessionUser(user.getId(), user.getUsername(), user.getDisplayName(), user.getRole()), null,
+                passkeys.enabled());
     }
 
     @PostMapping("/login")

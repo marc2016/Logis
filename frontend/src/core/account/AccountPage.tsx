@@ -18,6 +18,8 @@ import { FormError } from '@/components/FormError'
 import { PageHeader } from '@/components/PageHeader'
 import { RecoveryCodes } from '@/components/RecoveryCodes'
 import { api, ApiError } from '@/lib/api'
+import { useSession } from '@/core/auth/session'
+import { PasskeysCard } from './PasskeysCard'
 
 function ChangePasswordCard() {
   const [current, setCurrent] = useState('')
@@ -131,12 +133,14 @@ function RecoveryCodesCard() {
 }
 
 export function AccountPage() {
+  const { data: session } = useSession()
   return (
     <>
       <PageHeader title="Mein Konto" />
       <div className="grid max-w-4xl gap-6 lg:grid-cols-2">
         <ChangePasswordCard />
         <RecoveryCodesCard />
+        {session?.passkeys && <PasskeysCard />}
       </div>
     </>
   )

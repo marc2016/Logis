@@ -19,6 +19,8 @@ export interface SessionResponse {
   stage: AuthStage
   user: SessionUser | null
   recoveryCodes: string[] | null
+  /** Whether passkey sign-in is offered (from `/me`). */
+  passkeys?: boolean | null
 }
 
 export const sessionQueryKey = ['session'] as const

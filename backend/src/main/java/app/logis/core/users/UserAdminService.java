@@ -1,5 +1,6 @@
 package app.logis.core.users;
 
+import app.logis.core.auth.PasskeyService;
 import app.logis.core.auth.RecoveryCodeService;
 import app.logis.core.web.ApiException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,11 +24,13 @@ class UserAdminService {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final RecoveryCodeService recoveryCodes;
+    private final PasskeyService passkeys;
     private final Clock clock;
     private final ApplicationEventPublisher events;
 
-    UserAdminService(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes, Clock clock,
+    UserAdminService(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes, PasskeyService passkeys, Clock clock,
             ApplicationEventPublisher events) {
+        this.passkeys = passkeys;
         this.users = users;
         this.encoder = encoder;
         this.recoveryCodes = recoveryCodes;
@@ -98,6 +101,7 @@ class UserAdminService {
         user.setTotpSecretEnc(null);
         user.setTotpLastStep(null);
         recoveryCodes.deleteAll(user.getId());
+        passkeys.deleteAll(user.getId());
         user.invalidateSessions();
         return user;
     }

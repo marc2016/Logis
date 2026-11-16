@@ -39,6 +39,7 @@ services:
       LOGIS_AI_ENABLED: ${LOGIS_AI_ENABLED:-false}
       LOGIS_ANTHROPIC_API_KEY: ${LOGIS_ANTHROPIC_API_KEY:-}
       LOGIS_AI_MODEL: ${LOGIS_AI_MODEL:-claude-opus-5-5}
+      LOGIS_PUBLIC_URL: ${LOGIS_PUBLIC_URL:-}
     # egress: outbound only (mail import via IMAP, optional AI); no published ports.
     networks: [internal, egress]
     depends_on:

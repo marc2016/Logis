@@ -64,6 +64,8 @@ logis:
     password: ${LOGIS_ADMIN_PASSWORD:}
   encryption-key: ${LOGIS_ENCRYPTION_KEY:}
   auth:
+    # Address users open Logis under (e.g. https://logis.example.org); passkeys are bound to it. Empty: no passkeys.
+    public-url: ${LOGIS_PUBLIC_URL:}
     session:
       idle-timeout: 30m
       absolute-timeout: 12h
