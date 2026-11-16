@@ -5,7 +5,9 @@ FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
-RUN ./mvnw -q -B dependency:go-offline
+# Dependencies in their own layer. Not dependency:go-offline: it follows the raw transitive graph, where the
+# passkey library leads to a jackson SNAPSHOT that does not exist; resolve uses the versions of the Spring Boot BOM.
+RUN ./mvnw -q -B dependency:resolve dependency:resolve-plugins
 COPY src src
 RUN ./mvnw -q -B package -DskipTests \
     && cp target/logis-backend-*.jar /app.jar
