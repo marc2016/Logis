@@ -1,19 +1,52 @@
-import { expect, request as playwrightRequest, test as base, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, request as playwrightRequest, test as base, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { call, clientIp, signIn, unique, type Credentials } from './api'
 import { ADMIN_STATE } from './global-setup'
 
 export interface TestUser extends Credentials {
   displayName: string
+  id: number
 }
 
 /** Creates a user with a start password through the admin API (no sign-in yet). */
 export async function createUser(baseURL: string, prefix = 'e2e'): Promise<TestUser> {
   const admin = await playwrightRequest.newContext({ baseURL, storageState: ADMIN_STATE })
   const username = unique(`${prefix}.`)
-  const user: TestUser = { username, password: `Start-${username}-2026`, displayName: `Test ${username}` }
-  await call(admin, 'POST', '/api/admin/users', { username, displayName: user.displayName, role: 'USER', password: user.password })
+  const password = `Start-${username}-2026`
+  const displayName = `Test ${username}`
+  const created = await call<{ id: number }>(admin, 'POST', '/api/admin/users', { username, displayName, role: 'USER', password })
   await admin.dispose()
-  return user
+  return { username, password, displayName, id: created.id }
+}
+
+/** A further user, signed in in its own browser context (e.g. to see what a share allows). Close `page.context()`. */
+export async function secondUser(browser: Browser, baseURL: string, prefix = 'e2e2') {
+  const user = await createUser(baseURL, prefix)
+  const context = await browser.newContext({ baseURL, extraHTTPHeaders: { 'X-Forwarded-For': clientIp() } })
+  await signIn(context.request, user)
+  const page = await context.newPage()
+  return { user, page, api: context.request }
+}
+
+/** A page signed in as the initial admin, for the user and category administration. Close `page.context()`. */
+export async function adminPage(browser: Browser, baseURL: string) {
+  const context = await browser.newContext({ baseURL, storageState: ADMIN_STATE, extraHTTPHeaders: { 'X-Forwarded-For': clientIp() } })
+  return context.newPage()
+}
+
+/** Signs out through the user menu of the app shell. */
+export async function signOut(page: Page, username: string) {
+  await openNavigation(page)
+  await page.getByRole('button', { name: new RegExp(username) }).click()
+  await page.getByRole('menuitem', { name: 'Abmelden' }).click()
+  await expect(page).toHaveURL(/\/login/)
+}
+
+/** The password step of the sign-in page, from a fresh client IP (nginx limits sign-in requests per IP). */
+export async function passwordStep(page: Page, username: string, password: string) {
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': clientIp() })
+  await page.getByLabel('Benutzername').fill(username)
+  await page.getByLabel('Passwort').fill(password)
+  await page.getByRole('button', { name: 'Weiter' }).click()
 }
 
 type Fixtures = {

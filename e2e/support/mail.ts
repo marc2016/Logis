@@ -1,4 +1,6 @@
 import net from 'node:net'
+import type { APIRequestContext } from '@playwright/test'
+import { call } from './api'
 
 /** SMTP of the test mail server: in CI published by compose.e2e.yml, locally a GreenMail on the same ports. */
 const SMTP_HOST = process.env.LOGIS_E2E_SMTP_HOST ?? '127.0.0.1'
@@ -53,14 +55,15 @@ function germanDate(iso: string) {
 }
 
 /** A booking confirmation in the format of the agency „Fewo & Meer“, with an invented guest. */
-export function fewoConfirmation(opts: { to: string; object: string; ref: string; arrival: string; departure: string; guest: string }) {
+/** `messageId` lets a later mail for the same booking (e.g. with another departure) count as a new mail. */
+export function fewoConfirmation(opts: { to: string; object: string; ref: string; arrival: string; departure: string; guest: string; messageId?: string }) {
   const from = germanDate(opts.arrival)
   const until = germanDate(opts.departure)
   return `From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: ${opts.to}
 Subject: Neue Buchung für ${opts.object} - Nordhorn
 Date: ${new Date().toUTCString().replace('GMT', '+0000')}
-Message-ID: <fewo-${opts.ref}@fewoundmeer.de>
+Message-ID: <${opts.messageId ?? `fewo-${opts.ref}`}@fewoundmeer.de>
 MIME-Version: 1.0
 Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -83,4 +86,38 @@ Content-Transfer-Encoding: 8bit
 <p>Mit freundlichen Grüßen<br>Fewo &amp; Meer</p>
 </body></html>
 `
+}
+
+/** Sets up the user's mailbox on the test mail server and fetches it once; `address` is the mailbox user. */
+export async function connectMailbox(api: APIRequestContext, address: string) {
+  const today = new Date().toISOString().slice(0, 10)
+  await call(api, 'PUT', '/api/mail/mailbox', {
+    host: IMAP_HOST,
+    port: IMAP_PORT,
+    username: address,
+    password: 'beliebig',
+    folder: 'INBOX',
+    useTls: false,
+    cutoffDate: today,
+    enabled: true,
+  })
+}
+
+export interface InboxMail {
+  id: number
+  subject: string | null
+  result: string
+  linkId: number | null
+}
+
+/** Fetches the mailbox and waits until `count` mails matching `subject` are processed. */
+export async function fetchMails(api: APIRequestContext, subject: RegExp, count: number) {
+  await call(api, 'POST', '/api/mail/mailbox/poll')
+  for (let i = 0; i < 60; i++) {
+    const inbox = await call<InboxMail[]>(api, 'GET', '/api/mail/inbox')
+    const found = inbox.filter((m) => subject.test(m.subject ?? ''))
+    if (found.length >= count) return found
+    await new Promise((r) => setTimeout(r, 500))
+  }
+  throw new Error(`Mails ${subject} not fetched`)
 }

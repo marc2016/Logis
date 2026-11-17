@@ -39,3 +39,23 @@ export function inDays(days: number) {
   d.setDate(d.getDate() + days)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+/** An owner (legal entity) of the signed-in user. */
+export async function owner(api: APIRequestContext, name = unique('Test GbR ')) {
+  return call<{ id: number; name: string }>(api, 'POST', '/api/legal-entities', { name, kind: 'GBR' })
+}
+
+/** A checking account of an owner. */
+export async function account(api: APIRequestContext, legalEntityId: number, name = unique('Konto '), openingBalance = '0.00') {
+  return call<{ id: number; name: string }>(api, 'POST', '/api/accounts', { legalEntityId, name, kind: 'CHECKING', openingBalance })
+}
+
+/** Shares a property, unit or account with another user. */
+export async function share(api: APIRequestContext, type: 'property' | 'unit' | 'account', objectId: number, userId: number, role: 'VIEWER' | 'EDITOR' | 'OWNER') {
+  return call(api, 'POST', `/api/shares/${type}/${objectId}`, { userId, role })
+}
+
+/** A statement of a unit for a period. */
+export async function statement(api: APIRequestContext, unitId: number, provider: string, periodFrom: string, periodTo: string) {
+  return call<{ id: number }>(api, 'POST', '/api/vacationrental/statements', { unitId, provider, periodFrom, periodTo, statementDate: periodTo })
+}

@@ -34,6 +34,7 @@
 
 - New features as an OpenSpec change: propose → apply → archive.
 - One branch per change.
+- A new user-facing journey gets an end-to-end test in `e2e/tests` and an entry in `e2e/COVERAGE.md`.
 
 ## Language
 
