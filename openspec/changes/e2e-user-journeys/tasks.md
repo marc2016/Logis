@@ -41,4 +41,4 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `npx tsc --noEmit` in `e2e`, push the branch, and verify that the e2e job passes in CI on desktop and phone. The suite cannot run locally next to the real stack.
+- [x] 6.1 Run `npx tsc --noEmit` in `e2e`, push the branch, and verify that the e2e job passes in CI on desktop and phone. The suite cannot run locally next to the real stack.
