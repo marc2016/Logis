@@ -57,9 +57,10 @@ export function BulkMailActions({ items, busy, run }: { items: MailInboxItem[]; 
                   setOpen(false)
                   run(items, (m) => {
                     if (m.result !== 'UNASSIGNED_UNIT' || !m.subjectName) throw new SkipError('Die Mail wartet nicht auf eine Einheit')
-                    // The server also processes other waiting mails of the same agency and name again.
+                    // The server also processes other waiting mails of the same agency and name again, so the
+                    // calls run one after the other: parallel calls would race to create the same assignment.
                     return api(`/api/vacationrental/mail/${m.id}/assign`, { method: 'POST', json: { unitId: Number(unitId) } })
-                  }, 'zugeordnet')
+                  }, 'zugeordnet', 1)
                 }}
               >
                 Zuordnen

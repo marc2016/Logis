@@ -77,7 +77,7 @@ export function PosteingangPage() {
           const Actions = m.BulkMailActions
           const own = selected.filter((mail) => mail.handler?.startsWith(`${m.id}.`))
           return Actions && own.length > 0 ? (
-            <Actions key={m.id} items={own} busy={bulk.busy} run={(items, action, verb) => bulk.run(items, mailId, action, verb)} />
+            <Actions key={m.id} items={own} busy={bulk.busy} run={(items, action, verb, concurrency) => bulk.run(items, mailId, action, verb, concurrency)} />
           ) : null
         })}
         <Button

@@ -25,7 +25,8 @@ export interface LogisModule {
 }
 
 /** Runs an action for each mail, reports the summary and refreshes the inbox (see core/mail). */
-export type BulkMailRun = (items: MailInboxItem[], action: (item: MailInboxItem) => Promise<unknown>, verb: string) => Promise<unknown>
+/** `concurrency` 1 runs the mails one after the other, e.g. when one call changes the state of the next. */
+export type BulkMailRun = (items: MailInboxItem[], action: (item: MailInboxItem) => Promise<unknown>, verb: string, concurrency?: number) => Promise<unknown>
 
 /** The inbox item as the core sends it (see core/mail/api.ts). */
 export interface MailInboxItem {

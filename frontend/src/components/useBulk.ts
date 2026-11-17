@@ -10,10 +10,10 @@ import type { Selection } from './useSelection'
 export function useBulk(selection: Selection, refresh: () => Promise<unknown> | void) {
   const [busy, setBusy] = useState(false)
 
-  async function run<T>(items: T[], getId: (item: T) => string, action: (item: T) => Promise<unknown>, verb: string) {
+  async function run<T>(items: T[], getId: (item: T) => string, action: (item: T) => Promise<unknown>, verb: string, concurrency = 4) {
     setBusy(true)
     try {
-      const result = await runBulk(items, action)
+      const result = await runBulk(items, action, concurrency)
       const failed = result.failed.flatMap((f) => f.items.map(getId))
       selection.keepOnly(failed)
       await refresh()
