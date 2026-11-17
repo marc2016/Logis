@@ -60,7 +60,7 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await line.getByLabel('Brutto (€)').fill('360')
   await line.getByRole('button', { name: 'Speichern' }).click()
   await expect(line).toBeHidden()
-  await expect(page.getByRole('cell', { name: 'Max Testgast' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Max Testgast', exact: true })).toBeVisible()
 
   await page.goto(`/ferienvermietung/kalender?year=${month.slice(0, 4)}`)
   await expect(page.getByRole('row', { name: monthName }).getByRole('button', { name: 'Max Testgast, Abgerechnet' })).toBeVisible()
