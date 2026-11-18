@@ -32,6 +32,7 @@
 
 ## Workflow
 
+- At the start of every session, check the available OpenSpec skills (`.claude/skills/openspec-*`, `/opsx:*` commands) and use them for OpenSpec work instead of editing `openspec/` by hand.
 - New features as an OpenSpec change: propose → apply → archive.
 - One branch per change.
 - A new user-facing journey gets an end-to-end test in `e2e/tests` and an entry in `e2e/COVERAGE.md`.
