@@ -21,7 +21,7 @@ For every capability in `openspec/specs/`, this table names the end-to-end journ
 | deployment | indirectly: every test runs against the images and nginx of `compose.yml` | – | `HealthTest`, `HealthDatabaseDownTest`, `ErrorHandlingTest`, `SecurityTest` | Security headers, startup checks and image builds are checked by the backend tests and the CI image build, not by user journeys. |
 | end-to-end-tests | this suite | – | – | |
 | legal-entities | `finances.spec.ts` (create owner) | `Ledger.test.tsx` | `LegalEntitiesTest` | |
-| mail-inbox | `mail-import.spec.ts`, `inbox-bulk.spec.ts` | `Mail.test.tsx` | `MailInboxTest`, `MailImportTest` | |
+| mail-inbox | `mail-import.spec.ts`, `inbox-bulk.spec.ts`, `inbox-fetch.spec.ts` (older mails via quick range, fetch result, no duplicates, quick filter „Offen“ after reload) | `Mail.test.tsx` (date field, calendar, progress, sorting, filters) | `MailInboxTest` (fetch status, one fetch at a time, parallel duplicates), `MailImportTest` | The progress bar itself is checked in `Mail.test.tsx`: in the suite a fetch of a few mails ends before it can be seen. |
 | module-system | – | `AppShell.test.tsx` | `ModulesEnabledTest`, `ModulesDisabledTest`, `ModuleDataRetainedTest`, `DisabledModuleFinancesTest`, `DisabledModuleMailTest` | Not end to end: switching a module off changes the configuration of the whole stack the suite shares. |
 | object-sharing | `sharing.spec.ts` (viewer, unit editor) | `Realestate.test.tsx`, `Ledger.test.tsx` | `SharingTest`, `SharingChildTypeTest`, `UnitAccessTest` | |
 | occupancy | `booking-calendar.spec.ts` (calendar), `evaluation.spec.ts` (yearly overview) | `Kalender.test.tsx`, `VacationRental.test.tsx` | `OccupancyTest`, `OccupancyCalculationTest` | |

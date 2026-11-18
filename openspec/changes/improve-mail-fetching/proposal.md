@@ -25,6 +25,6 @@ None.
 ## Impact
 
 - Backend `core.mail`: `MailService`, `MailPoller`, `MailController`, `ImapClient`/`JakartaImapClient` (per-mail callback instead of a collected list), a new fetch status endpoint. No schema change, no migration.
-- Frontend `core/mail`: `MailboxCard` (date choice, progress), `PosteingangPage` (filters, sorting); `DataTable` gains optional client-side sorting.
+- Frontend `core/mail`: `MailboxCard` (date choice, progress), `PosteingangPage` (filters, sorting).
 - New frontend dependency for the shadcn calendar (`react-day-picker`).
 - Tests: `MailInboxTest`, `Mail.test.tsx`, `DataTable.test.tsx`, e2e `mail-import.spec.ts`/new inbox filter journey, `e2e/COVERAGE.md`.

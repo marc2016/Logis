@@ -42,7 +42,9 @@ Add the shadcn `calendar` component (`react-day-picker`) with `captionLayout="dr
 *Alternative:* only fix the native input. Rejected: it cannot jump years and hides incomplete input.
 
 ### D5: Client-side sorting and filtering
-`DataTable` gets an opt-in `clientSort` mode using TanStack's `getSortedRowModel` with the sort state still passed in/out, so the header UI stays the same. Filtering happens in `PosteingangPage` before the data reaches the table (plain array filter), which keeps `DataTable` simple. Filter and sort state live in URL search params (`ergebnis`, `art`, `absender`, `von`, `bis`, `q`, `sort`), like `BuchungenPage` uses `q`. „Offen“ maps to `ATTENTION_RESULTS`. Result, kind and sender options are derived from the loaded mails with their German labels. Sorting of „Art“ and „Ergebnis“ uses the displayed label; „Absender“ uses the displayed value (source or sender). Selection is pruned to visible rows before bulk actions.
+`PosteingangPage` filters and sorts the loaded mails itself and passes the result to `DataTable` together with the sort state, so the existing sortable column headers are reused and `DataTable` stays unchanged. Filter and sort state live in URL search params (`ergebnis`, `art`, `absender`, `von`, `bis`, `q`, `sort`), like `BuchungenPage`. „Offen“ maps to `ATTENTION_RESULTS`. Result, kind and sender options are derived from the loaded mails with their German labels. Sorting of „Art“ and „Ergebnis“ uses the displayed label; „Absender“ uses the displayed value (source or sender). The selection is keyed by the URL parameters, so changing a filter clears it and bulk actions only see visible mails.
+
+*Alternative:* an opt-in client-sort mode in `DataTable` with TanStack's sorted row model. Rejected: sorting by German labels needs page knowledge anyway, and a plain array sort is simpler.
 
 ## Risks / Trade-offs
 

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -10,8 +10,18 @@ import { Label } from '@/components/ui/label'
 import { FormError } from '@/components/FormError'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
-import { formatDate, todayIso } from '@/core/ledger/transactions/format'
-import { mailKeys, type MailboxSettings } from './api'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { DateField } from '@/components/DateField'
+import { minusYears } from '@/components/dateInput'
+import { todayIso } from '@/core/ledger/transactions/format'
+import { mailKeys, useFetchStatus, type FetchStatus, type MailboxSettings } from './api'
+import { FetchProgress } from './FetchProgress'
+
+const RANGES = [
+  { label: '1 Jahr', years: 1 },
+  { label: '2 Jahre', years: 2 },
+  { label: '5 Jahre', years: 5 },
+]
 
 const dateTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -27,6 +37,7 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
   const [cutoffDate, setCutoffDate] = useState(mailbox.cutoffDate ?? todayIso())
   const [enabled, setEnabled] = useState(mailbox.enabled ?? true)
   const [olderFrom, setOlderFrom] = useState('')
+  const today = todayIso()
   const [error, setError] = useState<string | null>(null)
   const refresh = () => queryClient.invalidateQueries({ queryKey: mailKeys.all })
 
@@ -43,14 +54,25 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
     },
     onError: (err) => setError(errorMessage(err)),
   })
+  const { data: status } = useFetchStatus()
   const trigger = useMutation({
-    mutationFn: ({ url, body }: { url: string; body?: unknown; done: string }) => api(url, { method: 'POST', json: body ?? {} }),
-    onSuccess: (_, { done }) => {
-      toast.success(done)
-      window.setTimeout(refresh, 3000)
+    mutationFn: ({ url, body }: { url: string; body?: unknown }) =>
+      api<FetchStatus | undefined>(url, { method: 'POST', json: body ?? {} }),
+    onSuccess: (started) => {
+      if (started) queryClient.setQueryData(mailKeys.fetchStatus, started)
+      else toast.info('Der Abruf ist ausgeschaltet.')
     },
     onError: (err) => toast.error(errorMessage(err)),
   })
+  const busy = trigger.isPending || status?.state === 'RUNNING'
+
+  // When a fetch ends, show its mails and the new time of the last fetch.
+  const running = status?.state === 'RUNNING'
+  const wasRunning = useRef(running)
+  useEffect(() => {
+    if (wasRunning.current && !running) void queryClient.invalidateQueries({ queryKey: mailKeys.all })
+    wasRunning.current = running
+  }, [running, queryClient])
 
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -123,38 +145,49 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
             <p className="text-muted-foreground">
               Letzter Abruf: {mailbox.lastPollAt ? dateTime.format(new Date(mailbox.lastPollAt)) : 'noch keiner'}
             </p>
-            {mailbox.lastError && <p className="text-destructive" role="alert">{mailbox.lastError}</p>}
-            <div className="flex flex-wrap items-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={trigger.isPending}
-                onClick={() => trigger.mutate({ url: '/api/mail/mailbox/poll', done: 'Abruf gestartet.' })}
-              >
-                Jetzt abrufen
-              </Button>
-              <div className="space-y-1">
-                <Label htmlFor="mb-older" className="text-xs text-muted-foreground">
-                  Ältere Mails ab
-                </Label>
-                <Input id="mb-older" type="date" value={olderFrom} onChange={(e) => setOlderFrom(e.target.value)} className="w-40" />
+            {mailbox.lastError && !status && <p className="text-destructive" role="alert">{mailbox.lastError}</p>}
+            <FetchProgress status={status} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => trigger.mutate({ url: '/api/mail/mailbox/poll' })}
+            >
+              Jetzt abrufen
+            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="mb-older">Ältere Mails ab</Label>
+              <div className="flex flex-wrap items-start gap-2">
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  value={RANGES.find((r) => minusYears(today, r.years) === olderFrom)?.label ?? ''}
+                  onValueChange={(label) => {
+                    const range = RANGES.find((r) => r.label === label)
+                    if (range) setOlderFrom(minusYears(today, range.years))
+                  }}
+                  aria-label="Zeitraum"
+                >
+                  {RANGES.map((r) => (
+                    <ToggleGroupItem key={r.label} value={r.label}>
+                      {r.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+                <DateField id="mb-older" label="Ältere Mails ab" value={olderFrom} onChange={setOlderFrom} max={today} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!olderFrom || busy}
+                  onClick={() => trigger.mutate({ url: '/api/mail/mailbox/fetch-older', body: { from: olderFrom } })}
+                >
+                  Ältere Mails abrufen
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!olderFrom || trigger.isPending}
-                onClick={() =>
-                  trigger.mutate({
-                    url: '/api/mail/mailbox/fetch-older',
-                    body: { from: olderFrom },
-                    done: `Mails ab ${formatDate(olderFrom)} werden abgerufen.`,
-                  })
-                }
-              >
-                Ältere Mails abrufen
-              </Button>
+              <p className="text-xs text-muted-foreground">Bereits abgerufene Mails werden übersprungen, es entstehen keine doppelten Einträge.</p>
             </div>
           </div>
         )}

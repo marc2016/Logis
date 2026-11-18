@@ -78,25 +78,43 @@ class MailController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Progress of the current or last fetch; {@code total} is null until the folder has been searched. */
+    record FetchStatus(FetchRun.Kind kind, LocalDate from, Integer total, int checked, int created,
+            FetchRun.State state, String error, Instant startedAt, Instant finishedAt) {
+
+        static FetchStatus of(FetchRun r) {
+            return new FetchStatus(r.kind(), r.from(), r.total(), r.checked(), r.created(), r.state(), r.error(),
+                    r.startedAt(), r.finishedAt());
+        }
+    }
+
+    /** Empty body if the mailbox is switched off: then nothing is fetched, as before. */
     @PostMapping("/mailbox/poll")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    void pollNow(@AuthenticationPrincipal LogisPrincipal me) {
+    ResponseEntity<FetchStatus> pollNow(@AuthenticationPrincipal LogisPrincipal me) {
         if (mailboxes.get(me.userId()).isEmpty()) {
             throw ApiException.notFound("Kein Postfach eingerichtet");
         }
-        executor.execute(() -> mails.poll(me.userId()));
+        var run = mails.beginPoll(me.userId(), true);
+        if (run == null) {
+            return ResponseEntity.accepted().build();
+        }
+        executor.execute(() -> mails.run(run));
+        return ResponseEntity.accepted().body(FetchStatus.of(run));
     }
 
     @PostMapping("/mailbox/fetch-older")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    void fetchOlder(@RequestBody FetchOlderRequest body, @AuthenticationPrincipal LogisPrincipal me) {
-        if (body.from() == null) {
-            throw ApiException.badRequest("Bitte ein Datum angeben.");
-        }
-        if (mailboxes.get(me.userId()).isEmpty()) {
-            throw ApiException.notFound("Kein Postfach eingerichtet");
-        }
-        executor.execute(() -> mails.fetchOlder(me.userId(), body.from()));
+    FetchStatus fetchOlder(@RequestBody FetchOlderRequest body, @AuthenticationPrincipal LogisPrincipal me) {
+        var run = mails.beginOlder(me.userId(), body.from());
+        executor.execute(() -> mails.run(run));
+        return FetchStatus.of(run);
+    }
+
+    /** The user's own fetch only; empty body when there was none since the start of the application. */
+    @GetMapping("/mailbox/fetch-status")
+    ResponseEntity<FetchStatus> fetchStatus(@AuthenticationPrincipal LogisPrincipal me) {
+        return mails.fetchRun(me.userId()).map(FetchStatus::of).map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/inbox")

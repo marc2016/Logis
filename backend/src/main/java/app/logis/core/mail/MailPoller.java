@@ -26,7 +26,7 @@ class MailPoller {
     void pollAll() {
         for (var mailbox : mailboxes.findByEnabledTrue()) {
             try {
-                mails.poll(mailbox.getOwnerUserId());
+                mails.pollIfIdle(mailbox.getOwnerUserId());
             } catch (RuntimeException e) {
                 log.warn("Polling mailbox of user {} failed", mailbox.getOwnerUserId(), e);
             }

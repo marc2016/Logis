@@ -1,16 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import { booking, seeufer } from '@/modules/vacationrental/fixtures'
-import type { InboxItem, MailboxSettings } from './api'
+import type { FetchStatus, InboxItem, MailboxSettings } from './api'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
   'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/mail/mailbox/fetch-status': { status: 204 },
 }
 
 const mailbox: MailboxSettings = {
@@ -221,5 +222,191 @@ describe('Inbox', () => {
       expect(await screen.findByText('2 zugeordnet, 1 nicht: Die Mail wartet nicht auf eine Einheit')).toBeInTheDocument()
       expect(assigned.sort()).toEqual([31, 32])
     })
+  })
+})
+
+describe('Fetching older mails', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function today() {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 18, 12, 0))
+  }
+
+  const running: FetchStatus = {
+    kind: 'OLDER',
+    from: '2023-01-01',
+    total: 400,
+    checked: 120,
+    created: 35,
+    state: 'RUNNING',
+    error: null,
+    startedAt: '2026-11-18T11:00:00Z',
+    finishedAt: null,
+  }
+
+  it('jumps back several years with a quick range', async () => {
+    today()
+    let sent: unknown
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': { body: [] },
+      'POST /api/mail/mailbox/fetch-older': (init) => {
+        sent = JSON.parse(String(init?.body))
+        return { status: 202, body: { ...running, from: '2021-11-18', total: null, checked: 0, created: 0 } }
+      },
+    })
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    const fetchOlder = await screen.findByRole('button', { name: 'Ältere Mails abrufen' })
+    expect(fetchOlder).toBeDisabled()
+    expect(screen.getByText(/Bereits abgerufene Mails werden übersprungen/)).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: '5 Jahre' }))
+    expect(screen.getByLabelText('Ältere Mails ab')).toHaveValue('18.11.2021')
+    await user.click(fetchOlder)
+    await waitFor(() => expect(sent).toEqual({ from: '2021-11-18' }))
+    expect(await screen.findByText('Mails ab 18.11.2021: Postfach wird durchsucht …')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Jetzt abrufen' })).toBeDisabled()
+  })
+
+  it('accepts a typed date and explains invalid ones', async () => {
+    today()
+    mockApi({ ...base, 'GET /api/mail/mailbox': { body: mailbox }, 'GET /api/mail/inbox': { body: [] } })
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    const field = await screen.findByLabelText('Ältere Mails ab')
+    const fetchOlder = screen.getByRole('button', { name: 'Ältere Mails abrufen' })
+
+    await user.type(field, '01.03.20')
+    await user.tab()
+    expect(screen.getByText('Bitte ein gültiges Datum eingeben.')).toBeInTheDocument()
+    expect(fetchOlder).toBeDisabled()
+
+    await user.type(field, '23')
+    expect(field).toHaveValue('01.03.2023')
+    expect(fetchOlder).toBeEnabled()
+    expect(screen.queryByText('Bitte ein gültiges Datum eingeben.')).not.toBeInTheDocument()
+
+    await user.clear(field)
+    await user.type(field, '01.01.2027')
+    expect(screen.getByText('Das Datum darf nicht in der Zukunft liegen.')).toBeInTheDocument()
+    expect(fetchOlder).toBeDisabled()
+  })
+
+  it('picks month and year in the calendar directly', async () => {
+    today()
+    mockApi({ ...base, 'GET /api/mail/mailbox': { body: mailbox }, 'GET /api/mail/inbox': { body: [] } })
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Kalender öffnen: Ältere Mails ab' }))
+    const dialog = await screen.findByRole('dialog')
+    const [month, year] = await within(dialog).findAllByRole('combobox')
+    await user.selectOptions(year, '2022')
+    await user.selectOptions(month, '0')
+    await user.click(within(dialog).getByRole('button', { name: /15\. Januar 2022/ }))
+    expect(screen.getByLabelText('Ältere Mails ab')).toHaveValue('15.01.2022')
+    expect(screen.getByRole('button', { name: 'Ältere Mails abrufen' })).toBeEnabled()
+  })
+
+  it('shows the progress of a running fetch and its result', async () => {
+    let status: FetchStatus = running
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': { body: [] },
+      'GET /api/mail/mailbox/fetch-status': () => ({ body: status }),
+    })
+    renderApp('/posteingang')
+    expect(await screen.findByText('Mails ab 01.01.2023: 120 von 400 geprüft, 35 neu')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Fortschritt des Abrufs' })).toHaveAttribute('value', '120')
+    expect(screen.getByRole('button', { name: 'Jetzt abrufen' })).toBeDisabled()
+
+    status = { ...running, checked: 400, created: 90, state: 'DONE', finishedAt: '2026-11-18T11:05:00Z' }
+    expect(await screen.findByText('Abruf abgeschlossen: 90 neue Mails', {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Jetzt abrufen' })).toBeEnabled()
+  })
+
+  it('reports a fetch that is already running', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': { body: [] },
+      'POST /api/mail/mailbox/poll': { status: 409, body: { detail: 'Es läuft bereits ein Abruf.' } },
+    })
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Jetzt abrufen' }))
+    expect(await screen.findByText('Es läuft bereits ein Abruf.')).toBeInTheDocument()
+  })
+})
+
+describe('Sorting and filtering the inbox', () => {
+  const items = [
+    inboxItem({ id: 1, subject: 'Neue Buchung Bravo', receivedAt: '2025-03-10T08:00:00Z', result: 'BOOKING_CREATED' }),
+    inboxItem({ id: 2, subject: 'Alpha Storno', receivedAt: '2025-06-01T08:00:00Z', result: 'NOT_RECOGNISED', handler: null, kind: null, source: null, sender: 'info@example.org' }),
+    inboxItem({ id: 3, subject: 'Charlie Anfrage', receivedAt: '2026-11-07T08:00:00Z', result: 'UNASSIGNED_UNIT' }),
+    inboxItem({ id: 4, subject: 'Delta Werbung', receivedAt: '2026-11-08T08:00:00Z', result: 'IGNORED', handler: null, kind: null, source: null, sender: 'news@example.org' }),
+  ]
+  const subjects = () =>
+    screen.getAllByRole('row', { name: /^Mail / }).map((r) => r.getAttribute('aria-label')?.replace('Mail ', ''))
+
+  function setUp() {
+    mockApi({ ...base, 'GET /api/mail/mailbox': { body: mailbox }, 'GET /api/mail/inbox': { body: items } })
+  }
+
+  it('shows the newest mails first and sorts by any column', async () => {
+    setUp()
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    await screen.findByRole('row', { name: 'Mail Delta Werbung' })
+    expect(subjects()).toEqual(['Delta Werbung', 'Charlie Anfrage', 'Alpha Storno', 'Neue Buchung Bravo'])
+    await user.click(screen.getByRole('button', { name: 'Betreff' }))
+    expect(subjects()).toEqual(['Alpha Storno', 'Charlie Anfrage', 'Delta Werbung', 'Neue Buchung Bravo'])
+    expect(screen.getByRole('columnheader', { name: 'Betreff' })).toHaveAttribute('aria-sort', 'ascending')
+    await user.click(screen.getByRole('button', { name: 'Betreff' }))
+    expect(subjects()).toEqual(['Neue Buchung Bravo', 'Delta Werbung', 'Charlie Anfrage', 'Alpha Storno'])
+  })
+
+  it('shows only open mails with the quick filter and combines filters', async () => {
+    setUp()
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    await screen.findByRole('row', { name: 'Mail Delta Werbung' })
+    await user.click(screen.getByRole('button', { name: 'Offen' }))
+    expect(subjects()).toEqual(['Charlie Anfrage', 'Alpha Storno'])
+
+    await user.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }))
+    expect(subjects()).toHaveLength(4)
+    await user.click(screen.getByRole('combobox', { name: 'Absender' }))
+    await user.click(await screen.findByRole('option', { name: 'Fewo & Meer' }))
+    await user.type(screen.getByLabelText('Eingang von'), '01.01.2025')
+    await user.type(screen.getByLabelText('Eingang bis'), '31.12.2025')
+    expect(subjects()).toEqual(['Neue Buchung Bravo'])
+
+    await user.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }))
+    await user.type(screen.getByLabelText('Betreff'), 'storno')
+    expect(subjects()).toEqual(['Alpha Storno'])
+  })
+
+  it('keeps filters and sorting in the address', async () => {
+    setUp()
+    renderApp('/posteingang?ergebnis=offen&sort=source,asc')
+    await screen.findByRole('row', { name: 'Mail Charlie Anfrage' })
+    expect(subjects()).toEqual(['Charlie Anfrage', 'Alpha Storno'])
+    expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('columnheader', { name: 'Absender' })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('clears the selection when the filter changes', async () => {
+    setUp()
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+    expect(screen.getByRole('toolbar', { name: 'Aktionen für die Auswahl' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Offen' }))
+    expect(screen.queryByRole('toolbar', { name: 'Aktionen für die Auswahl' })).not.toBeInTheDocument()
   })
 })

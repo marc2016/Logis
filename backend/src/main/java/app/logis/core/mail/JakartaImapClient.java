@@ -13,9 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Properties;
 import java.util.function.Predicate;
 
@@ -43,24 +41,26 @@ class JakartaImapClient implements ImapClient {
     }
 
     @Override
-    public List<FetchedMail> fetchSince(Config config, LocalDate since, Predicate<String> known) {
-        var result = new ArrayList<FetchedMail>();
+    public void fetchSince(Config config, LocalDate since, Predicate<String> known, Listener listener) {
         var sinceInstant = since.atStartOfDay(clock.getZone()).toInstant();
         try (var store = connect(config)) {
             var folder = store.getFolder(config.folder());
             folder.open(Folder.READ_ONLY);
             try {
                 var messages = folder.search(new ReceivedDateTerm(ComparisonTerm.GE, Date.from(sinceInstant)));
+                listener.onTotal(messages.length);
                 for (Message message : messages) {
                     var received = message.getReceivedDate() != null ? message.getReceivedDate()
                             : message.getSentDate();
                     if (received != null && received.toInstant().isBefore(sinceInstant)) {
+                        listener.onSkipped();
                         continue;
                     }
                     var ids = message.getHeader("Message-ID");
                     var raw = new ByteArrayOutputStream();
                     var messageId = ids != null && ids.length > 0 ? ids[0].trim() : null;
                     if (messageId != null && known.test(messageId)) {
+                        listener.onSkipped();
                         continue;
                     }
                     message.writeTo(raw);
@@ -68,11 +68,12 @@ class JakartaImapClient implements ImapClient {
                         // Without a Message-ID the content identifies the mail.
                         messageId = "<sha256:" + sha256(raw.toByteArray()) + ">";
                         if (known.test(messageId)) {
+                            listener.onSkipped();
                             continue;
                         }
                     }
-                    result.add(new FetchedMail(messageId, received == null ? clock.instant() : received.toInstant(),
-                            raw.toByteArray()));
+                    listener.onMail(new FetchedMail(messageId,
+                            received == null ? clock.instant() : received.toInstant(), raw.toByteArray()));
                 }
             } finally {
                 folder.close(false);
@@ -80,7 +81,6 @@ class JakartaImapClient implements ImapClient {
         } catch (MessagingException | IOException e) {
             throw new ImapException(e.getMessage(), e);
         }
-        return result;
     }
 
     private static Store connect(Config config) throws MessagingException {

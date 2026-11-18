@@ -72,6 +72,8 @@ class MailInboxTest extends IntegrationTest {
     Mails mails;
     @Autowired
     JdbcTemplate jdbc;
+    @Autowired
+    MailService service;
 
     private GreenMailUser mailUser;
     private Long userId;
@@ -179,5 +181,77 @@ class MailInboxTest extends IntegrationTest {
         mails.pollNow(userId);
         getWith("/api/mail/mailbox", session)
                 .andExpect(jsonPath("$.lastError").value(containsString("Abruf fehlgeschlagen")));
+    }
+
+    @Test
+    void fetchStatusShowsProgressOfTheOwnFetchOnly() throws Exception {
+        var bert = login(createUser(Role.USER, true));
+        getWith("/api/mail/mailbox/fetch-status", session).andExpect(status().isNoContent());
+        deliver("Stub eins", "2026-11-05T10:00:00Z");
+        deliver("Unbekannt", "2026-11-06T10:00:00Z");
+        mails.pollNow(userId);
+        deliver("Stub alt", "2025-09-01T10:00:00Z");
+        mails.fetchOlder(userId, LocalDate.of(2025, 1, 1));
+        getWith("/api/mail/mailbox/fetch-status", session)
+                .andExpect(jsonPath("$.kind").value("OLDER"))
+                .andExpect(jsonPath("$.from").value("2025-01-01"))
+                .andExpect(jsonPath("$.state").value("DONE"))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.checked").value(3))
+                .andExpect(jsonPath("$.created").value(1));
+        getWith("/api/mail/mailbox/fetch-status", bert).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void onlyOneFetchRunsAtATime() throws Exception {
+        deliver("Stub eins", "2026-11-05T10:00:00Z");
+        var run = service.beginOlder(userId, LocalDate.of(2025, 1, 1));
+        postJson("/api/mail/mailbox/poll", Map.of(), session)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Es läuft bereits ein Abruf."));
+        postJson("/api/mail/mailbox/fetch-older", Map.of("from", "2025-01-01"), session)
+                .andExpect(status().isConflict());
+        getWith("/api/mail/mailbox/fetch-status", session).andExpect(jsonPath("$.state").value("RUNNING"));
+        // The scheduled poll skips the busy mailbox instead of failing.
+        service.pollIfIdle(userId);
+        assertThat(inbox(session)).isEmpty();
+
+        service.run(run);
+        assertThat(inbox(session)).hasSize(1);
+        getWith("/api/mail/mailbox/fetch-status", session).andExpect(jsonPath("$.state").value("DONE"));
+    }
+
+    @Test
+    void olderMailsCannotBeFetchedFromTheFuture() throws Exception {
+        postJson("/api/mail/mailbox/fetch-older", Map.of("from", LocalDate.now(clock).plusDays(1).toString()), session)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Das Datum darf nicht in der Zukunft liegen."));
+    }
+
+    @Test
+    void theSameMailIsStoredOnceEvenWhenFetchedInParallel() throws Exception {
+        var raw = "From: sender@example.org\r\nSubject: Doppelt\r\nMessage-ID: <doppelt@example.org>\r\n\r\nHallo"
+                .getBytes(StandardCharsets.UTF_8);
+        var mail = new ImapClient.FetchedMail("<doppelt@example.org>", Instant.parse("2026-11-05T10:00:00Z"), raw);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+        try {
+            var results = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 4; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return service.process(userId, mail);
+                }));
+            }
+            start.countDown();
+            int stored = 0;
+            for (var r : results) {
+                stored += r.get() ? 1 : 0;
+            }
+            assertThat(stored).isEqualTo(1);
+        } finally {
+            pool.shutdown();
+        }
+        assertThat(inbox(session)).hasSize(1);
     }
 }

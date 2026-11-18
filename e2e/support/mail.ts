@@ -88,9 +88,9 @@ Content-Transfer-Encoding: 8bit
 `
 }
 
-/** Sets up the user's mailbox on the test mail server and fetches it once; `address` is the mailbox user. */
-export async function connectMailbox(api: APIRequestContext, address: string) {
-  const today = new Date().toISOString().slice(0, 10)
+/** Sets up the user's mailbox on the test mail server; `address` is the mailbox user, the cut-off date defaults to today. */
+export async function connectMailbox(api: APIRequestContext, address: string, cutoffDate?: string) {
+  const today = cutoffDate ?? new Date().toISOString().slice(0, 10)
   await call(api, 'PUT', '/api/mail/mailbox', {
     host: IMAP_HOST,
     port: IMAP_PORT,
@@ -112,7 +112,16 @@ export interface InboxMail {
 
 /** Fetches the mailbox and waits until `count` mails matching `subject` are processed. */
 export async function fetchMails(api: APIRequestContext, subject: RegExp, count: number) {
-  await call(api, 'POST', '/api/mail/mailbox/poll')
+  // Only one fetch runs per mailbox: wait if the regular poll is running.
+  for (let i = 0; ; i++) {
+    try {
+      await call(api, 'POST', '/api/mail/mailbox/poll')
+      break
+    } catch (e) {
+      if (i >= 20 || !String(e).includes(': 409 ')) throw e
+      await new Promise((r) => setTimeout(r, 500))
+    }
+  }
   for (let i = 0; i < 60; i++) {
     const inbox = await call<InboxMail[]>(api, 'GET', '/api/mail/inbox')
     const found = inbox.filter((m) => subject.test(m.subject ?? ''))
