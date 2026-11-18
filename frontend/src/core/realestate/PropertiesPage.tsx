@@ -34,7 +34,7 @@ export function PropertiesPage() {
       </div>
       {isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
       {!isLoading && properties.length === 0 && <p className="text-muted-foreground">Noch keine Objekte. Lege dein erstes Objekt an.</p>}
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 @4xl:grid-cols-2">
         {properties.map((p) => (
           <Card key={p.id} role="region" aria-label={p.name}>
             <CardHeader>

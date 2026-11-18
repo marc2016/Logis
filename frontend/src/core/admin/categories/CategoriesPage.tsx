@@ -153,7 +153,7 @@ export function CategoriesPage() {
     <>
       <PageHeader title="Kategorien" description="Gemeinsamer Kategorienbaum für alle Benutzer. Verwendete Kategorien lassen sich nur archivieren." />
       {isLoading && <p className="text-muted-foreground">Wird geladen …</p>}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 @3xl:grid-cols-2">
         {(['EXPENSE', 'INCOME'] as const).map((kind) => (
           <Card key={kind} role="region" aria-label={kindLabel[kind]}>
             <CardHeader className="flex flex-row items-center justify-between">

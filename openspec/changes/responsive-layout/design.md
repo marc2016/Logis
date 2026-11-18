@@ -41,6 +41,11 @@ New `e2e/tests/layout.spec.ts` signs in as an owner with test data, then for eac
 The test runs in both projects like every other test; it sets its widths itself, so the project only changes the starting viewport.
 - *Alternative:* screenshot comparison. Rejected: brittle against data changes and needs baseline images in git.
 
+### Found during implementation
+- The booking page had the same min-content problem as the sharing dialog on the phone: a long document name stretched the panel grid to 463 px. Its grid gets `grid-cols-[minmax(0,1fr)]` as well; names now truncate.
+- The inbox date field (`DateField`) had a fixed `w-32` input, one pixel too narrow for „TT.MM.JJJJ“ at the phone font size. Input and calendar button now fill their column up to 11 rem.
+- The bookings search spans two columns from `@2xl`, like the search in „Transaktionen“, so its placeholder fits.
+
 ## Risks / Trade-offs
 
 - [Container variants are less familiar than viewport variants] → a short comment at the `@container` in `AppShell.tsx` explains why pages use `@…:` variants.

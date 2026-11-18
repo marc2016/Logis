@@ -75,7 +75,7 @@ export function InboxFilters({ filter, results, kinds, senders, onChange, onRese
           </Button>
         )}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
         <FilterSelect
           id="flt-result"
           label="Ergebnis"
