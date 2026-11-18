@@ -65,3 +65,18 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await page.goto(`/ferienvermietung/kalender?year=${month.slice(0, 4)}`)
   await expect(page.getByRole('row', { name: monthName }).getByRole('button', { name: 'Max Testgast, Abgerechnet' })).toBeVisible()
 })
+
+test('month labels stay visible when the calendar is scrolled sideways', async ({ page, api }) => {
+  const home = await holidayHome(api)
+  const year = new Date().getFullYear()
+  await page.goto(`/ferienvermietung/kalender?year=${year}`)
+  await expect(page.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
+  const grid = page.getByRole('grid', { name: 'Belegung' })
+  // Scroll the calendar to its right end, as on a phone where day 31 is far off screen.
+  await grid.locator('..').evaluate((el) => el.scrollTo({ left: el.scrollWidth }))
+  const label = page.getByRole('row', { name: `Juni ${year}` }).getByRole('rowheader')
+  await expect(label).toBeInViewport()
+  const box = (await label.boundingBox())!
+  const container = (await grid.locator('..').boundingBox())!
+  expect(box.x).toBeLessThanOrEqual(container.x + 1)
+})

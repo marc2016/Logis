@@ -36,7 +36,7 @@ export function CalendarGrid({ months, year, currentMonth, bookings, onOpen }: P
   return (
     <div className="overflow-x-auto rounded-lg border">
       <div
-        className="grid min-w-full text-xs"
+        className="grid w-max min-w-full text-xs"
         style={{ gridTemplateColumns: `5rem repeat(${MAX_DAYS}, minmax(1.75rem, 1fr))` }}
         role="grid"
         aria-label="Belegung"
