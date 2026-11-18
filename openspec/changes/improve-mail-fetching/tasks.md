@@ -26,5 +26,5 @@
 
 ## 4. End-to-end and docs
 
-- [ ] 4.1 Extend `e2e/tests/mail-import.spec.ts` (or a new spec) with fetching older mails via a quick range, the progress/result display and the quick filter „Offen“, using invented test data only; verify the e2e suite passes
-- [ ] 4.2 Update `e2e/COVERAGE.md` for `mail-inbox` and run `./mvnw test`, `npm test`, `npm run lint`, `npm run build`
+- [x] 4.1 Extend `e2e/tests/mail-import.spec.ts` (or a new spec) with fetching older mails via a quick range, the progress/result display and the quick filter „Offen“, using invented test data only; verify the e2e suite passes
+- [x] 4.2 Update `e2e/COVERAGE.md` for `mail-inbox` and run `./mvnw test`, `npm test`, `npm run lint`, `npm run build`
