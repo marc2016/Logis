@@ -38,7 +38,7 @@ class OccupancyService {
     }
 
     record CalendarBooking(Long id, LocalDate arrival, LocalDate departure, BookingStatus status, String guestName,
-            String externalRef, ReviewState reviewState) {
+            String externalRef, ReviewState reviewState, BookingKind kind) {
     }
 
     record CalendarUnit(Long id, String name, boolean archived, boolean canEdit, List<CalendarBooking> bookings) {
@@ -49,7 +49,8 @@ class OccupancyService {
             List<CalendarUnit> units) {
     }
 
-    record MonthFigures(int month, int nights, int occupancy,
+    /** {@code nights} and {@code occupancy} count guest stays only; owner uses are in {@code ownerNights}. */
+    record MonthFigures(int month, int nights, int occupancy, int ownerNights,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal settledNet,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal plannedRent) {
     }
@@ -86,7 +87,8 @@ class OccupancyService {
                                 .sorted(Comparator.comparing(d -> d.booking().getArrival()))
                                 .map(d -> new CalendarBooking(d.booking().getId(), d.booking().getArrival(),
                                         d.booking().getDeparture(), d.status(), d.guest().name(),
-                                        d.booking().getExternalRef(), d.booking().getReviewState()))
+                                        d.booking().getExternalRef(), d.booking().getReviewState(),
+                                        d.booking().getKind()))
                                 .toList()))
                 .toList();
         return new Calendar(propertyId, units.getFirst().propertyName(), year, from, to, rows);
@@ -95,6 +97,7 @@ class OccupancyService {
     Overview overview(Long userId, Long unitId, int year) {
         access.require(unitId, userId, ShareRole.VIEWER, BookingService.UNIT_NOT_FOUND);
         var nights = new int[12];
+        var ownerNights = new int[12];
         var settled = zeros();
         var planned = zeros();
 
@@ -106,8 +109,9 @@ class OccupancyService {
                 continue;
             }
             var perMonth = Occupancy.nightsPerMonth(b.getArrival(), b.getDeparture(), year);
+            var target = b.isOwnerUse() ? ownerNights : nights;
             for (int m = 0; m < 12; m++) {
-                nights[m] += perMonth[m];
+                target[m] += perMonth[m];
             }
             if (!settledIds.contains(b.getId()) && b.getExpectedRent() != null && b.getArrival().getYear() == year) {
                 var m = b.getArrival().getMonthValue() - 1;
@@ -125,11 +129,13 @@ class OccupancyService {
         var months = new ArrayList<MonthFigures>();
         for (int m = 0; m < 12; m++) {
             var days = YearMonth.of(year, m + 1).lengthOfMonth();
-            months.add(new MonthFigures(m + 1, nights[m], Occupancy.rate(nights[m], days), settled.get(m),
+            months.add(new MonthFigures(m + 1, nights[m], Occupancy.rate(nights[m], days), ownerNights[m],
+                    settled.get(m),
                     planned.get(m)));
         }
         var totalNights = months.stream().mapToInt(MonthFigures::nights).sum();
         var total = new MonthFigures(0, totalNights, Occupancy.rate(totalNights, Occupancy.daysInYear(year)),
+                months.stream().mapToInt(MonthFigures::ownerNights).sum(),
                 settled.stream().reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add),
                 planned.stream().reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add));
         return new Overview(unitId, year, months, total);

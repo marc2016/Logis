@@ -17,7 +17,7 @@ interface Props {
 
 /** Bookings of the statement's unit that are on no statement; those in the statement's period are preselected. */
 export function AddBookingsDialog({ statement, onAssign, onClose }: Props) {
-  const { data, isLoading } = useBookings({ unitId: statement.unit.id, sort: 'arrival,asc', size: 100 })
+  const { data, isLoading } = useBookings({ unitId: statement.unit.id, kind: 'GUEST', sort: 'arrival,asc', size: 100 })
   const open = (data?.items ?? []).filter((b) => b.status !== 'SETTLED' && b.canEdit)
   const inPeriod = (b: Booking) => b.status !== 'CANCELLED' && b.departure >= statement.periodFrom && b.departure <= statement.periodTo
   const [chosen, setChosen] = useState<Set<number> | null>(null)

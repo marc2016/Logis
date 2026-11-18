@@ -31,7 +31,8 @@ class BookingSourcesMigrationTest {
                     + "guest_name) VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, '250905', 'Erika Musterfrau')");
             var before = db.queryForMap("SELECT * FROM vacationrental.bookings");
 
-            config.target("latest").load().migrate();
+            // Up to the booking sources; the later booking kind is covered by MailImportMigrationTest.
+            config.target("20261114.1200").load().migrate();
 
             assertThat(db.queryForMap("SELECT * FROM vacationrental.bookings")).isEqualTo(before);
             assertThat(db.queryForObject("SELECT count(*) FROM vacationrental.booking_sources", Long.class)).isZero();

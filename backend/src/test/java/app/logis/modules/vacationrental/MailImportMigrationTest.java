@@ -45,4 +45,41 @@ class MailImportMigrationTest {
             server.execute("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)");
         }
     }
+
+    @Test
+    void existingBookingsBecomeGuestBookings() {
+        var name = "mig_" + System.nanoTime();
+        var server = new JdbcTemplate(new DriverManagerDataSource(TestPostgres.url(), TestPostgres.username(),
+                TestPostgres.password()));
+        server.execute("CREATE DATABASE " + name);
+        try {
+            var base = TestPostgres.url();
+            var query = base.contains("?") ? base.substring(base.indexOf('?')) : "";
+            var path = base.contains("?") ? base.substring(0, base.indexOf('?')) : base;
+            var url = path.substring(0, path.lastIndexOf('/') + 1) + name + query;
+            var ds = new DriverManagerDataSource(url, TestPostgres.username(), TestPostgres.password());
+            var config = Flyway.configure().dataSource(ds).schemas("core", "vacationrental").defaultSchema("core")
+                    .locations("classpath:db/migration/core", "classpath:db/migration/vacationrental");
+            config.target("20261114.1200").load().migrate();
+            var db = new JdbcTemplate(ds);
+            db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref) "
+                    + "VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, '250905')");
+
+            config.target("20261118.1000").load().migrate();
+
+            var row = db.queryForMap("SELECT kind, adults, external_ref FROM vacationrental.bookings");
+            assertThat(row.get("kind")).isEqualTo("GUEST");
+            assertThat(((Number) row.get("adults")).intValue()).isEqualTo(2);
+            assertThat(row.get("external_ref")).isEqualTo("250905");
+            // Only guest bookings need adults.
+            db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, kind) "
+                    + "VALUES (1, DATE '2027-06-09', DATE '2027-06-14', 0, 'OWNER')");
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> db.update(
+                    "INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults) "
+                            + "VALUES (1, DATE '2027-07-09', DATE '2027-07-14', 0)"))
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        } finally {
+            server.execute("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)");
+        }
+    }
 }

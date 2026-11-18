@@ -22,7 +22,7 @@ interface Props {
 
 /** Assigns a booking of the statement's unit with gross, commission and cleaning, or changes those amounts. */
 export function StatementLineDialog({ statement, line, onClose }: Props) {
-  const { data } = useBookings({ unitId: statement.unit.id, sort: 'arrival,asc', size: 100 })
+  const { data } = useBookings({ unitId: statement.unit.id, kind: 'GUEST', sort: 'arrival,asc', size: 100 })
   const open = (data?.items ?? []).filter((b) => b.status !== 'SETTLED')
   const [bookingId, setBookingId] = useState(line ? String(line.booking.id) : '')
   const chosen = line?.booking ?? open.find((b) => String(b.id) === bookingId)

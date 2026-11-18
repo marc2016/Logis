@@ -32,7 +32,7 @@ function years(bookings: CalendarBooking[] = [], units = ['Haus Seeufer']) {
 }
 
 function stay(id: number, arrival: string, departure: string, guestName: string, status: CalendarBooking['status'] = 'PLANNED'): CalendarBooking {
-  return { id, arrival, departure, status, guestName, externalRef: null, reviewState: 'NONE' }
+  return { id, arrival, departure, status, guestName, externalRef: null, reviewState: 'NONE', kind: 'GUEST' }
 }
 
 const headings = () => screen.queryAllByRole('row').map((r) => r.getAttribute('aria-label'))
@@ -67,6 +67,14 @@ describe('Calendar by year', () => {
     expect(within(november).getByRole('button', { name: 'Gast Abgerechnet, Abgerechnet' })).toHaveAttribute('data-status', 'SETTLED')
     expect(screen.queryByText('Gast Storniert')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Spätere Monate|Frühere Monate/ })).not.toBeInTheDocument()
+  })
+
+  it('shows an owner use set apart from guest stays', async () => {
+    const owner = { ...stay(7, '2026-11-09', '2026-11-14', ''), guestName: null, kind: 'OWNER' as const }
+    mockApi({ ...base, ...years([owner]) })
+    renderApp('/ferienvermietung/kalender?year=2026')
+    const bar = await within(await screen.findByRole('row', { name: 'November 2026' })).findByRole('button', { name: 'Eigenbelegung' })
+    expect(bar).toHaveAttribute('data-kind', 'OWNER')
   })
 
   it('shows a stay across the month and the year boundary in each month', async () => {

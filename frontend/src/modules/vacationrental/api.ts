@@ -61,8 +61,14 @@ export interface Agency {
   bookingCount: number
 }
 
+/** A guest stay or the owner's own use of the unit („Eigenbelegung“). */
+export type BookingKind = 'GUEST' | 'OWNER'
+
+export const kindLabel: Record<BookingKind, string> = { GUEST: 'Gastbuchung', OWNER: 'Eigenbelegung' }
+
 export interface Booking {
   id: number
+  kind: BookingKind
   unit: UnitRef
   arrival: string
   departure: string
@@ -161,6 +167,7 @@ export interface CalendarBooking {
   guestName: string | null
   externalRef: string | null
   reviewState: ReviewState
+  kind: BookingKind
 }
 
 export interface CalendarUnit {
@@ -183,8 +190,10 @@ export interface Calendar {
 
 export interface MonthFigures {
   month: number
+  /** Guest stays only; owner uses are counted in `ownerNights`. */
   nights: number
   occupancy: number
+  ownerNights: number
   settledNet: string
   plannedRent: string
 }
@@ -206,6 +215,7 @@ export interface BookingFilter {
   /** Only bookings and changes awaiting review. */
   review?: boolean
   agencyId?: number
+  kind?: BookingKind
   sort?: string
   page?: number
   size?: number
@@ -219,10 +229,12 @@ export const mailKindLabel: Record<string, string> = {
   CHANGE: 'Änderung',
   CANCELLATION: 'Stornierung',
   BLOCK_NOTICE: 'Blockung',
+  OWNER_BLOCK: 'Eigentümerblockung',
 }
 
 export const mailResultLabel: Record<string, string> = {
   BOOKING_CREATED: 'Buchung angelegt',
+  OWNER_USE_CREATED: 'Eigenbelegung angelegt',
   CHANGE_PROPOSED: 'Änderung vorgeschlagen',
   ATTACHED: 'Angehängt',
   UNASSIGNED_UNIT: 'Einheit zuordnen',

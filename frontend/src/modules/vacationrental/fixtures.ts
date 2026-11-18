@@ -13,6 +13,7 @@ export const seeufer: RentalUnit = {
 export function booking(overrides: Partial<Booking> = {}): Booking {
   return {
     id: 500,
+    kind: 'GUEST',
     unit: { id: 70, name: 'Haus Seeufer', propertyId: 7, propertyName: 'Haus Seeufer', propertyMultiUnit: false },
     arrival: '2026-11-06',
     departure: '2026-11-08',
@@ -69,7 +70,7 @@ export function calendar(overrides: Partial<Calendar> = {}): Calendar {
         name: 'Whg. 1',
         archived: false,
         canEdit: true,
-        bookings: [{ id: 1, arrival: '2026-11-06', departure: '2026-11-08', status: 'PLANNED', guestName: 'Gast Geplant', externalRef: null, reviewState: 'NONE' }],
+        bookings: [{ id: 1, arrival: '2026-11-06', departure: '2026-11-08', status: 'PLANNED', guestName: 'Gast Geplant', externalRef: null, reviewState: 'NONE', kind: 'GUEST' }],
       },
       {
         id: 82,
@@ -77,8 +78,8 @@ export function calendar(overrides: Partial<Calendar> = {}): Calendar {
         archived: false,
         canEdit: true,
         bookings: [
-          { id: 2, arrival: '2026-11-10', departure: '2026-11-12', status: 'SETTLED', guestName: 'Gast Abgerechnet', externalRef: null, reviewState: 'NONE' },
-          { id: 3, arrival: '2026-11-20', departure: '2026-11-22', status: 'CANCELLED', guestName: 'Gast Storniert', externalRef: null, reviewState: 'NONE' },
+          { id: 2, arrival: '2026-11-10', departure: '2026-11-12', status: 'SETTLED', guestName: 'Gast Abgerechnet', externalRef: null, reviewState: 'NONE', kind: 'GUEST' },
+          { id: 3, arrival: '2026-11-20', departure: '2026-11-22', status: 'CANCELLED', guestName: 'Gast Storniert', externalRef: null, reviewState: 'NONE', kind: 'GUEST' },
         ],
       },
     ],

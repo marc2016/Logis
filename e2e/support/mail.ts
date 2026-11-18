@@ -88,6 +88,29 @@ Content-Transfer-Encoding: 8bit
 `
 }
 
+/** An owner block notice („Eigentümerblockung“) of „Fewo & Meer“: the owner blocked the period for their own use. */
+export function fewoOwnerBlock(opts: { to: string; object: string; ref: string; arrival: string; departure: string }) {
+  const from = germanDate(opts.arrival)
+  const until = germanDate(opts.departure)
+  return `From: "Fewo & Meer" <buchung@fewoundmeer.de>
+To: ${opts.to}
+Subject: Eigentümerblockung ${opts.ref}, ${opts.object} - Nordhorn, vom ${from} bis ${until}
+Date: ${new Date().toUTCString().replace('GMT', '+0000')}
+Message-ID: <fewo-owner-${opts.ref}@fewoundmeer.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Sehr geehrter Eigentümer,
+
+wir haben Ihr Objekt ${opts.object} - Nordhorn wunschgemäß vom ${from} bis ${until} für Sie geblockt.
+
+Viele Grüße
+
+Fewo & Meer e.K.
+`
+}
+
 /** Sets up the user's mailbox on the test mail server; `address` is the mailbox user, the cut-off date defaults to today. */
 export async function connectMailbox(api: APIRequestContext, address: string, cutoffDate?: string) {
   const today = cutoffDate ?? new Date().toISOString().slice(0, 10)

@@ -140,6 +140,9 @@ class StatementService {
         if (!booking.getUnitId().equals(statement.getUnitId())) {
             throw ApiException.badRequest("Die Buchung gehört zu einer anderen Einheit");
         }
+        if (booking.isOwnerUse()) {
+            throw ApiException.badRequest("Eine Eigenbelegung wird nicht abgerechnet");
+        }
         var line = lines.findById(bookingId).orElse(null);
         if (line != null && !line.getStatementId().equals(id)) {
             throw ApiException.conflict("Die Buchung ist bereits abgerechnet");

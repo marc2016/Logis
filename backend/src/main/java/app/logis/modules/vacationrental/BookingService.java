@@ -58,8 +58,29 @@ class BookingService {
         this.clock = clock;
     }
 
+    /**
+     * {@code kind} null means a guest booking when creating and "unchanged" when updating; an owner use ignores
+     * guests, guest data, pets and rent.
+     */
     record BookingInput(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Integer adults,
-            Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets) {
+            Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets, BookingKind kind) {
+
+        BookingInput(Long unitId, LocalDate arrival, LocalDate departure, String externalRef, Integer adults,
+                Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets) {
+            this(unitId, arrival, departure, externalRef, adults, children, expectedRent, guest, agencyId, pets,
+                    null);
+        }
+
+        BookingKind kindOrGuest() {
+            return kind == null ? BookingKind.GUEST : kind;
+        }
+
+        /** An owner use with the given period and number. */
+        static BookingInput ownerUse(Long unitId, LocalDate arrival, LocalDate departure, String externalRef,
+                Long agencyId) {
+            return new BookingInput(unitId, arrival, departure, externalRef, null, null, null, null, agencyId, null,
+                    BookingKind.OWNER);
+        }
     }
 
     /** A booking as the user may see it: contact data only from EDITOR on; {@code agency} may be null. */
@@ -85,7 +106,7 @@ class BookingService {
 
     /** {@code review = true}: only bookings and changes awaiting review. */
     record Filter(Long propertyId, Long unitId, BookingStatus status, LocalDate from, LocalDate to, String q,
-            boolean review, Long agencyId) {
+            boolean review, Long agencyId, BookingKind kind) {
     }
 
     record ListResult(List<BookingDetails> items, int page, int size, long totalItems) {
@@ -120,6 +141,7 @@ class BookingService {
                 .filter(d -> filter.status() == null || d.status() == filter.status())
                 .filter(d -> !filter.review() || d.booking().getReviewState() != ReviewState.NONE)
                 .filter(d -> filter.agencyId() == null || filter.agencyId().equals(d.booking().getAgencyId()))
+                .filter(d -> filter.kind() == null || filter.kind() == d.booking().getKind())
                 .filter(d -> q == null || matches(d, q))
                 .sorted(comparator(sort, ascending))
                 .toList();
@@ -149,6 +171,7 @@ class BookingService {
 
     BookingDetails create(Long userId, BookingInput input) {
         var booking = new Booking(clock.instant());
+        booking.setKind(input.kindOrGuest());
         apply(userId, booking, input);
         return get(userId, save(booking).getId());
     }
@@ -209,6 +232,30 @@ class BookingService {
     }
 
     // --- Mail import (acting as the mailbox owner) -----------------------------------------------
+
+    /** Creates an owner use from a mail; it needs no review. The usual rules apply, with the owner's rights. */
+    BookingDetails createOwnerUse(Long ownerId, BookingInput input) {
+        var booking = new Booking(clock.instant());
+        booking.setKind(BookingKind.OWNER);
+        apply(ownerId, booking, input);
+        return get(ownerId, save(booking).getId());
+    }
+
+    /** A later owner block mail moves the period of an owner use directly. */
+    void moveOwnerUse(Long ownerId, Long id, LocalDate arrival, LocalDate departure) {
+        var booking = requireEditable(ownerId, id);
+        apply(ownerId, booking, BookingInput.ownerUse(booking.getUnitId(), arrival, departure,
+                booking.getExternalRef(), booking.getAgencyId()));
+        save(booking);
+    }
+
+    /** An owner use recorded by hand gets the number and agency of the mail that confirms it. */
+    void identifyOwnerUse(Long ownerId, Long id, String externalRef, Long agencyId) {
+        var booking = requireEditable(ownerId, id);
+        apply(ownerId, booking, BookingInput.ownerUse(booking.getUnitId(), booking.getArrival(),
+                booking.getDeparture(), externalRef, agencyId));
+        save(booking);
+    }
 
     /** Creates a booking awaiting review; the usual rules apply, with the owner's rights. */
     BookingDetails createImported(Long ownerId, BookingInput input) {
@@ -362,9 +409,13 @@ class BookingService {
         if (!input.departure().isAfter(input.arrival())) {
             throw ApiException.badRequest("Die Abreise muss nach der Anreise liegen.");
         }
-        var adults = input.adults() == null ? 0 : input.adults();
-        var children = input.children() == null ? 0 : input.children();
-        if (adults < 1 || adults > 99) {
+        if (booking.getId() != null && input.kind() != null && input.kind() != booking.getKind()) {
+            throw ApiException.badRequest("Die Art einer Buchung kann nicht geändert werden.");
+        }
+        var owner = booking.isOwnerUse();
+        var adults = owner || input.adults() == null ? 0 : input.adults();
+        var children = owner || input.children() == null ? 0 : input.children();
+        if (!owner && (adults < 1 || adults > 99)) {
             throw ApiException.badRequest("Bitte mindestens einen Erwachsenen angeben.");
         }
         if (children < 0 || children > 99) {
@@ -375,7 +426,7 @@ class BookingService {
         if (agencyId != null && !agencyId.equals(booking.getAgencyId())) {
             agencies.require(agencyId);
         }
-        var pets = input.pets() == null ? 0 : input.pets();
+        var pets = owner || input.pets() == null ? 0 : input.pets();
         if (pets < 0 || pets > 20) {
             throw ApiException.badRequest("Die Zahl der Haustiere ist ungültig.");
         }
@@ -387,10 +438,10 @@ class BookingService {
             throw ApiException.conflict(OVERLAP);
         }
         booking.apply(input.unitId(), input.arrival(), input.departure(), ref, adults, children,
-                Money.optional(input.expectedRent()));
+                owner ? null : Money.optional(input.expectedRent()));
         booking.setAgencyId(agencyId);
         booking.setPets(pets);
-        var g = input.guest() == null ? Guest.EMPTY : input.guest();
+        var g = owner || input.guest() == null ? Guest.EMPTY : input.guest();
         booking.setGuest(new Guest(text(g.name(), 128, "Der Name"), text(g.street(), 128, "Die Straße"),
                 text(g.postalCode(), 16, "Die PLZ"), text(g.city(), 128, "Der Ort"),
                 text(g.country(), 64, "Das Land"), text(g.phone(), 64, "Die Telefonnummer"),

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { DocumentList, PendingDocuments } from '@/components/DocumentList'
 import { uploadDocument } from '@/components/documents'
 import { FormError } from '@/components/FormError'
@@ -15,7 +16,18 @@ import { errorMessage } from '@/lib/errors'
 import { parseAmount, toInputValue } from '@/lib/money'
 import { cn } from '@/lib/utils'
 import { formatDate, todayIso } from '@/core/ledger/transactions/format'
-import { EMPTY_GUEST, unitLabel, useInvalidateRental, useRentalUnits, type AgencyRef, type Booking, type FieldLocation, type Guest } from './api'
+import {
+  EMPTY_GUEST,
+  kindLabel,
+  unitLabel,
+  useInvalidateRental,
+  useRentalUnits,
+  type AgencyRef,
+  type Booking,
+  type BookingKind,
+  type FieldLocation,
+  type Guest,
+} from './api'
 
 export const BOOKING_DOCUMENT_TYPE = 'vacationrental.booking'
 
@@ -73,7 +85,11 @@ function Field({ field, label, htmlFor, className, children, location, active, o
     <div
       data-field={field}
       data-active={active ? 'true' : undefined}
-      className={cn('space-y-2 rounded-md', location && 'data-[active=true]:ring-2 data-[active=true]:ring-primary/60 data-[active=true]:ring-offset-2 data-[active=true]:ring-offset-background', className)}
+      className={cn(
+        'space-y-2 rounded-md',
+        location && 'data-[active=true]:ring-2 data-[active=true]:ring-primary/60 data-[active=true]:ring-offset-2 data-[active=true]:ring-offset-background',
+        className,
+      )}
     >
       <div className="flex items-center gap-1.5">
         <Label htmlFor={htmlFor}>{label}</Label>
@@ -103,9 +119,10 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
   const isNew = booking === null
   const canEdit = isNew || booking.canEdit
   const selectable = units.filter((u) => !u.archived && (u.myRole === 'EDITOR' || u.myRole === 'OWNER'))
-  const preset =
-    defaultUnitId ?? selectable.find((u) => defaultPropertyId === undefined || u.propertyId === defaultPropertyId)?.id
+  const preset = defaultUnitId ?? selectable.find((u) => defaultPropertyId === undefined || u.propertyId === defaultPropertyId)?.id
 
+  const [kind, setKind] = useState<BookingKind>(booking?.kind ?? 'GUEST')
+  const owner = kind === 'OWNER'
   const [unitId, setUnitId] = useState<string>(String(booking?.unit.id ?? preset ?? ''))
   const [arrival, setArrival] = useState(booking?.arrival ?? todayIso())
   const [departure, setDeparture] = useState(booking?.departure ?? addDays(todayIso(), 1))
@@ -137,6 +154,7 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
         expectedRent,
         guest,
         version: booking?.version,
+        kind,
       }
       const saved = isNew
         ? await api<Booking>('/api/vacationrental/bookings', { json: body })
@@ -163,7 +181,7 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
     e.preventDefault()
     setError(null)
     let expectedRent: string | null = null
-    if (rent.trim()) {
+    if (!owner && rent.trim()) {
       expectedRent = parseAmount(rent)
       if (expectedRent === null || expectedRent.startsWith('-')) {
         setError('Bitte einen gültigen Mietpreis eingeben, z. B. 248,58.')
@@ -192,7 +210,16 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
     <form onSubmit={submit} onFocus={focused} className="space-y-4" aria-label={isNew ? 'Buchung erfassen' : 'Buchung'}>
       <fieldset disabled={!canEdit} className="space-y-4">
         <legend className="sr-only">Aufenthalt</legend>
-        <Field {...at("propertyName")} field="propertyName" label="Einheit" htmlFor="bk-unit">
+        {isNew && (
+          <ToggleGroup type="single" variant="outline" value={kind} onValueChange={(v) => v && setKind(v as BookingKind)} aria-label="Art der Buchung">
+            {(['GUEST', 'OWNER'] as const).map((k) => (
+              <ToggleGroupItem key={k} value={k}>
+                {kindLabel[k]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+        <Field {...at('propertyName')} field="propertyName" label="Einheit" htmlFor="bk-unit">
           <Select value={unitId} onValueChange={setUnitId} disabled={!canEdit || booking?.status === 'SETTLED'}>
             <SelectTrigger id="bk-unit" className="w-full">
               <SelectValue placeholder="Einheit wählen" />
@@ -208,70 +235,82 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
           {isNew && selectable.length === 0 && <p className="text-sm text-muted-foreground">Keine Ferienwohnung mit Bearbeitungsrecht vorhanden.</p>}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field {...at("arrival")} field="arrival" label="Anreise" htmlFor="bk-arrival">
+          <Field {...at('arrival')} field="arrival" label="Anreise" htmlFor="bk-arrival">
             <Input id="bk-arrival" type="date" value={arrival} onChange={(e) => setArrival(e.target.value)} required />
           </Field>
-          <Field {...at("departure")} field="departure" label="Abreise" htmlFor="bk-departure">
+          <Field {...at('departure')} field="departure" label="Abreise" htmlFor="bk-departure">
             <Input id="bk-departure" type="date" value={departure} onChange={(e) => setDeparture(e.target.value)} required />
           </Field>
-          <Field {...at("externalRef")} field="externalRef" label="Buchungsnummer" htmlFor="bk-ref">
+          <Field {...at('externalRef')} field="externalRef" label="Buchungsnummer" htmlFor="bk-ref">
             <Input id="bk-ref" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
           </Field>
-          <Field {...at("agency")} field="agency" label="Vermittler" htmlFor="bk-agency">
+          <Field {...at('agency')} field="agency" label="Vermittler" htmlFor="bk-agency">
             <AgencyPicker id="bk-agency" value={agency} onChange={setAgency} disabled={!canEdit} onError={setError} />
           </Field>
-          <Field {...at("adults")} field="adults" label="Erwachsene" htmlFor="bk-adults">
-            <Input id="bk-adults" type="number" min={1} max={99} value={adults} onChange={(e) => setAdults(e.target.value)} required />
-          </Field>
-          <Field {...at("children")} field="children" label="Kinder" htmlFor="bk-children">
-            <Input id="bk-children" type="number" min={0} max={99} value={children} onChange={(e) => setChildren(e.target.value)} />
-          </Field>
-          <Field {...at("pets")} field="pets" label="Haustiere" htmlFor="bk-pets">
-            <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
-          </Field>
-          <Field {...at("expectedRent")} field="expectedRent" label="Mietpreis (€)" htmlFor="bk-rent">
-            <Input id="bk-rent" inputMode="decimal" placeholder="0,00" value={rent} onChange={(e) => setRent(e.target.value)} />
-          </Field>
+          {!owner && (
+            <>
+              <Field {...at('adults')} field="adults" label="Erwachsene" htmlFor="bk-adults">
+                <Input id="bk-adults" type="number" min={1} max={99} value={adults} onChange={(e) => setAdults(e.target.value)} required />
+              </Field>
+              <Field {...at('children')} field="children" label="Kinder" htmlFor="bk-children">
+                <Input id="bk-children" type="number" min={0} max={99} value={children} onChange={(e) => setChildren(e.target.value)} />
+              </Field>
+              <Field {...at('pets')} field="pets" label="Haustiere" htmlFor="bk-pets">
+                <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
+              </Field>
+              <Field {...at('expectedRent')} field="expectedRent" label="Mietpreis (€)" htmlFor="bk-rent">
+                <Input id="bk-rent" inputMode="decimal" placeholder="0,00" value={rent} onChange={(e) => setRent(e.target.value)} />
+              </Field>
+            </>
+          )}
         </div>
       </fieldset>
 
-      <Separator />
-      <section className="space-y-3" aria-label="Gast">
-        <h3 className="text-sm font-medium">Gast</h3>
-        {booking?.guestDeleted && !guest.name ? <p className="text-sm text-muted-foreground">Gastdaten gelöscht</p> : null}
-        <Field {...at("guestName")} field="guestName" label="Name" htmlFor="bk-guest-name">
-          <Input id="bk-guest-name" {...g('name')} />
-        </Field>
-        {canEdit && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field {...at("guestStreet")} field="guestStreet" label="Straße" htmlFor="bk-guest-street" className="sm:col-span-2">
-              <Input id="bk-guest-street" {...g('street')} />
+      {!owner && (
+        <>
+          <Separator />
+          <section className="space-y-3" aria-label="Gast">
+            <h3 className="text-sm font-medium">Gast</h3>
+            {booking?.guestDeleted && !guest.name ? <p className="text-sm text-muted-foreground">Gastdaten gelöscht</p> : null}
+            <Field {...at('guestName')} field="guestName" label="Name" htmlFor="bk-guest-name">
+              <Input id="bk-guest-name" {...g('name')} />
             </Field>
-            <Field {...at("guestPostalCode")} field="guestPostalCode" label="PLZ" htmlFor="bk-guest-postal">
-              <Input id="bk-guest-postal" {...g('postalCode')} />
-            </Field>
-            <Field {...at("guestCity")} field="guestCity" label="Ort" htmlFor="bk-guest-city">
-              <Input id="bk-guest-city" {...g('city')} />
-            </Field>
-            <Field {...at("guestCountry")} field="guestCountry" label="Land" htmlFor="bk-guest-country">
-              <Input id="bk-guest-country" {...g('country')} />
-            </Field>
-            <Field {...at("guestPhone")} field="guestPhone" label="Telefon" htmlFor="bk-guest-phone">
-              <Input id="bk-guest-phone" type="tel" {...g('phone')} />
-            </Field>
-            <Field {...at("guestEmail")} field="guestEmail" label="E-Mail" htmlFor="bk-guest-email" className="sm:col-span-2">
-              <Input id="bk-guest-email" type="email" {...g('email')} />
-            </Field>
-          </div>
-        )}
-      </section>
+            {canEdit && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field {...at('guestStreet')} field="guestStreet" label="Straße" htmlFor="bk-guest-street" className="sm:col-span-2">
+                  <Input id="bk-guest-street" {...g('street')} />
+                </Field>
+                <Field {...at('guestPostalCode')} field="guestPostalCode" label="PLZ" htmlFor="bk-guest-postal">
+                  <Input id="bk-guest-postal" {...g('postalCode')} />
+                </Field>
+                <Field {...at('guestCity')} field="guestCity" label="Ort" htmlFor="bk-guest-city">
+                  <Input id="bk-guest-city" {...g('city')} />
+                </Field>
+                <Field {...at('guestCountry')} field="guestCountry" label="Land" htmlFor="bk-guest-country">
+                  <Input id="bk-guest-country" {...g('country')} />
+                </Field>
+                <Field {...at('guestPhone')} field="guestPhone" label="Telefon" htmlFor="bk-guest-phone">
+                  <Input id="bk-guest-phone" type="tel" {...g('phone')} />
+                </Field>
+                <Field {...at('guestEmail')} field="guestEmail" label="E-Mail" htmlFor="bk-guest-email" className="sm:col-span-2">
+                  <Input id="bk-guest-email" type="email" {...g('email')} />
+                </Field>
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {canEdit && (
         <>
           <Separator />
           <section className="space-y-2" aria-label="Dokumente">
             <h3 className="text-sm font-medium">Dokumente</h3>
-            {booking ? <DocumentList ownerType={BOOKING_DOCUMENT_TYPE} ownerId={booking.id} canEdit /> : <PendingDocuments files={pending} onChange={setPending} />}
+            {booking ? (
+              <DocumentList ownerType={BOOKING_DOCUMENT_TYPE} ownerId={booking.id} canEdit />
+            ) : (
+              <PendingDocuments files={pending} onChange={setPending} />
+            )}
           </section>
         </>
       )}

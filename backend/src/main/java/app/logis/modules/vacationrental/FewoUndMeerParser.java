@@ -32,6 +32,10 @@ class FewoUndMeerParser implements MailParser {
             "^Neue Blockung für (.+?),\\s*(\\S+), vom " + DATE + " bis " + DATE
                     + "(?: durch (?:den |die |das )?(.+))?$");
 
+    // "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027"
+    private static final Pattern OWNER_BLOCK_SUBJECT = Pattern.compile(
+            "^Eigentümerblockung (\\S+), (.+?), vom " + DATE + " bis " + DATE);
+
     @Override
     public Optional<ParsedMail> parse(MailContent mail) {
         if (!fromAgency(mail)) {
@@ -65,6 +69,15 @@ class FewoUndMeerParser implements MailParser {
             var to = r.group(Location.Part.SUBJECT, m, 4, BookingField.DEPARTURE);
             return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.BLOCK_NOTICE, ref, property, date(from),
                     date(to), null, null, null, null, null, blankToNull(m.group(5))).withLocations(r.locations()));
+        }
+        m = OWNER_BLOCK_SUBJECT.matcher(subject);
+        if (m.find()) {
+            var ref = r.group(Location.Part.SUBJECT, m, 1, BookingField.EXTERNAL_REF);
+            var property = r.group(Location.Part.SUBJECT, m, 2, BookingField.PROPERTY_NAME);
+            var from = r.group(Location.Part.SUBJECT, m, 3, BookingField.ARRIVAL);
+            var to = r.group(Location.Part.SUBJECT, m, 4, BookingField.DEPARTURE);
+            return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.OWNER_BLOCK, ref, property, date(from),
+                    date(to), null, null, null, null, null).withLocations(r.locations()));
         }
         return Optional.empty();
     }

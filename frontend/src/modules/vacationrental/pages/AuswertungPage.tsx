@@ -16,6 +16,7 @@ function Row({ label, f }: { label: string; f: MonthFigures }) {
       <TableCell>{label}</TableCell>
       <TableCell className="text-right tabular-nums">{f.nights}</TableCell>
       <TableCell className="text-right tabular-nums">{f.occupancy} %</TableCell>
+      <TableCell className="text-right tabular-nums text-muted-foreground">{f.ownerNights}</TableCell>
       <TableCell className="text-right">
         <Money amount={f.settledNet} />
       </TableCell>
@@ -72,6 +73,7 @@ export function AuswertungPage() {
                 <TableHead>Monat</TableHead>
                 <TableHead className="text-right">Nächte</TableHead>
                 <TableHead className="text-right">Belegung</TableHead>
+                <TableHead className="text-right">Eigenbelegung</TableHead>
                 <TableHead className="text-right">Netto abgerechnet</TableHead>
                 <TableHead className="text-right">Mietpreis geplant</TableHead>
               </TableRow>
@@ -92,7 +94,7 @@ export function AuswertungPage() {
         </div>
       )}
       <p className="mt-2 text-xs text-muted-foreground">
-        Nächte werden auf die Monate verteilt, Geld zählt im Monat des Abrechnungsdatums. Geplante Mietpreise zählen im Anreisemonat.
+        Nächte werden auf die Monate verteilt, Eigenbelegungen zählen nicht zur Belegung, Geld zählt im Monat des Abrechnungsdatums. Geplante Mietpreise zählen im Anreisemonat.
       </p>
     </>
   )

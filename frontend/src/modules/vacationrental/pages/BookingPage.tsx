@@ -29,7 +29,8 @@ function focusField(field: string) {
 }
 
 function Header({ booking }: { booking: Booking }) {
-  const guest = booking.guest?.name || (booking.guestDeleted ? 'Gastdaten gelöscht' : 'Ohne Gastname')
+  const guest =
+    booking.kind === 'OWNER' ? 'Eigenbelegung' : booking.guest?.name || (booking.guestDeleted ? 'Gastdaten gelöscht' : 'Ohne Gastname')
   return (
     <header className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -163,7 +164,7 @@ export function BookingPage() {
             >
               {booking.status === 'CANCELLED' ? 'Stornierung aufheben' : 'Stornieren'}
             </Button>
-            {!booking.guestDeleted && (
+            {!booking.guestDeleted && booking.kind !== 'OWNER' && (
               <ConfirmButton
                 question="Name und Kontaktdaten endgültig löschen? Dokumente bleiben erhalten."
                 disabled={action.isPending}

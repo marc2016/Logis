@@ -241,6 +241,25 @@ class MailParsersTest {
         assertThat(f.intermediary()).isEqualTo("VVV Nordhorn");
     }
 
+    @Test
+    void fewoOwnerBlock() throws Exception {
+        var p = fewo.parse(mail("fewo-owner-block.eml")).orElseThrow();
+        assertThat(p.agency()).isEqualTo("Fewo & Meer");
+        assertThat(p.type()).isEqualTo(ParsedMail.MailType.OWNER_BLOCK);
+        assertThat(p.bookingRef()).isEqualTo("275001");
+        assertThat(p.propertyName()).isEqualTo("Haus Seeufer - Nordhorn");
+        assertThat(p.arrival()).isEqualTo(LocalDate.of(2027, 6, 9));
+        assertThat(p.departure()).isEqualTo(LocalDate.of(2027, 6, 14));
+        assertThat(p.adults()).isNull();
+        assertThat(p.guest()).isNull();
+        assertThat(p.usable()).isTrue();
+
+        var forwarded = fewo.parse(blockNotice("anna@example.org",
+                "WG: Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027")).orElseThrow();
+        assertThat(forwarded.type()).isEqualTo(ParsedMail.MailType.OWNER_BLOCK);
+        assertThat(forwarded.bookingRef()).isEqualTo("275001");
+    }
+
     private static MailContent blockNotice(String sender, String subject) {
         var raw = "From: " + sender + "\r\nTo: vermieter@example.org\r\nSubject: " + subject
                 + "\r\nMessage-ID: <variant@example.org>\r\nMIME-Version: 1.0\r\n"

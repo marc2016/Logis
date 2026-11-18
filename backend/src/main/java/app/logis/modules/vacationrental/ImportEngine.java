@@ -51,6 +51,9 @@ class ImportEngine {
         if (mail.type() == ParsedMail.MailType.BLOCK_NOTICE) {
             return blockNotice(ownerId, agencyId, in);
         }
+        if (mail.type() == ParsedMail.MailType.OWNER_BLOCK) {
+            return ownerBlock(ownerId, agencyId, in);
+        }
         var existing = bookings.findByRef(ownerId, agencyId, mail.bookingRef()).stream().findFirst();
         try {
             return switch (mail.type()) {
@@ -65,7 +68,7 @@ class ImportEngine {
                         ? cancel(ownerId, agencyId, existing.get(), in)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
-                case BLOCK_NOTICE -> throw new IllegalStateException("handled above");
+                case BLOCK_NOTICE, OWNER_BLOCK -> throw new IllegalStateException("handled above");
             };
         } catch (ApiException e) {
             return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
@@ -91,6 +94,54 @@ class ImportEngine {
         attach(id, in);
         return new Outcome(BookingMailResult.ATTACHED, id,
                 mail.intermediary() == null ? "Blockung" : "Blockung durch " + mail.intermediary());
+    }
+
+    /**
+     * The owner blocked dates for their own use: an owner use with the agency's number is created without review,
+     * or moved to the mail's period; an owner use recorded by hand with the same period takes the number.
+     */
+    private Outcome ownerBlock(Long ownerId, Long agencyId, Mail in) {
+        var mail = in.parsed();
+        var unit = editableUnit(ownerId, agencyId, mail);
+        if (unit.outcome() != null) {
+            return unit.outcome();
+        }
+        var existing = bookings.findByRef(ownerId, agencyId, mail.bookingRef()).stream().findFirst();
+        try {
+            if (existing.isPresent()) {
+                var booking = existing.get();
+                if (!booking.isOwnerUse()) {
+                    return new Outcome(BookingMailResult.FAILED, booking.getId(),
+                            "Die Buchungsnummer gehört zu einer Gastbuchung");
+                }
+                var moved = !booking.getArrival().equals(mail.arrival())
+                        || !booking.getDeparture().equals(mail.departure());
+                if (moved) {
+                    bookings.moveOwnerUse(ownerId, booking.getId(), mail.arrival(), mail.departure());
+                }
+                attach(booking.getId(), in);
+                return new Outcome(BookingMailResult.ATTACHED, booking.getId(),
+                        moved ? "Eigenbelegung verschoben" : "Eigenbelegung");
+            }
+            var byHand = bookings.findSamePeriod(ownerId, unit.unitId(), mail.arrival(), mail.departure())
+                    .filter(b -> b.isOwnerUse() && b.getExternalRef() == null);
+            if (byHand.isPresent()) {
+                var id = byHand.get().getId();
+                bookings.identifyOwnerUse(ownerId, id, mail.bookingRef(), agencyId);
+                attach(id, in);
+                return new Outcome(BookingMailResult.ATTACHED, id, "Eigenbelegung");
+            }
+            var created = bookings.createOwnerUse(ownerId, BookingService.BookingInput.ownerUse(unit.unitId(),
+                    mail.arrival(), mail.departure(), mail.bookingRef(), agencyId));
+            var id = created.booking().getId();
+            attach(id, in);
+            return new Outcome(BookingMailResult.OWNER_USE_CREATED, id, null);
+        } catch (ApiException e) {
+            if (BookingService.OVERLAP.equals(e.getMessage())) {
+                return new Outcome(BookingMailResult.PERIOD_TAKEN, null, e.getMessage());
+            }
+            return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
+        }
     }
 
     private record UnitLookup(Long unitId, Outcome outcome) {
@@ -188,6 +239,7 @@ class ImportEngine {
             case CHANGE -> "Änderung";
             case CANCELLATION -> "Stornierung";
             case BLOCK_NOTICE -> "Blockung";
+            case OWNER_BLOCK -> "Eigentümerblockung";
         };
     }
 

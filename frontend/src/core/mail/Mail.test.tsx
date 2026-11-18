@@ -410,3 +410,19 @@ describe('Sorting and filtering the inbox', () => {
     expect(screen.queryByRole('toolbar', { name: 'Aktionen für die Auswahl' })).not.toBeInTheDocument()
   })
 })
+
+describe('Owner block mails', () => {
+  it('shows the owner use created from an owner block notice', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': {
+        body: [inboxItem({ subject: 'Eigentümerblockung 275001, Haus Seeufer - Nordhorn', kind: 'OWNER_BLOCK', result: 'OWNER_USE_CREATED', linkType: 'vacationrental.booking', linkId: 504, retryable: false })],
+      },
+    })
+    renderApp('/posteingang')
+    const row = await screen.findByRole('row', { name: /Eigentümerblockung 275001/ })
+    expect(within(row).getByText('Eigenbelegung angelegt')).toBeInTheDocument()
+    expect(within(row).getByText('Eigentümerblockung')).toBeInTheDocument()
+  })
+})

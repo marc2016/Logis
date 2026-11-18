@@ -392,6 +392,69 @@ class MailImportTest extends VacationRentalTest {
     }
 
     @Test
+    void ownerBlockCreatesAnOwnerUseWithoutReview() throws Exception {
+        deliver("fewo-owner-block.eml", null);
+        imports.pollNow(anna.id());
+        assertThat(inboxItem(anna, "Eigentümerblockung").get("result")).isEqualTo("UNASSIGNED_UNIT");
+        assign("Eigentümerblockung");
+        var item = inboxItem(anna, "Eigentümerblockung");
+        assertThat(item.get("result")).isEqualTo("OWNER_USE_CREATED");
+        assertThat(item.get("kind")).isEqualTo("OWNER_BLOCK");
+        var id = ((Number) item.get("linkId")).longValue();
+        getWith("/api/vacationrental/bookings/" + id, anna.session())
+                .andExpect(jsonPath("$.kind").value("OWNER"))
+                .andExpect(jsonPath("$.externalRef").value("275001"))
+                .andExpect(jsonPath("$.arrival").value("2027-06-09"))
+                .andExpect(jsonPath("$.departure").value("2027-06-14"))
+                .andExpect(jsonPath("$.reviewState").value("NONE"))
+                .andExpect(jsonPath("$.adults").value(0))
+                .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"));
+        getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + id, anna.session())
+                .andExpect(jsonPath("$[*].fileName", hasItem(containsString("Eigentümerblockung 275001"))));
+
+        // The same number with another period moves the owner use directly.
+        var moved = new String(getClass().getResourceAsStream("/mails/fewo-owner-block.eml").readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8)
+                .replace("vom 09.06.2027", "vom 10.06.2027").replace("fewo-owner-block-275001", "fewo-owner-block-2");
+        greenMail.getManagers().getImapHostManager().getInbox(mailUser).appendMessage(
+                new MimeMessage(Session.getInstance(new Properties()),
+                        new java.io.ByteArrayInputStream(moved.getBytes(java.nio.charset.StandardCharsets.UTF_8))),
+                new Flags(), Date.from(clock.instant()));
+        imports.pollNow(anna.id());
+        getWith("/api/vacationrental/bookings/" + id, anna.session())
+                .andExpect(jsonPath("$.arrival").value("2027-06-10"));
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void ownerBlockTakesOverAnOwnerUseRecordedByHand() throws Exception {
+        var body = new HashMap<String, Object>(Map.of("unitId", unit, "arrival", "2027-06-09",
+                "departure", "2027-06-14", "kind", "OWNER"));
+        var id = ((Number) JsonPath.read(postJson("/api/vacationrental/bookings", body, anna.session())
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+        deliver("fewo-owner-block.eml", null);
+        imports.pollNow(anna.id());
+        assign("Eigentümerblockung");
+        var item = inboxItem(anna, "Eigentümerblockung");
+        assertThat(item.get("result")).isEqualTo("ATTACHED");
+        assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(id);
+        getWith("/api/vacationrental/bookings/" + id, anna.session())
+                .andExpect(jsonPath("$.externalRef").value("275001"))
+                .andExpect(jsonPath("$.agency.name").value("Fewo & Meer"));
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
+    void ownerBlockForAnOccupiedPeriodIsNotCreated() throws Exception {
+        booking(anna, unit, "2027-06-12", "2027-06-15");
+        deliver("fewo-owner-block.eml", null);
+        imports.pollNow(anna.id());
+        assign("Eigentümerblockung");
+        assertThat(inboxItem(anna, "Eigentümerblockung").get("result")).isEqualTo("PERIOD_TAKEN");
+        getWith("/api/vacationrental/bookings", anna.session()).andExpect(jsonPath("$.totalItems").value(1));
+    }
+
+    @Test
     void unknownIntermediaryCreatesAnAgency() throws Exception {
         var name = VacationRentalTest.unique("Ferienbüro Süd");
         deliverDs(name, "ref-" + System.nanoTime(), "01.06.2027", "04.06.2027");

@@ -40,6 +40,9 @@ final class CalendarFeed {
     }
 
     static String summary(Booking booking, boolean withGuests) {
+        if (booking.isOwnerUse()) {
+            return "Eigenbelegung";
+        }
         var review = booking.getReviewState() != ReviewState.NONE ? " ?" : "";
         if (!withGuests) {
             return "Belegt" + review;

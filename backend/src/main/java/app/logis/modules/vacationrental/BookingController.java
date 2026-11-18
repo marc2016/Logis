@@ -40,13 +40,14 @@ class BookingController {
         this.service = service;
     }
 
+    /** {@code kind} defaults to a guest booking and cannot change later. */
     record BookingRequest(Long unitId, LocalDate arrival, LocalDate departure, String externalRef,
             Integer adults, Integer children, BigDecimal expectedRent, Guest guest, Long agencyId, Integer pets,
-            Long version) {
+            Long version, BookingKind kind) {
 
         BookingService.BookingInput input() {
             return new BookingService.BookingInput(unitId, arrival, departure, externalRef, adults, children,
-                    expectedRent, guest, agencyId, pets);
+                    expectedRent, guest, agencyId, pets, kind);
         }
     }
 
@@ -61,7 +62,7 @@ class BookingController {
     }
 
     /** {@code guest} carries contact data only for editors; {@code guestDeleted} marks deleted guest data. */
-    record BookingView(Long id, UnitRef unit, LocalDate arrival, LocalDate departure, long nights,
+    record BookingView(Long id, BookingKind kind, UnitRef unit, LocalDate arrival, LocalDate departure, long nights,
             String externalRef, int adults, int children,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal expectedRent, BookingStatus status,
             Long statementId, Guest guest, boolean guestDeleted, boolean canEdit, long version, AgencyRef agency,
@@ -78,7 +79,7 @@ class BookingController {
         static BookingView of(BookingService.BookingDetails d, BookingSources.SourcesView sources) {
             var b = d.booking();
             var u = d.unit();
-            return new BookingView(b.getId(),
+            return new BookingView(b.getId(), b.getKind(),
                     new UnitRef(u.id(), u.name(), u.propertyId(), u.propertyName(), u.propertyMultiUnit()),
                     b.getArrival(), b.getDeparture(), b.nights(), b.getExternalRef(),
                     b.getAdults(), b.getChildren(), b.getExpectedRent(), d.status(), d.statementId(), d.guest(),
@@ -135,6 +136,7 @@ class BookingController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean review,
             @RequestParam(required = false) Long agencyId,
+            @RequestParam(required = false) BookingKind kind,
             @RequestParam(defaultValue = "arrival,desc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -150,7 +152,7 @@ class BookingController {
         }
         var ascending = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc");
         var result = service.list(me.userId(), new BookingService.Filter(propertyId, unitId, status, from, to, q, review,
-                agencyId),
+                agencyId, kind),
                 key, ascending, Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
         return new BookingPage(result.items().stream().map(BookingView::of).toList(), result.page(), result.size(),
                 result.totalItems());

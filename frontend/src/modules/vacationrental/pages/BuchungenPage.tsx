@@ -23,7 +23,7 @@ import { api } from '@/lib/api'
 import { SkipError } from '@/lib/bulk'
 import { backTo, bookingPath } from '../BookingPage.paths'
 import { IdSelect } from '../RentalFilters'
-import { rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingStatus } from '../api'
+import { kindLabel, rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingKind, type BookingStatus } from '../api'
 
 const PAGE_SIZE = 50
 const ALL = 'all'
@@ -33,6 +33,11 @@ const column = createColumnHelper<Booking>()
 const columns = [
   column.accessor('arrival', { header: 'Anreise', cell: (c) => formatDate(c.getValue()), meta: { label: 'Anreise', sortable: true } }),
   column.accessor('departure', { header: 'Abreise', cell: (c) => formatDate(c.getValue()), meta: { label: 'Abreise', sortable: true } }),
+  column.accessor('kind', {
+    header: 'Art',
+    cell: (c) => (c.getValue() === 'OWNER' ? <Badge variant="secondary">{kindLabel.OWNER}</Badge> : kindLabel.GUEST),
+    meta: { label: 'Art' },
+  }),
   column.accessor('unit', { header: 'Einheit', cell: (c) => unitLabel(c.getValue()), meta: { label: 'Einheit', sortable: true } }),
   column.accessor((b) => b.guest?.name ?? null, {
     id: 'guest',
@@ -85,6 +90,7 @@ export function BuchungenPage() {
     q: params.get('q') ?? undefined,
     review: params.get('review') === 'true',
     agencyId: num('agencyId'),
+    kind: (params.get('kind') as BookingKind | null) ?? undefined,
     sort: params.get('sort') ?? DEFAULT_SORT,
     page: num('page') ?? 0,
     size: PAGE_SIZE,
@@ -130,7 +136,7 @@ export function BuchungenPage() {
         <Checkbox checked={filter.review} onCheckedChange={(v) => update({ review: v === true ? 'true' : undefined })} aria-label="Nur zu prüfen" />
         Nur „zu prüfen“
       </label>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-8">
         <IdSelect id="flt-property" label="Objekt" value={filter.propertyId} options={properties} onChange={(v) => update({ propertyId: v, unitId: undefined })} />
         <IdSelect id="flt-unit" label="Einheit" value={filter.unitId} options={unitOptions} onChange={(v) => update({ unitId: v })} />
         <IdSelect id="flt-agency" label="Vermittler" value={filter.agencyId} options={agencies} onChange={(v) => update({ agencyId: v })} />
@@ -147,6 +153,24 @@ export function BuchungenPage() {
               {(Object.keys(statusLabel) as BookingStatus[]).map((s) => (
                 <SelectItem key={s} value={s}>
                   {statusLabel[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="flt-kind" className="text-xs text-muted-foreground">
+            Art
+          </Label>
+          <Select value={filter.kind ?? ALL} onValueChange={(v) => update({ kind: v === ALL ? undefined : v })}>
+            <SelectTrigger id="flt-kind" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Alle</SelectItem>
+              {(Object.keys(kindLabel) as BookingKind[]).map((k) => (
+                <SelectItem key={k} value={k}>
+                  {kindLabel[k]}
                 </SelectItem>
               ))}
             </SelectContent>

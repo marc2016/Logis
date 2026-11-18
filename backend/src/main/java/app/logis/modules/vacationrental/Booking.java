@@ -49,6 +49,10 @@ class Booking {
     private short pets;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private BookingKind kind = BookingKind.GUEST;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "review_state", nullable = false, length = 8)
     private ReviewState reviewState = ReviewState.NONE;
 
@@ -111,6 +115,18 @@ class Booking {
 
     String getExternalRef() {
         return externalRef;
+    }
+
+    BookingKind getKind() {
+        return kind;
+    }
+
+    boolean isOwnerUse() {
+        return kind == BookingKind.OWNER;
+    }
+
+    void setKind(BookingKind kind) {
+        this.kind = kind;
     }
 
     Long getAgencyId() {

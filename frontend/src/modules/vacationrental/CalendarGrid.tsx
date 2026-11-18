@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { daysIn, nightsInMonth } from './calendar'
-import { statusLabel, type CalendarBooking } from './api'
+import { kindLabel, statusLabel, type CalendarBooking } from './api'
 
 const MAX_DAYS = 31
 const monthShort = new Intl.DateTimeFormat('de-DE', { month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -84,7 +84,9 @@ export function CalendarGrid({ months, year, currentMonth, bookings, onOpen }: P
               {visible.map((b) => {
                 const span = nightsInMonth(b, month)
                 if (!span) return null
-                const label = b.guestName ?? b.externalRef ?? 'Buchung'
+                const owner = b.kind === 'OWNER'
+                const label = owner ? kindLabel.OWNER : (b.guestName ?? b.externalRef ?? 'Buchung')
+                const state = owner ? kindLabel.OWNER : statusLabel[b.status]
                 return (
                   <button
                     key={b.id}
@@ -93,13 +95,18 @@ export function CalendarGrid({ months, year, currentMonth, bookings, onOpen }: P
                     style={{ gridRow: row, gridColumn: `${span[0] + 1} / ${span[1] + 2}` }}
                     className={cn(
                       'z-10 mx-px mt-2.5 mb-0.5 truncate rounded px-1 text-left leading-5',
-                      b.status === 'SETTLED' ? 'bg-primary text-primary-foreground' : 'border-2 border-primary bg-background',
+                      owner
+                        ? 'border-2 border-muted-foreground/40 bg-muted text-muted-foreground'
+                        : b.status === 'SETTLED'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border-2 border-primary bg-background',
                       b.reviewState !== 'NONE' && 'border-2 border-dashed border-amber-600',
                     )}
-                    aria-label={`${label}, ${statusLabel[b.status]}${b.reviewState !== 'NONE' ? ', zu prüfen' : ''}`}
+                    aria-label={owner ? label : `${label}, ${state}${b.reviewState !== 'NONE' ? ', zu prüfen' : ''}`}
                     data-review={b.reviewState}
                     data-status={b.status}
-                    title={`${label} (${statusLabel[b.status]})`}
+                    data-kind={b.kind}
+                    title={owner ? label : `${label} (${state})`}
                   >
                     {label}
                   </button>

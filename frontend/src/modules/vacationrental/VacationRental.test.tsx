@@ -47,6 +47,58 @@ describe('Bookings grid', () => {
   })
 })
 
+describe('Owner use', () => {
+  it('records an owner use without guests or rent', async () => {
+    let created: Record<string, unknown> | undefined
+    mockApi({
+      ...base,
+      'GET /api/vacationrental/bookings': { body: bookingPage([]) },
+      'POST /api/vacationrental/bookings': (init) => {
+        created = JSON.parse(String(init?.body))
+        return { status: 201, body: booking({ id: 504, kind: 'OWNER', guest: null, adults: 0, expectedRent: null }) }
+      },
+      'GET /api/vacationrental/bookings/504': { body: booking({ id: 504, kind: 'OWNER', guest: null, adults: 0, expectedRent: null }) },
+      'GET /api/documents': { body: [] },
+    })
+    renderApp('/ferienvermietung/buchungen')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Buchung' }))
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    expect(within(dialog).getByRole('radio', { name: 'Gastbuchung' })).toHaveAttribute('aria-checked', 'true')
+    await user.click(within(dialog).getByRole('radio', { name: 'Eigenbelegung' }))
+    expect(within(dialog).queryByLabelText('Erwachsene')).not.toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Mietpreis (€)')).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('region', { name: 'Gast' })).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
+    await waitFor(() => expect(created).toMatchObject({ kind: 'OWNER', expectedRent: null }))
+  })
+
+  it('shows an owner use on its page without guest and rent', async () => {
+    mockApi({
+      ...base,
+      'GET /api/vacationrental/bookings/504': { body: booking({ id: 504, kind: 'OWNER', guest: null, adults: 0, expectedRent: null }) },
+      'GET /api/documents': { body: [] },
+    })
+    renderApp('/ferienvermietung/buchungen/504')
+    expect(await screen.findByRole('heading', { name: 'Eigenbelegung', level: 1 })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Erwachsene')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Gastdaten löschen' })).not.toBeInTheDocument()
+  })
+
+  it('shows the kind in the list and filters by it', async () => {
+    const fetch = mockApi({
+      ...base,
+      'GET /api/vacationrental/bookings': { body: bookingPage([booking({ kind: 'OWNER', guest: null })]) },
+    })
+    renderApp('/ferienvermietung/buchungen?kind=OWNER')
+    expect(await screen.findByRole('cell', { name: 'Eigenbelegung' })).toBeInTheDocument()
+    const url = fetch.mock.calls.map((c) => String(c[0])).find((u) => u.startsWith('/api/vacationrental/bookings'))!
+    expect(url).toContain('kind=OWNER')
+    expect(screen.getByRole('combobox', { name: 'Art' })).toHaveTextContent('Eigenbelegung')
+  })
+})
+
 describe('Agencies on bookings', () => {
   const agency = { id: 3, name: 'Fewo & Meer', archived: false, version: 0, aliases: [{ id: 30, alias: 'Fewo & Meer' }], bookingCount: 1 }
 
@@ -224,9 +276,14 @@ describe('Statements', () => {
 
 describe('Overview', () => {
   it('renders nights, occupancy and money per month', async () => {
-    const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, nights: 0, occupancy: 0, settledNet: '0.00', plannedRent: '0.00' }))
-    months[10] = { month: 11, nights: 11, occupancy: 37, settledNet: '540.00', plannedRent: '248.58' }
-    const overview: Overview = { unitId: 70, year: 2026, months, total: { month: 0, nights: 11, occupancy: 3, settledNet: '540.00', plannedRent: '248.58' } }
+    const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, nights: 0, occupancy: 0, ownerNights: 0, settledNet: '0.00', plannedRent: '0.00' }))
+    months[10] = { month: 11, nights: 11, occupancy: 37, ownerNights: 5, settledNet: '540.00', plannedRent: '248.58' }
+    const overview: Overview = {
+      unitId: 70,
+      year: 2026,
+      months,
+      total: { month: 0, nights: 11, occupancy: 3, ownerNights: 5, settledNet: '540.00', plannedRent: '248.58' },
+    }
     mockApi({ ...base, 'GET /api/vacationrental/occupancy/overview': { body: overview } })
     renderApp('/ferienvermietung/auswertung?unitId=70&year=2026')
     const november = await screen.findByRole('row', { name: /November/ })
@@ -234,5 +291,7 @@ describe('Overview', () => {
     expect(within(november).getByText('37 %')).toBeInTheDocument()
     expect(within(november).getByText('540,00 €')).toBeInTheDocument()
     expect(within(november).getByText('248,58 €')).toBeInTheDocument()
+    expect(within(november).getByText('5')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Eigenbelegung' })).toBeInTheDocument()
   })
 })

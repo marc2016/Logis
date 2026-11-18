@@ -40,7 +40,9 @@ record ParsedMail(String agency, MailType type, String bookingRef, String proper
         CHANGE,
         CANCELLATION,
         /** The agency blocked its calendar for a stay booked elsewhere; never creates a booking. */
-        BLOCK_NOTICE
+        BLOCK_NOTICE,
+        /** The agency confirms dates the owner blocked for their own use; creates an owner use. */
+        OWNER_BLOCK
     }
 
     ParsedMail(String agency, MailType type, String bookingRef, String propertyName, LocalDate arrival,
