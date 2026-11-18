@@ -74,3 +74,10 @@ The list of statements SHALL offer „Löschen“ for selected statements, with 
 #### Scenario: Remove lines
 - **WHEN** Anna selects 2 lines of the October statement and removes them
 - **THEN** the 2 bookings are planned again and the payout drops by their nets
+
+### Requirement: Owner use is not settled
+An owner use MUST NOT be assigned to a statement, and statements MUST NOT offer owner uses as open bookings.
+
+#### Scenario: Assign an owner use
+- **WHEN** Anna tries to assign an owner use to a statement
+- **THEN** the system rejects this with the message „Eine Eigenbelegung wird nicht abgerechnet“

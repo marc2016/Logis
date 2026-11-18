@@ -67,7 +67,7 @@ The system SHALL map the property name of a mail to a unit per agency, where the
 - **THEN** the next VVV mail for "Ferienhaus Seeufer" creates a booking without asking for the unit again
 
 ### Requirement: Effects on bookings
-A recognised mail SHALL have exactly one of these effects, decided by agency and booking number: a new booking awaiting review, a proposed change or cancellation on the existing booking, or only attaching the mail when nothing differs. A block notice MUST NOT create or change a booking: it SHALL be attached to the booking on the mapped unit that is not cancelled and has exactly the same period, and otherwise MUST stay in the inbox as „nicht zugeordnet“. Whenever a booking is created or changed, the original mail MUST be attached to it as a document.
+A recognised mail SHALL have exactly one of these effects, decided by agency and booking number: a new booking awaiting review, a proposed change or cancellation on the existing booking, or only attaching the mail when nothing differs. An owner block notice SHALL instead create an owner use directly, without review, or, for a known booking number, attach the mail and take over a different period directly. A block notice MUST NOT create or change a booking: it SHALL be attached to the booking on the mapped unit that is not cancelled and has exactly the same period, and otherwise MUST stay in the inbox as „nicht zugeordnet“. Whenever a booking is created or changed, the original mail MUST be attached to it as a document.
 
 #### Scenario: Confirmation creates a booking to review
 - **WHEN** the confirmation for booking 250903 is fetched
@@ -92,6 +92,14 @@ A recognised mail SHALL have exactly one of these effects, decided by agency and
 #### Scenario: Block notice with a different period
 - **WHEN** a booking runs from 2027-05-15 to 2027-05-19 and the block notice for 15.05.2027 to 18.05.2027 is fetched
 - **THEN** the mail appears in the inbox as „nicht zugeordnet“
+
+#### Scenario: Owner block notice creates an owner use
+- **WHEN** the mail "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027" is fetched and "Haus Seeufer - Nordhorn" of Fewo & Meer is assigned to "Haus Seeufer"
+- **THEN** "Haus Seeufer" has an owner use from 2027-06-09 to 2027-06-14 with booking number 275001, it is not „zu prüfen“, the mail is attached, and the inbox shows „Eigenbelegung angelegt“
+
+#### Scenario: Owner block notice again with another period
+- **WHEN** owner use 275001 runs from 2027-06-09 to 2027-06-14 and an owner block notice 275001 for 10.06.2027 to 14.06.2027 is fetched
+- **THEN** the owner use runs from 2027-06-10 to 2027-06-14 and the mail is attached
 
 ### Requirement: Mails without a booking effect
 A cancellation or change for an unknown booking number MUST stay in the inbox as „nicht zugeordnet“. A new booking that would overlap another booking MUST NOT be created and MUST stay in the inbox as „Zeitraum belegt“.
@@ -125,3 +133,22 @@ Recognition SHALL report, for every field it reads, where in the mail the value 
 #### Scenario: AI quote not found
 - **WHEN** the AI returns a guest name with a passage that does not occur in the mail
 - **THEN** the guest name is used without a location, and the other values keep theirs
+
+### Requirement: Fewo & Meer owner block notice
+The system SHALL recognise a Fewo & Meer mail whose subject reads „Eigentümerblockung <Nr>, <Objekt>, vom TT.MM.JJJJ bis TT.MM.JJJJ“ as an owner block notice with booking number, property name, arrival and departure. The unit SHALL be found through the same property assignment as for other mails of the agency, and an unknown property name MUST leave the mail waiting for a unit. If no booking of the agency with that number exists but the unit has an owner use that is not cancelled, has no booking number and has exactly the same period, the mail SHALL be attached to it and SHALL set its booking number and agency. Otherwise it SHALL create an owner use with that number and period; if the period is taken, the mail MUST stay in the inbox as „Zeitraum belegt“. The inbox SHALL show the result „Eigenbelegung angelegt“.
+
+#### Scenario: Read an owner block notice
+- **WHEN** the mail "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027" from Fewo & Meer arrives
+- **THEN** it is read as an owner block notice of Fewo & Meer with booking number 275001, property "Haus Seeufer - Nordhorn", arrival 2027-06-09 and departure 2027-06-14
+
+#### Scenario: Unknown property
+- **WHEN** the owner block notice names a property that is not assigned to a unit yet
+- **THEN** the mail waits in the inbox for „Einheit zuordnen“, and assigning the unit creates the owner use
+
+#### Scenario: Owner use recorded by hand first
+- **WHEN** Anna has recorded an „Eigenbelegung“ without booking number on "Haus Seeufer" from 2027-06-09 to 2027-06-14 and the owner block notice 275001 for that period is fetched
+- **THEN** no second owner use is created, the mail is attached to Anna's owner use, and it now has booking number 275001 and agency Fewo & Meer
+
+#### Scenario: Period taken
+- **WHEN** the owner block notice covers a period in which the unit has a guest booking
+- **THEN** no owner use is created and the mail shows „Zeitraum belegt“
