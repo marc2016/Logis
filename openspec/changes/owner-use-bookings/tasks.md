@@ -16,7 +16,7 @@
 ## 3. Mail import
 
 - [ ] 3.1 Recognise „Eigentümerblockung <Nr>, <Objekt>, vom … bis …“ in `FewoUndMeerParser` as `OWNER_BLOCK`; verify with a parser test using an invented sample mail
-- [ ] 3.2 Handle `OWNER_BLOCK` in `ImportEngine` (unknown unit, create, update period, period taken) with result `OWNER_USE_CREATED`; verify with `MailImportTest` cases for each scenario
+- [ ] 3.2 Handle `OWNER_BLOCK` in `ImportEngine` (unknown unit, match a hand-recorded owner use with the same period, create, update period, period taken) with result `OWNER_USE_CREATED`; verify with `MailImportTest` cases for each scenario
 
 ## 4. Frontend
 

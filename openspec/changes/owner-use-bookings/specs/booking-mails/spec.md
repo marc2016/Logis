@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Fewo & Meer owner block notice
-The system SHALL recognise a Fewo & Meer mail whose subject reads „Eigentümerblockung <Nr>, <Objekt>, vom TT.MM.JJJJ bis TT.MM.JJJJ“ as an owner block notice with booking number, property name, arrival and departure. The unit SHALL be found through the same property assignment as for other mails of the agency, and an unknown property name MUST leave the mail waiting for a unit. If no booking of the agency with that number exists, it SHALL create an owner use with that number and period; if the period is taken, the mail MUST stay in the inbox as „Zeitraum belegt“. The inbox SHALL show the result „Eigenbelegung angelegt“.
+The system SHALL recognise a Fewo & Meer mail whose subject reads „Eigentümerblockung <Nr>, <Objekt>, vom TT.MM.JJJJ bis TT.MM.JJJJ“ as an owner block notice with booking number, property name, arrival and departure. The unit SHALL be found through the same property assignment as for other mails of the agency, and an unknown property name MUST leave the mail waiting for a unit. If no booking of the agency with that number exists but the unit has an owner use that is not cancelled, has no booking number and has exactly the same period, the mail SHALL be attached to it and SHALL set its booking number and agency. Otherwise it SHALL create an owner use with that number and period; if the period is taken, the mail MUST stay in the inbox as „Zeitraum belegt“. The inbox SHALL show the result „Eigenbelegung angelegt“.
 
 #### Scenario: Read an owner block notice
 - **WHEN** the mail "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027" from Fewo & Meer arrives
@@ -12,6 +12,10 @@ The system SHALL recognise a Fewo & Meer mail whose subject reads „Eigentümer
 #### Scenario: Unknown property
 - **WHEN** the owner block notice names a property that is not assigned to a unit yet
 - **THEN** the mail waits in the inbox for „Einheit zuordnen“, and assigning the unit creates the owner use
+
+#### Scenario: Owner use recorded by hand first
+- **WHEN** Anna has recorded an „Eigenbelegung“ without booking number on "Haus Seeufer" from 2027-06-09 to 2027-06-14 and the owner block notice 275001 for that period is fetched
+- **THEN** no second owner use is created, the mail is attached to Anna's owner use, and it now has booking number 275001 and agency Fewo & Meer
 
 #### Scenario: Period taken
 - **WHEN** the owner block notice covers a period in which the unit has a guest booking
