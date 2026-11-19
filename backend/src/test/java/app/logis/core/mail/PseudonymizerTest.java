@@ -135,4 +135,32 @@ class PseudonymizerTest {
         assertThat(pseudonymizer.apply("Frau Musterfrau", known, Set.of())).isEqualTo("Frau Gast1");
         assertThat(pseudonymizer.address("ERIKA@example.org", known, Set.of())).isEqualTo("gast1@example.org");
     }
+
+    @Test
+    void lowercaseParticlesAreNoNameParts() {
+        var values = List.of(new SensitiveValue(Kind.NAME, "Lisa van der Berg"));
+        assertThat(pseudonymizer.apply("Lisa van der Berg reist an", values, Set.of(), false)).isEqualTo("Gast 1 reist an");
+        assertThat(pseudonymizer.apply("bis Ende der Herbstferien bei Frau Berg", values, Set.of(), false))
+                .isEqualTo("bis Ende der Herbstferien bei Frau Gast1");
+    }
+
+    @Test
+    void ownersAndLegalEntities() {
+        var values = List.of(new SensitiveValue(Kind.OWNER, "Anna Beispiel"),
+                new SensitiveValue(Kind.LEGAL_ENTITY, "Anna Beispiel GbR"));
+        assertThat(pseudonymizer.apply("Sehr geehrte(r) Anna Beispiel GbR, Ihre GbR", values, Set.of(), false))
+                .isEqualTo("Sehr geehrte(r) Rechtsträger 1, Ihre GbR");
+        assertThat(pseudonymizer.apply("Hallo Anna Beispiel, Grüße an Frau Beispiel", values, Set.of(), false))
+                .isEqualTo("Hallo Inhaber 1, Grüße an Frau Inhaber1");
+    }
+
+    @Test
+    void namePartRule() {
+        assertThat(Pseudonymizer.isNamePart("Berg")).isTrue();
+        assertThat(Pseudonymizer.isNamePart("Öztürk")).isTrue();
+        assertThat(Pseudonymizer.isNamePart("der")).isFalse();
+        assertThat(Pseudonymizer.isNamePart("Li")).isFalse();
+        assertThat(Pseudonymizer.isNamePart("GmbH")).isFalse();
+        assertThat(Pseudonymizer.isNamePart("e.K.")).isFalse();
+    }
 }

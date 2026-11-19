@@ -32,6 +32,11 @@ public class LegalEntities {
                 .orElseThrow(() -> ApiException.notFound(LegalEntityService.NOT_FOUND));
     }
 
+    /** The legal entities the user manages. */
+    public java.util.List<Summary> managed(Long userId) {
+        return entities.findManagedBy(userId).stream().map(LegalEntities::summary).toList();
+    }
+
     public Map<Long, Summary> summaries(Collection<Long> ids) {
         return entities.findAllById(ids).stream().map(LegalEntities::summary)
                 .collect(Collectors.toMap(Summary::id, Function.identity()));

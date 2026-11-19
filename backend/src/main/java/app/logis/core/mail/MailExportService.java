@@ -1,5 +1,7 @@
 package app.logis.core.mail;
 
+import app.logis.core.ledger.LegalEntities;
+import app.logis.core.realestate.PropertyAddresses;
 import app.logis.core.web.ApiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -49,9 +52,13 @@ class MailExportService {
     private final MailExportLog exportLog;
     private final ObjectMapper json;
     private final Clock clock;
+    private final PropertyAddresses properties;
+    private final LegalEntities legalEntities;
 
     MailExportService(JdbcTemplate jdbc, List<MailHandler> handlers, MailExportLog exportLog, ObjectMapper json,
-            Clock clock) {
+            Clock clock, PropertyAddresses properties, LegalEntities legalEntities) {
+        this.properties = properties;
+        this.legalEntities = legalEntities;
         this.jdbc = jdbc;
         this.handlers = handlers;
         this.exportLog = exportLog;
@@ -108,10 +115,19 @@ class MailExportService {
         var pseudonymizer = new Pseudonymizer(new SecureRandom());
         var rewriter = new MimeRewriter(pseudonymizer);
         var sources = new HashMap<Long, List<MailHandler.SensitiveValues>>();
+        var ownerValues = new HashMap<Long, Set<SensitiveValue>>();
         // Addresses on agency domains stay: domains of senders whose mails a handler took (design D5).
         var keepDomains = MimeRewriter.agencyDomains(jdbc.queryForList("SELECT DISTINCT sender FROM core.mails "
                 + "WHERE handler IS NOT NULL AND result <> 'DELETED' AND owner_user_id = ANY(?)", String.class,
                 (Object) filter.owners().toArray(Long[]::new)));
+        handlers.forEach(h -> keepDomains.addAll(MimeRewriter.agencyDomains(h.agencyDomains().stream()
+                .map(d -> "@" + d).toList())));
+        var resultLabels = new HashMap<>(CORE_LABELS);
+        var kindLabels = new HashMap<String, String>();
+        handlers.forEach(h -> {
+            resultLabels.putAll(h.resultLabels());
+            kindLabels.putAll(h.kindLabels());
+        });
         var usernames = usernames(filter.owners());
         var index = new StringBuilder("﻿Datei;Eingang;Absender;Betreff;Ergebnis;Art;Vermittler;Postfach\r\n");
         var counts = new LinkedHashMap<Long, Integer>();
@@ -131,7 +147,7 @@ class MailExportService {
                     var perOwner = sources.computeIfAbsent(row.ownerUserId(),
                             owner -> handlers.stream().map(h -> h.sensitiveValues(owner)).toList());
                     var content = MailContent.parse(raw);
-                    var values = new HashSet<SensitiveValue>();
+                    var values = new HashSet<>(ownerValues.computeIfAbsent(row.ownerUserId(), this::ownerValues));
                     perOwner.forEach(s -> values.addAll(s.of(content)));
                     var rewritten = rewriter.rewrite(raw, values, keepDomains);
                     zip.putNextEntry(new ZipEntry(name));
@@ -149,8 +165,9 @@ class MailExportService {
                         .append(csv(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(row.receivedAt().atZone(ZONE)
                                 .toLocalDateTime().withNano(0)))).append(';')
                         .append(csv(sender)).append(';').append(csv(subject)).append(';')
-                        .append(csv(CORE_LABELS.getOrDefault(row.result(), row.result()))).append(';')
-                        .append(csv(row.kind())).append(';').append(csv(row.source())).append(';')
+                        .append(csv(resultLabels.getOrDefault(row.result(), row.result()))).append(';')
+                        .append(csv(row.kind() == null ? null : kindLabels.getOrDefault(row.kind(), row.kind())))
+                        .append(';').append(csv(row.source())).append(';')
                         .append(csv(usernames.get(row.ownerUserId()))).append("\r\n");
             }
             zip.putNextEntry(new ZipEntry("index.csv"));
@@ -162,6 +179,30 @@ class MailExportService {
         var filters = filtersJson(filter);
         counts.forEach((owner, count) -> exportLog.record(adminUserId, owner, now, count, filters));
         zip.flush();
+    }
+
+    /**
+     * The owner's own values (design D1 of mail-export-pseudonymization): display name and username, the legal
+     * entities they manage or whose properties they see, and the addresses of the properties they see.
+     */
+    private Set<SensitiveValue> ownerValues(Long owner) {
+        var values = new HashSet<SensitiveValue>();
+        jdbc.query("SELECT display_name, username FROM core.users WHERE id = ?", rs -> {
+            SensitiveValue.of(SensitiveValue.Kind.OWNER, rs.getString(1)).ifPresent(values::add);
+            SensitiveValue.of(SensitiveValue.Kind.OWNER, rs.getString(2)).ifPresent(values::add);
+        }, owner);
+        var visible = properties.visibleTo(owner);
+        var entityIds = new HashSet<Long>();
+        for (var p : visible) {
+            entityIds.add(p.legalEntityId());
+            SensitiveValue.of(SensitiveValue.Kind.STREET, p.street()).ifPresent(values::add);
+            SensitiveValue.of(SensitiveValue.Kind.POSTAL_CODE, p.postalCode()).ifPresent(values::add);
+            SensitiveValue.of(SensitiveValue.Kind.CITY, p.city()).ifPresent(values::add);
+        }
+        legalEntities.managed(owner).forEach(e -> entityIds.add(e.id()));
+        legalEntities.summaries(entityIds).values()
+                .forEach(e -> SensitiveValue.of(SensitiveValue.Kind.LEGAL_ENTITY, e.name()).ifPresent(values::add));
+        return values;
     }
 
     List<MailExportLog.Entry> log() {

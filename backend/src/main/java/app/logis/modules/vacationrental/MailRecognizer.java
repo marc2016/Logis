@@ -43,6 +43,13 @@ class MailRecognizer {
         return ai.getIfAvailable() != null;
     }
 
+    /** Sender domains of all agencies the rules know. */
+    java.util.Set<String> agencyDomains() {
+        var domains = new java.util.HashSet<String>();
+        rules.forEach(r -> domains.addAll(r.agencyDomains()));
+        return domains;
+    }
+
     /** Only the fixed rules, never the AI; for deriving sources of mails imported earlier. */
     Optional<ParsedMail> recognizeByRules(MailContent mail) {
         for (var rule : rules) {

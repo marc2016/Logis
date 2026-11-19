@@ -27,6 +27,12 @@ class Pseudonymizer {
     /** A leading + or 0, then digits with spaces, slashes, dashes or parentheses; at least 7 digits (checked below). */
     private static final Pattern PHONE = Pattern.compile("(?<![\\p{L}\\p{N}.,])(?:\\+|0)[\\d (/)\\-]{5,}\\d(?![\\p{N}.,]\\d)");
     private static final int MIN_NAME_PART = 3;
+    /** Kinds whose parts are replaced on their own as well. */
+    private static final Set<SensitiveValue.Kind> NAMED_KINDS = Set.of(SensitiveValue.Kind.NAME,
+            SensitiveValue.Kind.OWNER, SensitiveValue.Kind.LEGAL_ENTITY);
+    /** Legal forms in lower case; a name part that is one of them is not a name. */
+    private static final Set<String> LEGAL_FORMS = Set.of("gbr", "gmbh", "ggmbh", "ug", "kg", "ohg", "ag", "e.k.",
+            "e.v.", "mbh", "co", "co.", "kgaa", "partg");
     private static final String EXAMPLE_DOMAIN = "example.org";
 
     private final Random random;
@@ -104,9 +110,9 @@ class Pseudonymizer {
         for (var v : values) {
             var replacement = replacement(v);
             pairs.add(new String[] {v.value(), replacement});
-            if (v.kind() == SensitiveValue.Kind.NAME) {
+            if (NAMED_KINDS.contains(v.kind())) {
                 for (var part : v.value().split("[\\s,]+")) {
-                    if (part.codePointCount(0, part.length()) >= MIN_NAME_PART && !part.equals(v.value())) {
+                    if (isNamePart(part) && !part.equals(v.value())) {
                         pairs.add(new String[] {part, replacement.replace(" ", "")});
                     }
                 }
@@ -124,6 +130,18 @@ class Pseudonymizer {
         return pairs;
     }
 
+    /**
+     * Whether a part of a name is replaced on its own (design D2 of mail-export-pseudonymization): at least three
+     * letters, an uppercase first letter, and no legal form. Particles like „van“ or „der“ are ordinary words.
+     */
+    static boolean isNamePart(String part) {
+        if (part.codePoints().filter(Character::isLetter).count() < MIN_NAME_PART
+                || !Character.isUpperCase(part.codePointAt(0))) {
+            return false;
+        }
+        return !LEGAL_FORMS.contains(part.toLowerCase(Locale.ROOT));
+    }
+
     private String replacement(SensitiveValue v) {
         var byValue = known.computeIfAbsent(v.kind(), k -> new HashMap<>());
         var key = v.value().toLowerCase(Locale.ROOT);
@@ -134,6 +152,8 @@ class Pseudonymizer {
                 case STREET -> "Musterstraße " + n;
                 case CITY -> "Musterstadt " + n;
                 case EMAIL -> "gast" + n + "@" + EXAMPLE_DOMAIN;
+                case OWNER -> "Inhaber " + n;
+                case LEGAL_ENTITY -> "Rechtsträger " + n;
                 case POSTAL_CODE, PHONE, REFERENCE -> sameFormat(v.value());
             };
             produced.add(value);

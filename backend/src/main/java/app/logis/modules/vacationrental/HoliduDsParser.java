@@ -42,6 +42,11 @@ class HoliduDsParser implements MailParser {
     private static final Pattern ADDRESS = Pattern.compile("^(.+?),\\s*(\\d{4,5})\\s+(.+?)(?:,\\s*(.+))?$");
 
     @Override
+    public java.util.Set<String> agencyDomains() {
+        return java.util.Set.of("ds-destinationsolutions.com");
+    }
+
+    @Override
     public Optional<ParsedMail> parse(MailContent mail) {
         var text = mail.text();
         var sender = mail.sender() == null ? "" : mail.sender().toLowerCase(Locale.ROOT);

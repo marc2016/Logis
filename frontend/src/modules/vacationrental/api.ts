@@ -234,6 +234,7 @@ export interface BookingFilter {
 
 // --- Booking mails (labels for the core inbox) ----------------------------------------------------
 
+// Kept equal to KIND_LABELS in the backend's BookingMailHandler (checked by MailLabelsTest).
 export const mailKindLabel: Record<string, string> = {
   CONFIRMATION: 'Bestätigung',
   SHORT_NOTICE: 'Last-Minute',
@@ -243,6 +244,7 @@ export const mailKindLabel: Record<string, string> = {
   OWNER_BLOCK: 'Eigentümerblockung',
 }
 
+// Kept equal to RESULT_LABELS in the backend's BookingMailHandler (checked by MailLabelsTest).
 export const mailResultLabel: Record<string, string> = {
   BOOKING_CREATED: 'Buchung angelegt',
   OWNER_USE_CREATED: 'Eigenbelegung angelegt',

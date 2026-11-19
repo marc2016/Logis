@@ -28,6 +28,21 @@ public interface MailHandler {
         return mail -> Set.of();
     }
 
+    /** Sender domains of agencies this handler knows; their addresses stay in the admin export. Lower case. */
+    default Set<String> agencyDomains() {
+        return Set.of();
+    }
+
+    /** German labels of the result codes this handler reports, as the inbox shows them; for the admin export. */
+    default java.util.Map<String, String> resultLabels() {
+        return java.util.Map.of();
+    }
+
+    /** German labels of the kinds this handler reports, as the inbox shows them; for the admin export. */
+    default java.util.Map<String, String> kindLabels() {
+        return java.util.Map.of();
+    }
+
     /** Sensitive values of one mail, see {@link #sensitiveValues(Long)}. */
     @FunctionalInterface
     interface SensitiveValues {

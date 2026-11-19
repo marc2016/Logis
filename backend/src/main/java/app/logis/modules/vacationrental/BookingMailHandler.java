@@ -59,6 +59,41 @@ class BookingMailHandler implements MailHandler {
                 recognition.source().name()));
     }
 
+    /** Same labels as {@code mailResultLabel} in the frontend's {@code modules/vacationrental/api.ts}. */
+    static final java.util.Map<String, String> RESULT_LABELS = java.util.Map.of(
+            "BOOKING_CREATED", "Buchung angelegt",
+            "OWNER_USE_CREATED", "Eigenbelegung angelegt",
+            "CHANGE_PROPOSED", "Änderung vorgeschlagen",
+            "ATTACHED", "Angehängt",
+            "UNASSIGNED_UNIT", "Einheit zuordnen",
+            "NOT_MATCHED", "Nicht zugeordnet",
+            "PERIOD_TAKEN", "Zeitraum belegt",
+            "DISCARDED", "Verworfen");
+
+    /** Same labels as {@code mailKindLabel} in the frontend's {@code modules/vacationrental/api.ts}. */
+    static final java.util.Map<String, String> KIND_LABELS = java.util.Map.of(
+            "CONFIRMATION", "Bestätigung",
+            "SHORT_NOTICE", "Last-Minute",
+            "CHANGE", "Änderung",
+            "CANCELLATION", "Stornierung",
+            "BLOCK_NOTICE", "Blockung",
+            "OWNER_BLOCK", "Eigentümerblockung");
+
+    @Override
+    public java.util.Set<String> agencyDomains() {
+        return recognizer.agencyDomains();
+    }
+
+    @Override
+    public java.util.Map<String, String> resultLabels() {
+        return RESULT_LABELS;
+    }
+
+    @Override
+    public java.util.Map<String, String> kindLabels() {
+        return KIND_LABELS;
+    }
+
     /**
      * For the admin export: guest values and booking numbers of all bookings the owner can see, collected once, plus
      * what the rules read from each mail. Rules only - the AI is never asked (design D3 of admin-mail-export).

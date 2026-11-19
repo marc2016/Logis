@@ -190,6 +190,76 @@ class MailExportTest extends IntegrationTest {
                 .contains("Anreise 23.12.2026", "person1@example.org");
     }
 
+    private Long property(MockHttpSession session, Long legalEntity, String street, String postalCode, String city)
+            throws Exception {
+        var body = new LinkedHashMap<String, Object>(Map.of("legalEntityId", legalEntity, "name", "Haus " + street,
+                "street", street, "postalCode", postalCode, "city", city, "multiUnit", false));
+        body.put("firstUnit", Map.of("usage", "VACATION_RENTAL"));
+        return body(postJson("/api/properties", body, session).andExpect(status().isCreated())).get("id").asLong();
+    }
+
+    @Test
+    void ownerLegalEntityAndPropertyValuesDoNotLeave() throws Exception {
+        var anna = ownerWithMailbox(true);
+        jdbc.update("UPDATE core.users SET display_name = 'Anna Beispiel' WHERE id = ?", anna.user().id());
+        var gbr = body(postJson("/api/legal-entities", Map.of("name", "Anna Beispiel GbR", "kind", "GBR"),
+                anna.session()).andExpect(status().isCreated())).get("id").asLong();
+        property(anna.session(), gbr, "Musterweg 7", "12345", "Beispielstadt");
+        // Bert's properties: one shared with Anna, one not.
+        var bert = createUser(Role.USER, true);
+        var bertSession = login(bert);
+        var bertEntity = jdbc.queryForObject("SELECT id FROM core.legal_entities WHERE manager_user_id = ? AND personal",
+                Long.class, bert.id());
+        var shared = property(bertSession, bertEntity, "Teilweg 9", "67890", "Teilstadt");
+        postJson("/api/shares/property/" + shared, Map.of("userId", anna.user().id(), "role", "VIEWER"), bertSession)
+                .andExpect(status().isOk());
+        property(bertSession, bertEntity, "Fremdweg 3", "54321", "Andersort");
+        mail(anna, "2026-11-03T09:00:00Z", "NOT_RECOGNISED", null, eml("Ihre Abrechnung",
+                "Sehr geehrte(r) Anna Beispiel GbR, anbei die Abrechnung für Musterweg 7, 12345 Beispielstadt. "
+                        + "Gruß an Frau Beispiel (" + anna.user().username() + "). Teilweg 9, 67890 Teilstadt. "
+                        + "Fremdweg 3, 54321 Andersort. Ihre GbR ist eingetragen.",
+                "\"Agentur\" <buchung@agentur.example>"));
+        var admin = login(createUser(Role.ADMIN, true));
+
+        var files = unzip(export(admin, Map.of("owners", List.of(anna.user().id()))).andReturn().getResponse()
+                .getContentAsByteArray());
+        var message = new jakarta.mail.internet.MimeMessage(jakarta.mail.Session.getInstance(new java.util.Properties()),
+                new ByteArrayInputStream(files.get("0001-not-recognised.eml").getBytes(StandardCharsets.UTF_8)));
+        var text = (String) message.getContent();
+        // „Beispiel“ is a part of both the owner and the GbR: either replacement is fine.
+        assertThat(text).doesNotContain("Anna", "Beispiel", "Musterweg 7", "12345", "Teilweg 9", "67890", "Teilstadt",
+                        anna.user().username())
+                .contains("Sehr geehrte(r) Rechtsträger ", "Fremdweg 3, 54321 Andersort", "Ihre GbR ist eingetragen")
+                .containsPattern("\\(Inhaber \\d+\\)");
+    }
+
+    @Test
+    void agencyDomainsKnownToTheRulesStay() throws Exception {
+        var anna = ownerWithMailbox(true);
+        // No handled mail from this domain: it stays because the Fewo & Meer rules know it.
+        mail(anna, "2026-11-03T09:00:00Z", "NOT_RECOGNISED", null, eml("[#ABC-123-45678]: Eigentümerblockung",
+                "Ihre Anfrage ist eingegangen.", "\"FEWO & MEER e.K.\" <service@fewoundmeer.de>"));
+        mail(anna, "2026-11-03T10:00:00Z", "NOT_RECOGNISED", null, eml("Frage", "Hallo", "<max.privat@gmx.de>"));
+        var admin = login(createUser(Role.ADMIN, true));
+
+        var all = String.join("\n", unzip(export(admin, Map.of("owners", List.of(anna.user().id()))).andReturn()
+                .getResponse().getContentAsByteArray()).values());
+        assertThat(all).contains("service@fewoundmeer.de").doesNotContain("max.privat@gmx.de");
+    }
+
+    @Test
+    void indexShowsLabels() throws Exception {
+        var anna = ownerWithMailbox(true);
+        var id = mail(anna, "2026-11-03T09:00:00Z", "BOOKING_CREATED", "Fewo & Meer", eml("Buchung", "Text",
+                "\"Agentur\" <buchung@agentur.example>"));
+        jdbc.update("UPDATE core.mails SET kind = 'CONFIRMATION' WHERE id = ?", id);
+        var admin = login(createUser(Role.ADMIN, true));
+
+        var index = unzip(export(admin, Map.of("owners", List.of(anna.user().id()))).andReturn().getResponse()
+                .getContentAsByteArray()).get("index.csv").lines().toList();
+        assertThat(index.get(1)).contains(";Buchung angelegt;Bestätigung;Fewo & Meer;");
+    }
+
     @Test
     void tooManyMails() throws Exception {
         var anna = ownerWithMailbox(true);

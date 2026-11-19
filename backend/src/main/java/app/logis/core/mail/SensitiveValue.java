@@ -7,7 +7,11 @@ package app.logis.core.mail;
 public record SensitiveValue(Kind kind, String value) {
 
     public enum Kind {
-        NAME, STREET, POSTAL_CODE, CITY, PHONE, EMAIL, REFERENCE
+        NAME, STREET, POSTAL_CODE, CITY, PHONE, EMAIL, REFERENCE,
+        /** The mailbox owner's display name or username. */
+        OWNER,
+        /** A legal entity's name, e.g. a GbR. */
+        LEGAL_ENTITY
     }
 
     /** Null or blank values are dropped. */
