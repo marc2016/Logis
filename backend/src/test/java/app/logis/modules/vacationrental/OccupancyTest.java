@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -123,6 +124,72 @@ class OccupancyTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.units[0].bookings[*].id", hasItem(outside.intValue())));
         getWith(base + 1800, anna.session()).andExpect(status().isBadRequest());
         getWith("/api/vacationrental/occupancy/calendar?propertyId=" + property + "&month=2026-11", anna.session())
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- occupancy-charts: all units ----------------------------------------------------------------
+
+    private com.fasterxml.jackson.databind.JsonNode unitsOverview(Actor actor, int year) throws Exception {
+        return json.readTree(getWith("/api/vacationrental/occupancy/overview/units?year=" + year, actor.session())
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+
+    @Test
+    void allVisibleUnitsAcrossProperties() throws Exception {
+        var anna = actor();
+        var dieter = actor();
+        var seeufer = singleUnitProperty(anna, "Zz Haus Seeufer");
+        var seeuferUnit = unitIds(seeufer).getFirst();
+        var flats = twoUnitProperty(anna);
+        var stay = booking(anna, seeuferUnit, "2026-11-10", "2026-11-19");
+        settle(anna, statement(anna, seeuferUnit, "2026-11-30"), stay, "540.00");
+        booking(anna, flats[1], "2026-07-01", "2026-07-08");
+        share(anna, "property", seeufer, dieter, "VIEWER");
+        // Someone else's unit never shows up.
+        singleUnitProperty(actor(), "Fremdes Haus");
+
+        var all = unitsOverview(anna, 2026);
+        assertThat(all).hasSize(3);
+        assertThat(all.get(2).get("unitId").asLong()).isEqualTo(seeuferUnit);
+        assertThat(all.get(2).get("propertyName").asText()).isEqualTo("Zz Haus Seeufer");
+        assertThat(all.get(0).get("unitName").asText()).isEqualTo("Whg. 1");
+        assertThat(all.get(1).get("unitName").asText()).isEqualTo("Whg. 2");
+
+        // Each total equals the unit's own overview.
+        for (var row : all) {
+            var single = json.readTree(getWith("/api/vacationrental/occupancy/overview?unitId=" + row.get("unitId").asLong()
+                    + "&year=2026", anna.session()).andReturn().getResponse().getContentAsString());
+            assertThat(row.get("total")).isEqualTo(single.get("total"));
+        }
+        assertThat(all.get(2).get("total").get("nights").asInt()).isEqualTo(9);
+        assertThat(all.get(2).get("total").get("settledNet").asText()).isEqualTo("540.00");
+        assertThat(all.get(0).get("total").get("nights").asInt()).isEqualTo(7);
+
+        var shared = unitsOverview(dieter, 2026);
+        assertThat(shared).hasSize(1);
+        assertThat(shared.get(0).get("unitId").asLong()).isEqualTo(seeuferUnit);
+    }
+
+    @Test
+    void archivedUnitsOnlyWithFigures() throws Exception {
+        var anna = actor();
+        var used = singleUnitProperty(anna, "Altes Haus");
+        var usedUnit = unitIds(used).getFirst();
+        booking(anna, usedUnit, "2026-07-01", "2026-07-08");
+        var unused = singleUnitProperty(anna, "Leeres Haus");
+        postJson("/api/properties/" + used + "/archive", Map.of(), anna.session()).andExpect(status().isOk());
+        postJson("/api/properties/" + unused + "/archive", Map.of(), anna.session()).andExpect(status().isOk());
+
+        var in2026 = unitsOverview(anna, 2026);
+        assertThat(in2026).hasSize(1);
+        assertThat(in2026.get(0).get("unitId").asLong()).isEqualTo(usedUnit);
+        assertThat(in2026.get(0).get("archived").asBoolean()).isTrue();
+        assertThat(unitsOverview(anna, 2025)).isEmpty();
+    }
+
+    @Test
+    void unitsOverviewNeedsAValidYear() throws Exception {
+        getWith("/api/vacationrental/occupancy/overview/units?year=12", actor().session())
                 .andExpect(status().isBadRequest());
     }
 }

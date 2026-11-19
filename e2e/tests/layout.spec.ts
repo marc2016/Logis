@@ -36,6 +36,16 @@ test('list pages fit on phone and tablet screens', async ({ page, api }) => {
   expect(problems).toEqual([])
 })
 
+test('the evaluation fits on phone and tablet screens', async ({ page, api }) => {
+  const home = await holidayHome(api)
+  await booking(api, home.unitId, '2030-07-01', '2030-07-11', 'Erika Musterfrau', 'L-2001')
+  const problems = [
+    ...(await check(page, `/ferienvermietung/auswertung?unitId=${home.unitId}&year=2030&previous=1`, 'Auswertung')),
+    ...(await check(page, '/ferienvermietung/auswertung?unitId=all&year=2030', 'Auswertung')),
+  ]
+  expect(problems).toEqual([])
+})
+
 test('the sharing dialog fits on phone and tablet screens', async ({ page, api }) => {
   const home = await holidayHome(api)
   const problems: string[] = []

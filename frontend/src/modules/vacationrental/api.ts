@@ -205,6 +205,17 @@ export interface Overview {
   total: MonthFigures
 }
 
+/** Year totals of one unit in the comparison „Alle Einheiten“. */
+export interface UnitTotal {
+  unitId: number
+  unitName: string
+  propertyId: number
+  propertyName: string
+  propertyMultiUnit: boolean
+  archived: boolean
+  total: MonthFigures
+}
+
 export interface BookingFilter {
   propertyId?: number
   unitId?: number
@@ -265,6 +276,7 @@ export const rentalKeys = {
   providers: (unitId: number) => ['vacationrental', 'providers', unitId] as const,
   agencies: ['vacationrental', 'agencies'] as const,
   overview: (unitId: number, year: number) => ['vacationrental', 'overview', unitId, year] as const,
+  unitsOverview: (year: number) => ['vacationrental', 'overview', 'units', year] as const,
 }
 
 function query(params: Record<string, string | number | boolean | undefined | null>) {
@@ -346,6 +358,15 @@ export function useOverview(unitId: number | null, year: number) {
     queryKey: rentalKeys.overview(unitId ?? 0, year),
     queryFn: () => api<Overview>(`/api/vacationrental/occupancy/overview?unitId=${unitId}&year=${year}`),
     enabled: unitId !== null,
+  })
+}
+
+/** Year totals of all visible vacation rental units, for „Alle Einheiten“. */
+export function useUnitsOverview(year: number, enabled: boolean) {
+  return useQuery({
+    queryKey: rentalKeys.unitsOverview(year),
+    queryFn: () => api<UnitTotal[]>(`/api/vacationrental/occupancy/overview/units?year=${year}`),
+    enabled,
   })
 }
 

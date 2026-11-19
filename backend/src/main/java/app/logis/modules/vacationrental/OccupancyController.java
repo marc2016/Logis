@@ -36,6 +36,13 @@ class OccupancyController {
         return service.overview(me.userId(), unitId, year);
     }
 
+    @GetMapping("/overview/units")
+    java.util.List<OccupancyService.UnitTotal> unitsOverview(@RequestParam int year,
+            @AuthenticationPrincipal LogisPrincipal me) {
+        requireYear(year);
+        return service.unitsOverview(me.userId(), year);
+    }
+
     private static void requireYear(int year) {
         if (year < 1900 || year > 2999) {
             throw ApiException.badRequest("Ungültiges Jahr.");

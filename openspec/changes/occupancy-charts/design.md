@@ -30,10 +30,11 @@
 
 ### D1. shadcn chart on Recharts
 - Add `recharts` (latest stable 3.x, exact version) and generate `src/components/ui/chart.tsx` with the shadcn CLI. It provides `ChartContainer`, `ChartTooltip`, `ChartLegend` and colour config through CSS variables.
-- Chart colours come from new variables `--chart-1` … `--chart-4` in `index.css` for light and dark, if the theme does not define them yet.
-  - booked and settled: primary series;
-  - owner use and planned: secondary series;
-  - previous year: muted.
+- The shadcn registry (`ui.shadcn.com`) is not reachable from the build environment. `chart.tsx` is therefore taken from the shadcn repository (`apps/v4/registry/bases/radix/ui/chart.tsx`), with the two `cn-chart*` style markers replaced by the `nova` style's classes, as the CLI would do.
+- Chart colours replace the unused grey `--chart-1` … `--chart-3` in `index.css`: blue `#2a78d6`, orange `#eb6834`, aqua `#1baf7a`, the first three slots of the dataviz reference palette in fixed order. Logis has a light theme only. The validator passes on white for all pairs. Aqua is below 3:1 contrast, so its values (the previous year) also appear as table columns when the switch is on.
+  - booked and settled: series 1 (blue);
+  - owner use and planned: series 2 (orange);
+  - previous year: series 3 (aqua), drawn as a dashed 2 px line.
 - Recharts renders SVG, so text stays crisp and can be labelled.
 - Alternatives considered:
   - Chart.js (canvas; theming by hand);
@@ -56,6 +57,13 @@
 - Search parameter `previous=1`. When it is on, `useOverview(unitId, year - 1)` is loaded in addition (cached by React Query like any year).
 - „Belegung“ gets a `Line` with the previous year's `occupancy`, and „Einnahmen“ a `Line` with the previous year's `settledNet`. Recharts `ComposedChart` combines bars and lines.
 - The legend names „2026“ and „2025“.
+
+Notes from rendering the charts in a real browser:
+- Recharts 3 sorts legends alphabetically by default. Every legend sets `itemSorter={null}`, so it follows the drawing order of the series.
+- Recharts animates lines through `stroke-dasharray`, which overrides the dashed previous-year line. That line is drawn without animation.
+- It has no dots (only an active dot on hover), so the zero months do not clutter the baseline.
+- It is drawn `linear` rather than smoothed, since there are no values between months.
+- The previous-year colour (aqua) is below 3:1 contrast on white. With the switch on, the table therefore gets the columns „Belegung <Vorjahr>“ and „Netto <Vorjahr>“ (dataviz relief rule).
 
 ### D4. All units (D)
 - **Backend:** `GET /api/vacationrental/occupancy/overview/units?year=` returns `[{ unitId, unitName, propertyId, propertyName, archived, total: MonthFigures }]`.

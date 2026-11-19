@@ -96,6 +96,36 @@ class OccupancyService {
 
     Overview overview(Long userId, Long unitId, int year) {
         access.require(unitId, userId, ShareRole.VIEWER, BookingService.UNIT_NOT_FOUND);
+        return compute(unitId, year);
+    }
+
+    /** Year totals of one unit in the comparison „Alle Einheiten“, labelled with its property. */
+    record UnitTotal(Long unitId, String unitName, Long propertyId, String propertyName, boolean propertyMultiUnit,
+            boolean archived, MonthFigures total) {
+    }
+
+    /**
+     * Year totals of every vacation rental unit the user can see, across properties (design D4 of
+     * occupancy-charts). Archived units only appear with figures in that year.
+     */
+    List<UnitTotal> unitsOverview(Long userId, int year) {
+        var visible = access.visibleUnits(userId).keySet();
+        return access.summaries(visible).values().stream()
+                .filter(u -> u.usage() == UnitUsage.VACATION_RENTAL)
+                .map(u -> new UnitTotal(u.id(), u.name(), u.propertyId(), u.propertyName(), u.propertyMultiUnit(),
+                        u.archived() || u.propertyArchived(), compute(u.id(), year).total()))
+                .filter(t -> !t.archived() || hasFigures(t.total()))
+                .sorted(java.util.Comparator.comparing((UnitTotal t) -> t.propertyName().toLowerCase())
+                        .thenComparing(t -> t.unitName().toLowerCase()))
+                .toList();
+    }
+
+    private static boolean hasFigures(MonthFigures f) {
+        return f.nights() > 0 || f.ownerNights() > 0 || f.settledNet().signum() != 0 || f.plannedRent().signum() != 0;
+    }
+
+    /** The yearly overview of one unit; the caller has checked access. */
+    private Overview compute(Long unitId, int year) {
         var nights = new int[12];
         var ownerNights = new int[12];
         var settled = zeros();
