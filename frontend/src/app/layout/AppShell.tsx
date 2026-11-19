@@ -22,7 +22,9 @@ export function AppShell() {
           <Separator orientation="vertical" className="mx-1 h-4" />
           <span className="text-sm text-muted-foreground">Logis</span>
         </header>
-        <div className="flex-1 p-4 md:p-6">
+        {/* Size container: pages pick their columns with @…: variants by the width of the content area,
+            which is the window minus the open sidebar, rather than by the window width. */}
+        <div className="@container flex-1 p-4 md:p-6">
           <Outlet />
         </div>
       </SidebarInset>

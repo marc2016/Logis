@@ -37,7 +37,7 @@ export function AccountsPage() {
       {!isLoading && groups.length === 0 && (
         <p className="text-muted-foreground">Noch keine Konten. Lege dein erstes Konto an.</p>
       )}
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 @4xl:grid-cols-2">
         {groups.map((group) => (
           <Card key={group.id} role="region" aria-label={group.name}>
             <CardHeader>

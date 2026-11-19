@@ -64,7 +64,7 @@ export function DateField({ id, value, onChange, max, label, className }: Props)
 
   return (
     <div className={className}>
-      <div className="flex gap-1">
+      <div className="flex w-full max-w-44 gap-1">
         <Input
           id={id}
           value={text}
@@ -74,7 +74,7 @@ export function DateField({ id, value, onChange, max, label, className }: Props)
           aria-describedby={visibleError ? `${id}-error` : undefined}
           onChange={(e) => change(e.target.value)}
           onBlur={() => setTouched(true)}
-          className="w-32"
+          className="min-w-0 flex-1"
         />
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>

@@ -74,8 +74,8 @@ export function TransactionsPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6" role="search">
-        <div className="space-y-1 lg:col-span-2">
+      <div className="mb-4 grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3" role="search">
+        <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="f-account">Konto</Label>
           <Select value={accountId} onValueChange={reset(setAccountId)}>
             <SelectTrigger id="f-account" className="w-full">
@@ -91,7 +91,7 @@ export function TransactionsPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1 lg:col-span-2">
+        <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="f-target">Objekt</Label>
           <TargetSelect id="f-target" mode="filter" value={target} onChange={reset(setTarget)} />
         </div>
@@ -103,15 +103,15 @@ export function TransactionsPage() {
           <Label htmlFor="f-to">Bis</Label>
           <Input id="f-to" type="date" value={to} onChange={(e) => reset(setTo)(e.target.value)} />
         </div>
-        <div className="space-y-1 lg:col-span-2">
+        <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="f-category">Kategorie</Label>
           <CategorySelect id="f-category" value={categoryId} onChange={reset(setCategoryId)} noneLabel="Alle Kategorien" />
         </div>
-        <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+        <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="f-search">Suche</Label>
           <Input id="f-search" placeholder="Gegenpartei, Zweck oder Notiz" value={search} onChange={(e) => reset(setSearch)(e.target.value)} />
         </div>
-        <div className="flex items-end gap-2 pb-2 lg:col-span-2">
+        <div className="flex items-end gap-2 pb-2 @2xl:col-span-2">
           <Checkbox id="f-uncategorized" checked={uncategorized} onCheckedChange={(v) => reset(setUncategorized)(v === true)} />
           <Label htmlFor="f-uncategorized">Nur ohne Kategorie</Label>
         </div>
