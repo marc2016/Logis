@@ -55,9 +55,9 @@ describe('My account', () => {
 
   it('lists remembered devices and signs them out', async () => {
     let devices = [
-      { id: 1, browser: 'Firefox', os: 'Linux', createdAt: '2026-11-01T08:00:00Z', lastUsedAt: '2026-11-18T08:00:00Z', current: true },
-      { id: 2, browser: 'Chrome', os: 'Android', createdAt: '2026-11-02T08:00:00Z', lastUsedAt: '2026-11-17T08:00:00Z', current: false },
-      { id: 3, browser: 'Other', os: 'Other', createdAt: '2026-11-03T08:00:00Z', lastUsedAt: '2026-11-03T08:00:00Z', current: false },
+      { id: 1, browser: 'Firefox', os: 'Linux', createdAt: '2026-11-01T08:00:00Z', lastUsedAt: '2026-11-18T08:00:00Z', current: true, city: 'Hamburg', countryName: 'Deutschland' },
+      { id: 2, browser: 'Chrome', os: 'Android', createdAt: '2026-11-02T08:00:00Z', lastUsedAt: '2026-11-17T08:00:00Z', current: false, city: null, countryName: 'Spanien' },
+      { id: 3, browser: 'Other', os: 'Other', createdAt: '2026-11-03T08:00:00Z', lastUsedAt: '2026-11-03T08:00:00Z', current: false, city: null, countryName: null },
     ]
     const calls: string[] = []
     mockApi({
@@ -86,6 +86,9 @@ describe('My account', () => {
     expect(items[1]).toHaveTextContent('Chrome auf Android')
     expect(items[1]).not.toHaveTextContent('Dieses Gerät')
     expect(items[2]).toHaveTextContent('Unbekannter Browser auf unbekanntes System')
+    expect(items[0]).toHaveTextContent('in Hamburg, Deutschland')
+    expect(items[1]).toHaveTextContent('in Spanien')
+    expect(items[2]).not.toHaveTextContent(/ in /)
 
     await user.click(screen.getByRole('button', { name: 'Chrome auf Android abmelden' }))
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(2))

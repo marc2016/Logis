@@ -16,9 +16,18 @@ export interface RememberedDevice {
   createdAt: string
   lastUsedAt: string
   current: boolean
+  /** Where the device was last used, if known. */
+  city: string | null
+  countryName: string | null
 }
 
 const devicesKey = ['account', 'devices'] as const
+
+/** „Hamburg, Deutschland“, „Deutschland“ or null. */
+function location(d: RememberedDevice) {
+  if (!d.countryName) return null
+  return d.city ? `${d.city}, ${d.countryName}` : d.countryName
+}
 
 function deviceName(d: RememberedDevice) {
   const browser = d.browser === 'Other' ? 'Unbekannter Browser' : d.browser
@@ -82,6 +91,7 @@ export function DevicesCard() {
                     Angemeldet am {formatDate(d.createdAt.slice(0, 10))}
                     {' · '}
                     Zuletzt verwendet {formatDate(d.lastUsedAt.slice(0, 10))}
+                    {location(d) && ` in ${location(d)}`}
                   </span>
                 </span>
                 <Button variant="outline" size="sm" aria-label={`${deviceName(d)} abmelden`} onClick={() => signOut(d)}>

@@ -41,6 +41,12 @@
             <artifactId>webauthn-server-core</artifactId>
             <version>2.10.1</version>
         </dependency>
+        <!-- Reads the local GeoIP database (DB-IP Lite, .mmdb) for sign-in warnings. -->
+        <dependency>
+            <groupId>com.maxmind.db</groupId>
+            <artifactId>maxmind-db</artifactId>
+            <version>4.2.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

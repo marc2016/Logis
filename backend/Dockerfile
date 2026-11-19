@@ -14,7 +14,9 @@ RUN ./mvnw -q -B package -DskipTests \
 
 FROM eclipse-temurin:21-jre
 RUN groupadd --system --gid 10001 logis \
-    && useradd --system --uid 10001 --gid logis --no-create-home --shell /usr/sbin/nologin logis
+    && useradd --system --uid 10001 --gid logis --no-create-home --shell /usr/sbin/nologin logis \
+    && mkdir -p /var/lib/logis/geoip && chown logis:logis /var/lib/logis/geoip
+# A new named volume mounted here takes over this directory's owner, so the backend can write the GeoIP file.
 WORKDIR /app
 COPY --from=build /app.jar app.jar
 USER logis

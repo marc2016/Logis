@@ -15,6 +15,9 @@ management:
     port: -1
 
 logis:
+  # No download in tests; tests that need locations provide their own GeoLocator or test file.
+  geoip:
+    enabled: false
   # Tests trigger mail polling themselves.
   mailimport:
     polling: false

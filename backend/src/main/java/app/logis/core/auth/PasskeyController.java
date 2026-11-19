@@ -31,10 +31,12 @@ class PasskeyController {
     private final ObjectMapper json;
     private final Clock clock;
     private final RememberedDeviceService devices;
+    private final SignInMonitor monitor;
 
     PasskeyController(PasskeyService passkeys, AuthFlowService flow, ObjectMapper json, Clock clock,
-            RememberedDeviceService devices) {
+            RememberedDeviceService devices, SignInMonitor monitor) {
         this.devices = devices;
+        this.monitor = monitor;
         this.passkeys = passkeys;
         this.flow = flow;
         this.json = json;
@@ -94,7 +96,7 @@ class PasskeyController {
         var result = flow.signInWithPasskey(verified.userId(), ip);
         var user = result.user();
         AuthController.startSignIn(request, user, result.stage(), body.rememberMe(), clock);
-        AuthController.completed(request, response, result, devices);
+        AuthController.completed(request, response, result, devices, monitor);
         return new AuthController.SessionResponse(result.stage(), null, null);
     }
 

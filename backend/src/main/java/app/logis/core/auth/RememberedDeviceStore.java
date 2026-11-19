@@ -1,5 +1,6 @@
 package app.logis.core.auth;
 
+import app.logis.core.geo.GeoLocator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -15,11 +16,12 @@ import java.util.Optional;
 class RememberedDeviceStore {
 
     record Device(Long id, Long userId, byte[] series, byte[] tokenHash, byte[] previousTokenHash, Instant rotatedAt,
-            int sessionVersion, String browser, String os, Instant createdAt, Instant lastUsedAt, Instant expiresAt) {
+            int sessionVersion, String browser, String os, Instant createdAt, Instant lastUsedAt, Instant expiresAt,
+            String country, String city) {
     }
 
     private static final String COLUMNS = "id, user_id, series, token_hash, previous_token_hash, rotated_at, "
-            + "session_version, browser, os, created_at, last_used_at, expires_at";
+            + "session_version, browser, os, created_at, last_used_at, expires_at, country, city";
 
     private final JdbcTemplate jdbc;
 
@@ -28,11 +30,12 @@ class RememberedDeviceStore {
     }
 
     Long insert(Long userId, byte[] series, byte[] tokenHash, int sessionVersion, DeviceFamily family, Instant now,
-            Instant expiresAt) {
+            Instant expiresAt, GeoLocator.Location location) {
         return jdbc.queryForObject("INSERT INTO core.remembered_devices (user_id, series, token_hash, session_version, "
-                        + "browser, os, created_at, last_used_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                        + "browser, os, created_at, last_used_at, expires_at, country, city) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
                 Long.class, userId, series, tokenHash, sessionVersion, family.browser(), family.os(),
-                Timestamp.from(now), Timestamp.from(now), Timestamp.from(expiresAt));
+                Timestamp.from(now), Timestamp.from(now), Timestamp.from(expiresAt), country(location), city(location));
     }
 
     /** Locks the row, so that two parallel restores cannot both rotate (design D3). */
@@ -46,13 +49,29 @@ class RememberedDeviceStore {
                 RememberedDeviceStore::map, id).stream().findFirst();
     }
 
-    void rotate(Long id, byte[] tokenHash, byte[] previousTokenHash, Instant now) {
-        jdbc.update("UPDATE core.remembered_devices SET token_hash = ?, previous_token_hash = ?, rotated_at = ?, "
-                + "last_used_at = ? WHERE id = ?", tokenHash, previousTokenHash, Timestamp.from(now), Timestamp.from(now), id);
+    void rotate(Long id, byte[] tokenHash, byte[] previousTokenHash, Instant now, GeoLocator.Location location) {
+        jdbc.update("UPDATE core.remembered_devices SET token_hash = ?, previous_token_hash = ?, rotated_at = ? "
+                + "WHERE id = ?", tokenHash, previousTokenHash, Timestamp.from(now), id);
+        touch(id, now, location);
     }
 
-    void touch(Long id, Instant now) {
-        jdbc.update("UPDATE core.remembered_devices SET last_used_at = ? WHERE id = ?", Timestamp.from(now), id);
+    /** Last use; a known location replaces the stored one (design D6 of sign-in-alerts). */
+    void touch(Long id, Instant now, GeoLocator.Location location) {
+        if (location == null) {
+            jdbc.update("UPDATE core.remembered_devices SET last_used_at = ? WHERE id = ?", Timestamp.from(now), id);
+        } else {
+            jdbc.update("UPDATE core.remembered_devices SET last_used_at = ?, country = ?, city = ? WHERE id = ?",
+                    Timestamp.from(now), country(location), city(location), id);
+        }
+    }
+
+    private static String country(GeoLocator.Location location) {
+        return location == null ? null : location.countryCode();
+    }
+
+    private static String city(GeoLocator.Location location) {
+        return location == null || location.city() == null ? null
+                : location.city().length() > 128 ? location.city().substring(0, 128) : location.city();
     }
 
     void updateSessionVersion(Long id, int sessionVersion) {
@@ -100,6 +119,6 @@ class RememberedDeviceStore {
                 rs.getBytes("previous_token_hash"), rotated == null ? null : rotated.toInstant(),
                 rs.getInt("session_version"), rs.getString("browser"), rs.getString("os"),
                 rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("last_used_at").toInstant(),
-                rs.getTimestamp("expires_at").toInstant());
+                rs.getTimestamp("expires_at").toInstant(), rs.getString("country"), rs.getString("city"));
     }
 }

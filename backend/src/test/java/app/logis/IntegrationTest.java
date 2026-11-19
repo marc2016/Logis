@@ -157,6 +157,10 @@ public abstract class IntegrationTest {
 
         public final String userAgent;
         public String cookie;
+        /** The long-lived device cookie of sign-in warnings (LOGIS_DEVICE). */
+        public String deviceCookie;
+        /** Client address of the requests; null: MockMvc's default. */
+        public String ip;
         public MockHttpSession session;
 
         public Device(String userAgent) {
@@ -183,8 +187,22 @@ public abstract class IntegrationTest {
         private org.springframework.test.web.servlet.MvcResult perform(
                 org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request) throws Exception {
             request.header("User-Agent", userAgent);
+            var cookies = new java.util.ArrayList<jakarta.servlet.http.Cookie>();
             if (cookie != null) {
-                request.cookie(new jakarta.servlet.http.Cookie(REMEMBER_COOKIE, cookie));
+                cookies.add(new jakarta.servlet.http.Cookie(REMEMBER_COOKIE, cookie));
+            }
+            if (deviceCookie != null) {
+                cookies.add(new jakarta.servlet.http.Cookie(DEVICE_COOKIE, deviceCookie));
+            }
+            if (!cookies.isEmpty()) {
+                request.cookie(cookies.toArray(jakarta.servlet.http.Cookie[]::new));
+            }
+            if (ip != null) {
+                var address = ip;
+                request.with(r -> {
+                    r.setRemoteAddr(address);
+                    return r;
+                });
             }
             if (session != null) {
                 request.session(session);
@@ -193,6 +211,10 @@ public abstract class IntegrationTest {
             var set = rememberCookie(result);
             if (set != null) {
                 cookie = set.isEmpty() ? null : set;
+            }
+            var device = cookieValue(result, DEVICE_COOKIE);
+            if (device != null) {
+                deviceCookie = device.isEmpty() ? null : device;
             }
             var current = (MockHttpSession) result.getRequest().getSession(false);
             session = current == null || current.isInvalid() ? null : current;
@@ -213,11 +235,17 @@ public abstract class IntegrationTest {
         }
     }
 
-    /** Value of the device cookie set by the response; "" if it was cleared, null if not touched. */
+    protected static final String DEVICE_COOKIE = "LOGIS_DEVICE";
+
+    /** Value of the remember cookie set by the response; "" if it was cleared, null if not touched. */
     protected static String rememberCookie(org.springframework.test.web.servlet.MvcResult result) {
+        return cookieValue(result, REMEMBER_COOKIE);
+    }
+
+    protected static String cookieValue(org.springframework.test.web.servlet.MvcResult result, String name) {
         return result.getResponse().getHeaders("Set-Cookie").stream()
-                .filter(h -> h.startsWith(REMEMBER_COOKIE + "="))
-                .map(h -> h.substring(REMEMBER_COOKIE.length() + 1, h.indexOf(';')))
+                .filter(h -> h.startsWith(name + "="))
+                .map(h -> h.substring(name.length() + 1, h.indexOf(';')))
                 .reduce((a, b) -> b).orElse(null);
     }
 

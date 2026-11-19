@@ -40,7 +40,11 @@ services:
       LOGIS_ANTHROPIC_API_KEY: ${LOGIS_ANTHROPIC_API_KEY:-}
       LOGIS_AI_MODEL: ${LOGIS_AI_MODEL:-claude-opus-5-5}
       LOGIS_PUBLIC_URL: ${LOGIS_PUBLIC_URL:-}
-    # egress: outbound only (mail import via IMAP, optional AI); no published ports.
+      # Monthly download of the DB-IP Lite GeoIP database for sign-in warnings; false: no locations.
+      LOGIS_GEOIP_ENABLED: ${LOGIS_GEOIP_ENABLED:-true}
+    volumes:
+      - geoip:/var/lib/logis/geoip
+    # egress: outbound only (mail import via IMAP, outgoing mail, GeoIP download, optional AI); no published ports.
     networks: [internal, egress]
     depends_on:
       db:
@@ -95,8 +99,10 @@ networks:
   # No outside connection: db and backup are reachable internally only; the backend also uses egress.
   internal:
     internal: true
-  # Outbound connections of the backend only (IMAP, optional Claude API). Nothing is published on it.
+  # Outbound connections of the backend only (IMAP, SMTP, GeoIP download, optional Claude API). Nothing is published.
   egress: {}
 
 volumes:
   pgdata:
+  # Downloaded GeoIP database; survives recreated containers.
+  geoip:

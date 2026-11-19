@@ -1,5 +1,6 @@
 package app.logis.core.auth;
 
+import app.logis.core.geo.GeoLocator;
 import app.logis.core.users.User;
 import app.logis.core.users.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -42,11 +43,13 @@ class RememberedDeviceService {
     private final UserRepository users;
     private final LoginAttemptService attempts;
     private final AuthProperties.RememberMe settings;
+    private final GeoLocator geo;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
 
     RememberedDeviceService(RememberedDeviceStore store, UserRepository users, LoginAttemptService attempts,
-            AuthProperties properties, Clock clock) {
+            AuthProperties properties, Clock clock, GeoLocator geo) {
+        this.geo = geo;
         this.store = store;
         this.users = users;
         this.attempts = attempts;
@@ -57,7 +60,9 @@ class RememberedDeviceService {
     record Restored(User user, Long deviceId) {
     }
 
-    record DeviceView(Long id, String browser, String os, Instant createdAt, Instant lastUsedAt, boolean current) {
+    /** {@code city} and {@code countryName}: where the device was last used, if known (design D6 of sign-in-alerts). */
+    record DeviceView(Long id, String browser, String os, Instant createdAt, Instant lastUsedAt, boolean current,
+            String city, String countryName) {
     }
 
     private record Presented(byte[] series, byte[] token) {
@@ -80,7 +85,7 @@ class RememberedDeviceService {
         var token = randomBytes();
         var expiresAt = now.plus(settings.absolute());
         var id = store.insert(user.getId(), series, hash(token), user.getSessionVersion(),
-                DeviceFamily.of(request.getHeader(HttpHeaders.USER_AGENT)), now, expiresAt);
+                DeviceFamily.of(request.getHeader(HttpHeaders.USER_AGENT)), now, expiresAt, locate(request));
         session.setAttribute(AuthSession.DEVICE_ID, id);
         session.setAttribute(AuthSession.DEVICE_TOUCHED_AT, now);
         writeCookie(request, response, series, token, expiresAt, now);
@@ -114,10 +119,16 @@ class RememberedDeviceService {
             revoke(device, user, request, response, "REMEMBER_DEVICE_CHANGED");
             return Optional.empty();
         }
+        // Another country than at the last use: treated like a stolen cookie. Unknown on either side: not compared.
+        var location = locate(request);
+        if (location != null && device.country() != null && !device.country().equals(location.countryCode())) {
+            revoke(device, user, request, response, "REMEMBER_COUNTRY_CHANGED");
+            return Optional.empty();
+        }
         var presentedHash = hash(presented.token());
         if (MessageDigest.isEqual(presentedHash, device.tokenHash())) {
             var token = randomBytes();
-            store.rotate(device.id(), hash(token), device.tokenHash(), now);
+            store.rotate(device.id(), hash(token), device.tokenHash(), now, location);
             writeCookie(request, response, device.series(), token, device.expiresAt(), now);
             return Optional.of(new Restored(user, device.id()));
         }
@@ -125,7 +136,7 @@ class RememberedDeviceService {
                 && !now.isAfter(device.rotatedAt().plus(settings.reuseGrace()));
         if (withinGrace && MessageDigest.isEqual(presentedHash, device.previousTokenHash())) {
             // A request sent together with the one that rotated: the browser already has the new cookie.
-            store.touch(device.id(), now);
+            store.touch(device.id(), now, location);
             return Optional.of(new Restored(user, device.id()));
         }
         revoke(device, user, request, response, "REMEMBER_REUSE");
@@ -139,14 +150,14 @@ class RememberedDeviceService {
     }
 
     /** Keeps the device's last use current while its session is active, writing at most once per hour (design D5). */
-    void touchIfDue(HttpSession session) {
+    void touchIfDue(HttpServletRequest request, HttpSession session) {
         if (!(session.getAttribute(AuthSession.DEVICE_ID) instanceof Long deviceId)) {
             return;
         }
         var now = clock.instant();
         var touched = (Instant) session.getAttribute(AuthSession.DEVICE_TOUCHED_AT);
         if (touched == null || !now.isBefore(touched.plus(TOUCH_INTERVAL))) {
-            store.touch(deviceId, now);
+            store.touch(deviceId, now, locate(request));
             session.setAttribute(AuthSession.DEVICE_TOUCHED_AT, now);
         }
     }
@@ -168,7 +179,7 @@ class RememberedDeviceService {
         var currentId = currentDeviceId(request);
         return store.current(user.getId(), user.getSessionVersion()).stream()
                 .map(d -> new DeviceView(d.id(), d.browser(), d.os(), d.createdAt(), d.lastUsedAt(),
-                        d.id().equals(currentId)))
+                        d.id().equals(currentId), d.city(), countryName(d.country())))
                 .toList();
     }
 
@@ -187,6 +198,19 @@ class RememberedDeviceService {
         if (count > 0) {
             log.info("Removed {} expired remembered devices", count);
         }
+    }
+
+    private GeoLocator.Location locate(HttpServletRequest request) {
+        return geo.locate(request.getRemoteAddr()).orElse(null);
+    }
+
+    /** German name of an ISO country code, e.g. „Deutschland“. */
+    private static String countryName(String code) {
+        if (code == null) {
+            return null;
+        }
+        var name = new java.util.Locale.Builder().setRegion(code).build().getDisplayCountry(java.util.Locale.GERMAN);
+        return name.isBlank() ? code : name;
     }
 
     private static Long currentDeviceId(HttpServletRequest request) {

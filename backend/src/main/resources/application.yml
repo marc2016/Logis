@@ -63,6 +63,10 @@ logis:
     username: ${LOGIS_ADMIN_USERNAME:}
     password: ${LOGIS_ADMIN_PASSWORD:}
   encryption-key: ${LOGIS_ENCRYPTION_KEY:}
+  # Local GeoIP database (DB-IP Lite) for the location of sign-ins; downloaded monthly, never queried remotely.
+  geoip:
+    enabled: ${LOGIS_GEOIP_ENABLED:true}
+    directory: ${LOGIS_GEOIP_DIRECTORY:/var/lib/logis/geoip}
   auth:
     # Address users open Logis under (e.g. https://logis.example.org); passkeys are bound to it. Empty: no passkeys.
     public-url: ${LOGIS_PUBLIC_URL:}

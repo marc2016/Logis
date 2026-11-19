@@ -4,6 +4,9 @@ spring:
     password: logis
 
 logis:
+  # Downloaded GeoIP database for sign-in locations (git-ignored).
+  geoip:
+    directory: ./data/geoip
   # Test accounts and data for an empty development database (relative to backend/, see dev/README.md).
   dev:
     seed-file: ../dev/seed.sql

@@ -11,6 +11,8 @@ backups/
 
 # Java / Maven
 backend/target/
+# Downloaded GeoIP database in the dev profile
+backend/data/
 *.class
 *.log
 

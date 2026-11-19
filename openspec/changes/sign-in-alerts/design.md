@@ -59,7 +59,7 @@
 - Timestamps in the mail are formatted in `Europe/Berlin` as `19.11.2026, 14:02 Uhr`.
 
 ### D4. GeoIP lookup
-- Dependency `com.maxmind.db:maxmind-db` (latest 3.x, Apache 2.0) reads the DB-IP Lite City `.mmdb` (CC BY 4.0).
+- Dependency `com.maxmind.db:maxmind-db` (4.2.0, the latest stable release; Apache 2.0) reads the DB-IP Lite City `.mmdb` (CC BY 4.0).
 - `GeoLocator` is an interface with `Optional<Location> locate(String ip)`. `Location(countryCode, countryName, city)` uses the German names (`names.de`, falling back to `names.en`).
 - The implementation `MmdbGeoLocator`:
   - holds a `Reader` that is swapped atomically after a new download;
@@ -81,6 +81,7 @@
 - `core.remembered_devices` gets `country CHAR(2)` and `city VARCHAR(128)`, both nullable. Existing rows keep `NULL`, which means "not compared".
 - Issue and restore set them from the lookup of the current request.
 - `restore` rejects and forgets the series, like a browser change (log reason `REMEMBER_COUNTRY_CHANGED`), if both the stored and the current country are known and differ.
+- The stored country is the one of the last known use: issue, restore and the hourly touch while a session is active all set it when a location is known. A fresh sign-in replaces the device anyway.
 - `last_used` updates refresh country and city. Restore updates them.
 - The device list returns `city` and `countryName`. The frontend shows „Hamburg, Deutschland“, the country alone, or nothing.
 
@@ -98,6 +99,7 @@
 - [130 MB download per month on a mini PC] → It runs once a month and only if the file is outdated. It can be switched off.
 - [Remembered device rejected after a holiday abroad] → The user signs in normally once. That is the intended trade-off for theft protection.
 - [Mail task lost on shutdown] → It is best effort: the warning is informational, and the history row is already stored.
+- [Dormant accounts] → A user without any stored sign-in counts as "first", so a sign-in after more than 180 days without one sends no warning. This is accepted to avoid a warning for every existing user right after the update.
 
 ## Migration Plan
 

@@ -65,7 +65,7 @@ class SessionAuthenticationFilter extends OncePerRequestFilter {
                 signedIn = true;
                 session.setAttribute(AuthSession.LAST_SEEN, now);
                 if (AuthStage.AUTHENTICATED.name().equals(session.getAttribute(AuthSession.STAGE))) {
-                    devices.touchIfDue(session);
+                    devices.touchIfDue(request, session);
                     authenticate(user, session);
                 }
             }

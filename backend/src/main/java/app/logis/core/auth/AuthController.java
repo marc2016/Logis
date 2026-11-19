@@ -31,11 +31,13 @@ class AuthController {
 
     private final PasskeyService passkeys;
     private final RememberedDeviceService devices;
+    private final SignInMonitor monitor;
 
     AuthController(AuthFlowService flow, TotpService totp, UserRepository users, Clock clock,
-            PasskeyService passkeys, RememberedDeviceService devices) {
+            PasskeyService passkeys, RememberedDeviceService devices, SignInMonitor monitor) {
         this.passkeys = passkeys;
         this.devices = devices;
+        this.monitor = monitor;
         this.flow = flow;
         this.totp = totp;
         this.users = users;
@@ -92,7 +94,7 @@ class AuthController {
         var result = flow.checkPassword(body.username(), body.password(), request.getRemoteAddr());
         var user = result.user();
         startSignIn(request, user, result.stage(), body.rememberMe(), clock);
-        completed(request, response, result, devices);
+        completed(request, response, result, devices, monitor);
         return new SessionResponse(result.stage(), null, null);
     }
 
@@ -123,7 +125,7 @@ class AuthController {
         }
         var result = flow.confirmEnrollment(userId, secret, body.code(), request.getRemoteAddr());
         AuthSession.advance(request, result.stage(), result.user().getSessionVersion());
-        completed(request, response, result, devices);
+        completed(request, response, result, devices, monitor);
         return new SessionResponse(result.stage(), null, result.recoveryCodes());
     }
 
@@ -133,7 +135,7 @@ class AuthController {
         var userId = AuthSession.requireStage(request, AuthStage.TOTP_REQUIRED);
         var result = flow.verifySecondFactor(userId, body.code(), request.getRemoteAddr());
         AuthSession.advance(request, result.stage(), result.user().getSessionVersion());
-        completed(request, response, result, devices);
+        completed(request, response, result, devices, monitor);
         return new SessionResponse(result.stage(), null, null);
     }
 
@@ -143,7 +145,7 @@ class AuthController {
         var userId = AuthSession.requireStage(request, AuthStage.PASSWORD_CHANGE_REQUIRED);
         var result = flow.changeRequiredPassword(userId, body.newPassword());
         AuthSession.advance(request, result.stage(), result.user().getSessionVersion());
-        completed(request, response, result, devices);
+        completed(request, response, result, devices, monitor);
         return new SessionResponse(result.stage(), null, null);
     }
 
@@ -173,11 +175,15 @@ class AuthController {
         }
     }
 
-    /** Remembers the device (or forgets a presented one) once a sign-in step completes the sign-in. */
+    /**
+     * Once a sign-in step completes the sign-in: remembers the device (or forgets a presented one) and checks the
+     * sign-in for a new device or country (spec sign-in-alerts).
+     */
     static void completed(HttpServletRequest request, HttpServletResponse response, AuthFlowService.StepResult result,
-            RememberedDeviceService devices) {
+            RememberedDeviceService devices, SignInMonitor monitor) {
         if (result.stage() == AuthStage.AUTHENTICATED) {
             devices.onAuthenticated(request, response, result.user());
+            monitor.signedIn(request, response, result.user());
         }
     }
 }
