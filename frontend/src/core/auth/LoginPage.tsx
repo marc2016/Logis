@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { KeyRoundIcon, LandmarkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
@@ -13,7 +14,7 @@ import { FullPageSpinner } from '@/components/FullPageSpinner'
 import { RecoveryCodes } from '@/components/RecoveryCodes'
 import { api, ApiError } from '@/lib/api'
 import { isPasskeyCancel, signInWithPasskey } from '@/lib/passkeys'
-import { safeNext, sessionQueryKey, useSession, type AuthStage, type SessionResponse } from './session'
+import { safeNext, sessionQueryKey, takeRememberHint, useSession, type AuthStage, type SessionResponse } from './session'
 
 type Step = AuthStage | 'SHOW_RECOVERY_CODES'
 
@@ -108,6 +109,8 @@ function handleStepError(error: unknown, setError: (m: string) => void, onRestar
 function PasswordStep({ onDone, passkeys }: StepProps & { passkeys: boolean }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  // Checked after „Erneut anmelden“ in the admin area, where the device was remembered.
+  const [rememberMe, setRememberMe] = useState(takeRememberHint)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -116,7 +119,7 @@ function PasswordStep({ onDone, passkeys }: StepProps & { passkeys: boolean }) {
     setBusy(true)
     setError(null)
     try {
-      onDone(await api<SessionResponse>('/api/auth/login', { json: { username, password } }))
+      onDone(await api<SessionResponse>('/api/auth/login', { json: { username, password, rememberMe } }))
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -128,7 +131,7 @@ function PasswordStep({ onDone, passkeys }: StepProps & { passkeys: boolean }) {
     setBusy(true)
     setError(null)
     try {
-      onDone(await signInWithPasskey<SessionResponse>())
+      onDone(await signInWithPasskey<SessionResponse>(rememberMe))
     } catch (err) {
       if (!isPasskeyCancel(err)) setError(errorMessage(err))
     } finally {
@@ -151,6 +154,10 @@ function PasswordStep({ onDone, passkeys }: StepProps & { passkeys: boolean }) {
           <div className="space-y-2">
             <Label htmlFor="password">Passwort</Label>
             <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(c) => setRememberMe(c === true)} />
+            <Label htmlFor="remember-me">Angemeldet bleiben</Label>
           </div>
           <FormError message={error} />
           <Button type="submit" className="w-full" disabled={busy}>

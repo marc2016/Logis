@@ -164,4 +164,30 @@ class AdminUsersTest extends IntegrationTest {
         patchJson("/api/admin/users/" + admin.id(), Map.of("enabled", false), session)
                 .andExpect(status().isBadRequest());
     }
+
+    // --- remember-me: admin actions forget remembered devices ---------------------------------------
+
+    @Test
+    void disableAndResetsForgetRememberedDevices() throws Exception {
+        var admin = adminSession();
+        for (var action : java.util.List.of("disable", "reset-password", "reset-totp")) {
+            var anna = createUser(Role.USER, true);
+            var device = new Device(FIREFOX_LINUX).signIn(anna, true);
+            assertThat(device.cookie).isNotNull();
+            switch (action) {
+                case "disable" -> patchJson("/api/admin/users/" + anna.id(), Map.of("enabled", false), admin)
+                        .andExpect(status().isOk());
+                case "reset-password" -> postJson("/api/admin/users/" + anna.id() + "/reset-password",
+                        Map.of("password", "neues-start-pw-1"), admin).andExpect(status().isOk());
+                default -> postJson("/api/admin/users/" + anna.id() + "/reset-totp", Map.of(), admin)
+                        .andExpect(status().isOk());
+            }
+            device.loseSession();
+            assertStatus(device.get("/api/modules"), 401);
+            if (action.equals("disable")) {
+                patchJson("/api/admin/users/" + anna.id(), Map.of("enabled", true), admin).andExpect(status().isOk());
+                assertStatus(device.get("/api/modules"), 401);
+            }
+        }
+    }
 }

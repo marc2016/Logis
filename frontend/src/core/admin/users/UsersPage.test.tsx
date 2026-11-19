@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp } from '@/test/renderApp'
 import type { AdminUser } from './UsersPage'
@@ -22,7 +22,7 @@ function setup(extra: Parameters<typeof mockApi>[0] = {}) {
     'GET /api/admin/users': { body: [admin] },
     ...extra,
   })
-  renderApp('/einstellungen/benutzer')
+  return renderApp('/einstellungen/benutzer')
 }
 
 async function openCreateDialog() {
@@ -84,5 +84,44 @@ describe('User management', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Aktionen für admin' }))
     expect(await screen.findByRole('menuitem', { name: 'Deaktivieren' })).toHaveAttribute('data-disabled')
+  })
+
+  it('asks for a fresh sign-in when a remembered device started the session', async () => {
+    const me = authenticated()
+    let reauthenticated = false
+    const { router } = setup({
+      'GET /api/auth/me': () =>
+        reauthenticated
+          ? { body: { stage: 'ANONYMOUS', user: null, recoveryCodes: null } }
+          : { ...me, body: { ...me.body, reauthenticationRequired: true } },
+      'POST /api/auth/reauthenticate': () => {
+        reauthenticated = true
+        return { status: 204 }
+      },
+    })
+    const user = userEvent.setup()
+    expect(await screen.findByText('Für den Admin-Bereich bitte erneut anmelden')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut anmelden' }))
+    expect(await screen.findByRole('checkbox', { name: 'Angemeldet bleiben' })).toBeChecked()
+    expect(reauthenticated).toBe(true)
+    expect(router.state.location.search).toBe('?next=%2Feinstellungen%2Fbenutzer')
+  })
+
+  it('shows the notice when an admin request is refused for a remembered device', async () => {
+    const me = authenticated()
+    let restored = false
+    setup({
+      'GET /api/auth/me': () => ({ ...me, body: { ...me.body, reauthenticationRequired: restored } }),
+      'GET /api/admin/users': () => {
+        restored = true
+        return {
+          status: 403,
+          body: { type: 'urn:logis:reauthentication-required', detail: 'Für den Admin-Bereich bitte erneut anmelden' },
+        }
+      },
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Erneut anmelden' })).toBeInTheDocument())
   })
 })

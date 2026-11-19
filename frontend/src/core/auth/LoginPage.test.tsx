@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { rememberOnNextSignIn } from './session'
 import { adminUser, authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 
 const anonymous = { body: { stage: 'ANONYMOUS', user: null, recoveryCodes: null } }
@@ -173,5 +174,41 @@ describe('Sign-in', () => {
     await screen.findByText('Neues Passwort festlegen')
     await user.click(screen.getByRole('button', { name: 'Zurück zur Anmeldung' }))
     expect(await screen.findByLabelText('Benutzername')).toBeInTheDocument()
+  })
+
+  it('„Angemeldet bleiben“ is off by default and sent with the password step', async () => {
+    const sent: { rememberMe?: boolean }[] = []
+    mockApi({
+      'GET /api/auth/me': anonymous,
+      'POST /api/auth/login': (init) => {
+        sent.push(JSON.parse(String(init?.body)))
+        return { status: 401, body: { detail: 'Benutzername oder Passwort ist falsch' } }
+      },
+    })
+    renderApp('/login')
+    const user = userEvent.setup()
+
+    const remember = await screen.findByRole('checkbox', { name: 'Angemeldet bleiben' })
+    expect(remember).not.toBeChecked()
+    await user.type(screen.getByLabelText('Benutzername'), 'erika')
+    await user.type(screen.getByLabelText('Passwort'), 'ein-langes-passwort')
+    await user.click(screen.getByRole('button', { name: 'Weiter' }))
+    await screen.findByText('Benutzername oder Passwort ist falsch')
+
+    await user.click(remember)
+    await user.click(screen.getByRole('button', { name: 'Weiter' }))
+    await waitFor(() => expect(sent).toHaveLength(2))
+    expect(sent[0].rememberMe).toBe(false)
+    expect(sent[1].rememberMe).toBe(true)
+  })
+
+  it('„Erneut anmelden“ keeps „Angemeldet bleiben“ checked once', async () => {
+    rememberOnNextSignIn()
+    mockApi({ 'GET /api/auth/me': anonymous })
+    renderApp('/login')
+    expect(await screen.findByRole('checkbox', { name: 'Angemeldet bleiben' })).toBeChecked()
+    cleanup()
+    renderApp('/login')
+    expect(await screen.findByRole('checkbox', { name: 'Angemeldet bleiben' })).not.toBeChecked()
   })
 })

@@ -13,11 +13,11 @@ export function isPasskeyCancel(error: unknown) {
   return name === 'NotAllowedError' || name === 'AbortError' || code === 'ERROR_CEREMONY_ABORTED'
 }
 
-/** Signs in with a passkey of this site; returns the server's answer for the sign-in page. */
-export async function signInWithPasskey<T>() {
+/** Signs in with a passkey of this site (`rememberMe`: „Angemeldet bleiben“); returns the server's answer for the sign-in page. */
+export async function signInWithPasskey<T>(rememberMe = false) {
   const optionsJSON = await api<PublicKeyCredentialRequestOptionsJSON>('/api/auth/passkey/options', { method: 'POST' })
   const credential = await startAuthentication({ optionsJSON })
-  return api<T>('/api/auth/passkey', { json: { credential } })
+  return api<T>('/api/auth/passkey', { json: { credential, rememberMe } })
 }
 
 export interface Passkey {

@@ -6,12 +6,18 @@
  * - returns errors as ApiError with the German message from the ProblemDetail
  */
 
+/** Problem type of an admin request from a session that a remembered device started. */
+export const REAUTHENTICATION_REQUIRED = 'urn:logis:reauthentication-required'
+
 export class ApiError extends Error {
   readonly status: number
+  /** The admin area needs a fresh sign-in („Angemeldet bleiben“ alone is not enough). */
+  readonly reauthenticationRequired: boolean
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, reauthenticationRequired = false) {
     super(message)
     this.status = status
+    this.reauthenticationRequired = reauthenticationRequired
   }
 }
 
@@ -64,13 +70,15 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
 
   if (!response.ok) {
     let message = defaultMessage(response.status)
+    let reauthenticationRequired = false
     try {
       const problem = await response.json()
       if (typeof problem?.detail === 'string' && problem.detail) message = problem.detail
+      reauthenticationRequired = problem?.type === REAUTHENTICATION_REQUIRED
     } catch {
       // no JSON body
     }
-    throw new ApiError(response.status, message)
+    throw new ApiError(response.status, message, reauthenticationRequired)
   }
 
   if (response.status === 204) return undefined as T

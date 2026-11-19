@@ -40,7 +40,25 @@ describe('Passkeys', () => {
     await user.click(await screen.findByRole('button', { name: 'Mit Passkey anmelden' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
     expect(vi.mocked(startAuthentication)).toHaveBeenCalledWith({ optionsJSON: { challenge: 'abc', rpId: 'localhost' } })
-    expect(sent).toEqual({ credential: { id: 'cred', rawId: 'cred' } })
+    expect(sent).toEqual({ credential: { id: 'cred', rawId: 'cred' }, rememberMe: false })
+  })
+
+  it('sends „Angemeldet bleiben“ with the passkey sign-in', async () => {
+    let sent: { rememberMe?: boolean } | undefined
+    vi.mocked(startAuthentication).mockResolvedValue({ id: 'cred' } as never)
+    mockApi({
+      'GET /api/auth/me': anonymous(true),
+      'POST /api/auth/passkey/options': { body: { challenge: 'abc' } },
+      'POST /api/auth/passkey': (init) => {
+        sent = JSON.parse(String(init?.body))
+        return { body: { stage: 'PASSWORD_CHANGE_REQUIRED', user: null, recoveryCodes: null } }
+      },
+    })
+    renderApp('/login')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('checkbox', { name: 'Angemeldet bleiben' }))
+    await user.click(screen.getByRole('button', { name: 'Mit Passkey anmelden' }))
+    await waitFor(() => expect(sent?.rememberMe).toBe(true))
   })
 
   it('shows nothing when the prompt is cancelled, and the server message when it is rejected', async () => {

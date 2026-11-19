@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { RecoveryCodes } from '@/components/RecoveryCodes'
 import { api, ApiError } from '@/lib/api'
 import { useSession } from '@/core/auth/session'
+import { DevicesCard } from './DevicesCard'
 import { PasskeysCard } from './PasskeysCard'
 
 function ChangePasswordCard() {
@@ -141,6 +142,7 @@ export function AccountPage() {
         <ChangePasswordCard />
         <RecoveryCodesCard />
         {session?.passkeys && <PasskeysCard />}
+        <DevicesCard />
       </div>
     </>
   )

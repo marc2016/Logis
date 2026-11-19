@@ -70,6 +70,7 @@
 - A sign-in left at `PASSWORD_CHANGE_REQUIRED` never issues a cookie. The cookie is issued after the password change completes.
 
 ### D8. Restore in `SessionAuthenticationFilter`
+- Restore runs only when the request carries `LOGIS_REMEMBER`. Without the cookie the filter touches no database, so `/api/health` still answers 503 while the database is down.
 - Restore runs when the request has no session in a signed-in stage, a `LOGIS_REMEMBER` cookie is present, and the request is not a `POST` to `/api/auth/**`. Sign-in steps and sign-out must not restore.
 - A successful restore calls `AuthSession.start(…, AUTHENTICATED, …)`, which gives a fresh session id. It also sets `DEVICE_ID` and `RESTORED=true` and continues with the normal context building.
 - `GET /api/auth/me` restores too, so the interface finds the user without a 401 round trip.
@@ -78,8 +79,8 @@
 ### D9. Fresh sign-in for `/api/admin/**`
 - Admin authorization becomes `hasRole("ADMIN")` **and** not `RESTORED`. The filter grants `ROLE_ADMIN` only to non-restored sessions and adds a marker authority `REAUTH_REQUIRED` for restored admin sessions.
 - A dedicated handler answers `/api/admin/**` requests from such sessions with HTTP 403 and a ProblemDetail of type `urn:logis:reauthentication-required` and detail „Für den Admin-Bereich bitte erneut anmelden“.
-- `api.ts` turns this into an `ApiError` with `reauthenticationRequired`. The admin pages then render a notice with „Erneut anmelden“.
-- „Erneut anmelden“ calls the new `POST /api/auth/reauthenticate`. It invalidates the session and starts an anonymous session with `SKIP_RESTORE=true`, so that `/me` does not restore again, and keeps the device cookie. The interface then shows the sign-in page with „Angemeldet bleiben“ pre-checked.
+- `/api/auth/me` also reports `reauthenticationRequired` for such sessions, so `RequireAdmin` shows the notice with „Erneut anmelden“ before any admin request. `api.ts` turns a 403 of this type into an `ApiError` with `reauthenticationRequired`. If an admin request is refused this way while a page is open, the guard refreshes `/me` and the notice appears.
+- „Erneut anmelden“ calls the new `POST /api/auth/reauthenticate`. It invalidates the session and starts an anonymous session with `SKIP_RESTORE=true`, so that `/me` does not restore again, and keeps the device cookie. The interface then shows the sign-in page with „Angemeldet bleiben“ pre-checked. A one-time hint in `sessionStorage` carries the choice, because the app shell's redirect to the sign-in drops any query parameter.
 - The completed sign-in replaces the device (D7). The returned session is not restored, so the admin area works.
 - Alternative considered: a separate "step-up" stage without leaving the session. It would add a second sign-in flow. Reusing the normal sign-in is simpler.
 

@@ -24,8 +24,11 @@ class MyAccountController {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final RecoveryCodeService recoveryCodes;
+    private final RememberedDeviceService devices;
 
-    MyAccountController(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes) {
+    MyAccountController(UserRepository users, PasswordEncoder encoder, RecoveryCodeService recoveryCodes,
+            RememberedDeviceService devices) {
+        this.devices = devices;
         this.users = users;
         this.encoder = encoder;
         this.recoveryCodes = recoveryCodes;
@@ -47,9 +50,10 @@ class MyAccountController {
         }
         PasswordPolicy.requireValid(body.newPassword());
         user.setPasswordHash(encoder.encode(body.newPassword()));
-        // End other sessions, keep the current one.
+        // End other sessions and remembered devices, keep the current one.
         user.invalidateSessions();
         AuthSession.updateVersion(request, user.getSessionVersion());
+        devices.keepOnlyCurrent(request, user);
     }
 
     @PostMapping("/recovery-codes")

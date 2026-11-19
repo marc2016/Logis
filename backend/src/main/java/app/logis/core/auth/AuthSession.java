@@ -17,6 +17,16 @@ final class AuthSession {
     static final String LOGIN_AT = "logis.auth.loginAt";
     static final String LAST_SEEN = "logis.auth.lastSeen";
     static final String PENDING_TOTP_SECRET = "logis.auth.pendingTotpSecret";
+    /** The sign-in asked for „Angemeldet bleiben“; the device is remembered once it completes. */
+    static final String REMEMBER_REQUESTED = "logis.auth.rememberRequested";
+    /** Id of the remembered device this session belongs to, if any. */
+    static final String DEVICE_ID = "logis.auth.deviceId";
+    /** The session was started by a remembered device, not by a sign-in. */
+    static final String RESTORED = "logis.auth.restored";
+    /** Set by „Erneut anmelden“: the remembered device must not start a session until the next sign-in. */
+    static final String SKIP_RESTORE = "logis.auth.skipRestore";
+    /** When the remembered device's last use was last written (at most hourly). */
+    static final String DEVICE_TOUCHED_AT = "logis.auth.deviceTouchedAt";
 
     private AuthSession() {
     }

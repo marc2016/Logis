@@ -142,4 +142,91 @@ public abstract class IntegrationTest {
     protected ResultActions getWith(String url, MockHttpSession session) throws Exception {
         return mvc.perform(get(url).session(session));
     }
+
+    // --- Remembered devices („Angemeldet bleiben“) ------------------------------------------------
+
+    protected static final String REMEMBER_COOKIE = "LOGIS_REMEMBER";
+    protected static final String FIREFOX_LINUX =
+            "Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0";
+
+    /**
+     * A browser with a device cookie: sends the cookie and its user agent, follows cookie changes and keeps the
+     * session it gets, like a real browser. {@link #loseSession()} simulates an expired session or a restart.
+     */
+    protected class Device {
+
+        public final String userAgent;
+        public String cookie;
+        public MockHttpSession session;
+
+        public Device(String userAgent) {
+            this.userAgent = userAgent;
+        }
+
+        public void loseSession() {
+            session = null;
+        }
+
+        public org.springframework.test.web.servlet.MvcResult get(String url) throws Exception {
+            return perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(url));
+        }
+
+        public org.springframework.test.web.servlet.MvcResult post(String url, Object body) throws Exception {
+            return perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)));
+        }
+
+        public org.springframework.test.web.servlet.MvcResult delete(String url) throws Exception {
+            return perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(url).with(csrf()));
+        }
+
+        private org.springframework.test.web.servlet.MvcResult perform(
+                org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request) throws Exception {
+            request.header("User-Agent", userAgent);
+            if (cookie != null) {
+                request.cookie(new jakarta.servlet.http.Cookie(REMEMBER_COOKIE, cookie));
+            }
+            if (session != null) {
+                request.session(session);
+            }
+            var result = mvc.perform(request).andReturn();
+            var set = rememberCookie(result);
+            if (set != null) {
+                cookie = set.isEmpty() ? null : set;
+            }
+            var current = (MockHttpSession) result.getRequest().getSession(false);
+            session = current == null || current.isInvalid() ? null : current;
+            return result;
+        }
+
+        /** Full sign-in with password and code; {@code remember} checks „Angemeldet bleiben“. */
+        public Device signIn(TestUser user, boolean remember) throws Exception {
+            clock.advance(Duration.ofSeconds(31));
+            session = null;
+            var body = new java.util.HashMap<String, Object>(Map.of("username", user.username(),
+                    "password", user.password()));
+            body.put("rememberMe", remember);
+            assertStatus(post("/api/auth/login", body), 200);
+            var result = post("/api/auth/totp", Map.of("code", totp(user.totpSecret())));
+            assertStatus(result, 200);
+            return this;
+        }
+    }
+
+    /** Value of the device cookie set by the response; "" if it was cleared, null if not touched. */
+    protected static String rememberCookie(org.springframework.test.web.servlet.MvcResult result) {
+        return result.getResponse().getHeaders("Set-Cookie").stream()
+                .filter(h -> h.startsWith(REMEMBER_COOKIE + "="))
+                .map(h -> h.substring(REMEMBER_COOKIE.length() + 1, h.indexOf(';')))
+                .reduce((a, b) -> b).orElse(null);
+    }
+
+    protected static void assertStatus(org.springframework.test.web.servlet.MvcResult result, int expected)
+            throws Exception {
+        if (result.getResponse().getStatus() != expected) {
+            throw new AssertionError("Expected status " + expected + " but was " + result.getResponse().getStatus()
+                    + " for " + result.getRequest().getMethod() + " " + result.getRequest().getRequestURI() + ": "
+                    + result.getResponse().getContentAsString());
+        }
+    }
 }

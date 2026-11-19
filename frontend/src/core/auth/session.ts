@@ -21,6 +21,8 @@ export interface SessionResponse {
   recoveryCodes: string[] | null
   /** Whether passkey sign-in is offered (from `/me`). */
   passkeys?: boolean | null
+  /** An admin session started by a remembered device: the admin area needs a fresh sign-in (from `/me`). */
+  reauthenticationRequired?: boolean | null
 }
 
 export const sessionQueryKey = ['session'] as const
@@ -44,4 +46,26 @@ export function useCurrentUser(): SessionUser {
 export function safeNext(next: string | null): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) return '/'
   return next
+}
+
+const REMEMBER_HINT = 'logis.rememberOnNextSignIn'
+
+/** „Erneut anmelden“: the device was remembered, so the next sign-in keeps „Angemeldet bleiben“ checked. */
+export function rememberOnNextSignIn() {
+  try {
+    sessionStorage.setItem(REMEMBER_HINT, '1')
+  } catch {
+    // storage unavailable: the box simply starts unchecked
+  }
+}
+
+/** Reads and clears the hint of {@link rememberOnNextSignIn}. */
+export function takeRememberHint(): boolean {
+  try {
+    const hint = sessionStorage.getItem(REMEMBER_HINT) === '1'
+    sessionStorage.removeItem(REMEMBER_HINT)
+    return hint
+  } catch {
+    return false
+  }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,15 +30,19 @@ class PasskeyController {
     private final AuthFlowService flow;
     private final ObjectMapper json;
     private final Clock clock;
+    private final RememberedDeviceService devices;
 
-    PasskeyController(PasskeyService passkeys, AuthFlowService flow, ObjectMapper json, Clock clock) {
+    PasskeyController(PasskeyService passkeys, AuthFlowService flow, ObjectMapper json, Clock clock,
+            RememberedDeviceService devices) {
+        this.devices = devices;
         this.passkeys = passkeys;
         this.flow = flow;
         this.json = json;
         this.clock = clock;
     }
 
-    record CredentialRequest(JsonNode credential) {
+    /** {@code rememberMe}: „Angemeldet bleiben“ (design D7 of remember-me). */
+    record CredentialRequest(JsonNode credential, Boolean rememberMe) {
     }
 
     record RegistrationStart(String password) {
@@ -64,8 +69,8 @@ class PasskeyController {
     }
 
     @PostMapping("/api/auth/passkey")
-    AuthController.SessionResponse signIn(@RequestBody CredentialRequest body, HttpServletRequest request)
-            throws JsonProcessingException {
+    AuthController.SessionResponse signIn(@RequestBody CredentialRequest body, HttpServletRequest request,
+            HttpServletResponse response) throws JsonProcessingException {
         var session = request.getSession(false);
         var pending = session == null ? null : (String) session.getAttribute(PENDING_ASSERTION);
         // A challenge is used once, whatever the outcome.
@@ -88,7 +93,8 @@ class PasskeyController {
         }
         var result = flow.signInWithPasskey(verified.userId(), ip);
         var user = result.user();
-        AuthSession.start(request, user.getId(), user.getSessionVersion(), result.stage(), clock.instant());
+        AuthController.startSignIn(request, user, result.stage(), body.rememberMe(), clock);
+        AuthController.completed(request, response, result, devices);
         return new AuthController.SessionResponse(result.stage(), null, null);
     }
 

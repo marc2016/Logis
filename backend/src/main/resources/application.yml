@@ -69,6 +69,11 @@ logis:
     session:
       idle-timeout: 30m
       absolute-timeout: 12h
+    # "Angemeldet bleiben": forgotten after this long without use, and at the latest this long after the sign-in.
+    remember-me:
+      sliding: 30d
+      absolute: 90d
+      reuse-grace: 1m
     lockout:
       threshold: 5
       base-duration: 1m

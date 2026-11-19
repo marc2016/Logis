@@ -116,10 +116,11 @@ http:
 
 - Only admins create users, under *Einstellungen > Benutzer*. There is no self-registration.
 - New users set their own password and set up 2FA at their first sign-in.
-- Admins can disable users and reset their password or 2FA. The affected person's sessions end immediately.
+- Admins can disable users and reset their password or 2FA. The affected person's sessions and remembered devices end immediately.
 - Under *Mein Konto* everyone changes their password and generates new recovery codes.
 - **Passkeys** (when `LOGIS_PUBLIC_URL` is set): under *Mein Konto* everyone can add passkeys after confirming their password. „Mit Passkey anmelden“ then signs in with Face ID, Touch ID or the device PIN, without password or code. 2FA stays mandatory as the way back. Resetting a user's 2FA also deletes their passkeys.
   - Passkeys are bound to the domain in `LOGIS_PUBLIC_URL`. **Changing the domain later makes all existing passkeys unusable**; users then sign in with password and code and add new ones.
+- **Angemeldet bleiben:** with this box checked at sign-in, the device stays signed in without password or code: for 30 days after its last use and for 90 days after the sign-in at most. It also survives backend restarts. *Mein Konto > Angemeldete Geräte* lists these devices and signs them out, one at a time or all others at once. On such a device, the admin area asks for a fresh sign-in.
 
 ## Finances and sharing
 
@@ -299,5 +300,6 @@ npx playwright test                 # npx playwright test --project=phone for on
 - Sign-in with password and mandatory TOTP, plus 10 single-use recovery codes. The TOTP secrets are encrypted with AES-256-GCM.
 - After 5 failed attempts the user is locked; the lockout grows up to 15 minutes. In addition, a per-IP rate limit applies to the sign-in steps.
 - Sessions end after 30 minutes of inactivity and after 12 hours at the latest. The cookie is `HttpOnly`, `SameSite=Lax` and `Secure` behind HTTPS. There is CSRF protection.
+- „Angemeldet bleiben“ sets a second cookie `LOGIS_REMEMBER` (same attributes, path `/api`). The database stores only a hash of it. Its token changes on every new session; a replayed old token or a different browser or operating system ends the device. The durations are set by `logis.auth.remember-me.sliding` (default `30d`) and `logis.auth.remember-me.absolute` (default `90d`). Password changes, admin resets and disabling a user end all remembered devices.
 - Responses carry the headers HSTS, CSP, `X-Frame-Options`, `nosniff` and `Referrer-Policy`. Error responses contain no internal details.
 - Backend and database are reachable only in the internal Docker network. `/actuator` is not reachable from outside.
