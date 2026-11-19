@@ -228,15 +228,15 @@ export function BookingPage() {
       )}
       {withSources ? (
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList className="lg:hidden">
+          <TabsList className="@5xl:hidden">
             <TabsTrigger value="data">Daten</TabsTrigger>
             <TabsTrigger value="source">Quelle</TabsTrigger>
           </TabsList>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <TabsContent value="data" forceMount className="data-[state=inactive]:hidden lg:data-[state=inactive]:block">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 @5xl:grid-cols-2">
+            <TabsContent value="data" forceMount className="data-[state=inactive]:hidden @5xl:data-[state=inactive]:block">
               {form}
             </TabsContent>
-            <TabsContent value="source" forceMount className="data-[state=inactive]:hidden lg:data-[state=inactive]:block lg:sticky lg:top-4 lg:self-start">
+            <TabsContent value="source" forceMount className="data-[state=inactive]:hidden @5xl:data-[state=inactive]:block @5xl:sticky @5xl:top-4 @5xl:self-start">
               {panel}
             </TabsContent>
           </div>

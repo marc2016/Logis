@@ -139,7 +139,7 @@ export function AccountPage() {
   return (
     <>
       <PageHeader title="Mein Konto" />
-      <div className="grid max-w-4xl gap-6 lg:grid-cols-2">
+      <div className="grid max-w-4xl gap-6 @3xl:grid-cols-2">
         <EmailCard />
         <ChangePasswordCard />
         <RecoveryCodesCard />

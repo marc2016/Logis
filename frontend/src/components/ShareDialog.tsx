@@ -133,7 +133,7 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Freigaben: {objectName}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -141,15 +141,15 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
 
         <ul className="divide-y rounded-lg border" aria-label="Freigaben">
           {data?.shares.map((share) => (
-            <li key={share.userId} className="flex items-center gap-3 p-3">
-              <div className="min-w-0 flex-1">
+            <li key={share.userId} className="flex flex-wrap items-center gap-3 p-3">
+              <div className="min-w-0 flex-1 basis-40">
                 <div className="truncate font-medium">
                   {share.displayName} {share.userId === me.id && <span className="text-muted-foreground">(du)</span>}
                 </div>
                 <div className="truncate text-xs text-muted-foreground">{share.username}</div>
               </div>
               {canManage ? (
-                <>
+                <div className="ml-auto flex items-center gap-3">
                   <RoleSelect
                     value={share.role}
                     roles={roles}
@@ -164,7 +164,7 @@ export function ShareDialog({ objectType, objectId, objectName, open, onOpenChan
                   >
                     <UserMinusIcon />
                   </Button>
-                </>
+                </div>
               ) : (
                 <Badge variant="outline">{roleLabel[share.role]}</Badge>
               )}

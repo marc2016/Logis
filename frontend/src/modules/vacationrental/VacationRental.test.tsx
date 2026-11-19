@@ -202,7 +202,8 @@ describe('Booking dialog', () => {
     // The booking is saved: its page opens, where the document can be tried again.
     await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/buchungen/502'))
     expect(await screen.findByText(/kaputt\.pdf: Nur PDF- oder Bilddateien bis 10 MB/)).toBeInTheDocument()
-    expect(await screen.findByLabelText('Dokument auswählen')).toBeInTheDocument()
+    // The form is rebuilt when the saved booking loads, so look the field up again on each try.
+    await waitFor(() => expect(screen.getByLabelText('Dokument auswählen')).toBeInTheDocument())
   })
 
   it('shows viewers neither contact data nor documents', async () => {

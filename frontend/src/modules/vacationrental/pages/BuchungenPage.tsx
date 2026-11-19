@@ -136,7 +136,7 @@ export function BuchungenPage() {
         <Checkbox checked={filter.review} onCheckedChange={(v) => update({ review: v === true ? 'true' : undefined })} aria-label="Nur zu prüfen" />
         Nur „zu prüfen“
       </label>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-8">
+      <div className="mb-4 grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
         <IdSelect id="flt-property" label="Objekt" value={filter.propertyId} options={properties} onChange={(v) => update({ propertyId: v, unitId: undefined })} />
         <IdSelect id="flt-unit" label="Einheit" value={filter.unitId} options={unitOptions} onChange={(v) => update({ unitId: v })} />
         <IdSelect id="flt-agency" label="Vermittler" value={filter.agencyId} options={agencies} onChange={(v) => update({ agencyId: v })} />
@@ -188,7 +188,7 @@ export function BuchungenPage() {
           </Label>
           <Input id="flt-to" type="date" value={filter.to ?? ''} onChange={(e) => update({ to: e.target.value })} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="flt-q" className="text-xs text-muted-foreground">
             Suche
           </Label>
