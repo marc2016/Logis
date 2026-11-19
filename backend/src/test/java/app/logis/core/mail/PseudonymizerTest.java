@@ -98,4 +98,41 @@ class PseudonymizerTest {
                 .isEqualTo("buchung@fewoundmeer.de");
         assertThat(pseudonymizer.address("max@example.net", ERIKA, Set.of())).isEqualTo("person1@example.org");
     }
+
+    @Test
+    void fullNameWinsOverItsParts() {
+        assertThat(apply("Gast Erika Musterfrau reist an")).isEqualTo("Gast Gast 1 reist an");
+    }
+
+    @Test
+    void insertedReplacementIsNotReplacedAgain() {
+        // „Gast“ is a known name part of another guest; the „Gast“ in „Gast 1“ must stay (spec „Overlapping values“).
+        var values = List.of(new SensitiveValue(Kind.NAME, "Erika Musterfrau"), new SensitiveValue(Kind.NAME, "Hans Gast"));
+        assertThat(pseudonymizer.apply("Liebe Erika Musterfrau, lieber Hans Gast", values, Set.of(), false))
+                .isEqualTo("Liebe Gast 1, lieber Gast 2");
+    }
+
+    @Test
+    void overlappingValuesTheFirstOneWins() {
+        var values = List.of(new SensitiveValue(Kind.NAME, "Erika Musterfrau"),
+                new SensitiveValue(Kind.STREET, "Musterfrau Allee 5"));
+        assertThat(pseudonymizer.apply("Erika Musterfrau Allee 5", values, Set.of(), false))
+                .isEqualTo("Gast 1 Allee 5");
+    }
+
+    @Test
+    void umlautsAtTheStartAndEnd() {
+        var values = List.of(new SensitiveValue(Kind.NAME, "Jürgen Öztürk"));
+        assertThat(pseudonymizer.apply("Öztürk", values, Set.of(), false)).isEqualTo("Gast1");
+        assertThat(pseudonymizer.apply("Jürgen Öztürk", values, Set.of(), false)).isEqualTo("Gast 1");
+        assertThat(pseudonymizer.apply("Öztürks Jürgenhof", values, Set.of(), false)).isEqualTo("Öztürks Jürgenhof");
+    }
+
+    @Test
+    void oneIndexForManyTexts() {
+        var known = pseudonymizer.index(ERIKA, false);
+        assertThat(pseudonymizer.apply("Erika Musterfrau", known, Set.of())).isEqualTo("Gast 1");
+        assertThat(pseudonymizer.apply("Frau Musterfrau", known, Set.of())).isEqualTo("Frau Gast1");
+        assertThat(pseudonymizer.address("ERIKA@example.org", known, Set.of())).isEqualTo("gast1@example.org");
+    }
 }

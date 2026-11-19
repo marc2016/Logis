@@ -63,7 +63,9 @@ class MimeRewriter {
     Rewritten rewrite(byte[] raw, Collection<SensitiveValue> values, Set<String> keepDomains)
             throws MessagingException, IOException {
         var message = new MimeMessage(SESSION, new ByteArrayInputStream(raw));
-        var context = new Context(values, Set.copyOf(keepDomains));
+        // Both indexes once per mail, for all its texts (design D2 of mail-export-performance).
+        var context = new Context(pseudonymizer.index(values, false), pseudonymizer.index(values, true),
+                Set.copyOf(keepDomains));
         rewriteMessage(message, context);
         message.saveChanges();
         message.setHeader("Message-ID", "<" + UUID.randomUUID() + "@logis.invalid>");
@@ -77,7 +79,11 @@ class MimeRewriter {
     record Rewritten(byte[] eml, String subject, String sender) {
     }
 
-    private record Context(Collection<SensitiveValue> values, Set<String> keepDomains) {
+    private record Context(Pseudonymizer.KnownValues plain, Pseudonymizer.KnownValues html, Set<String> keepDomains) {
+
+        Pseudonymizer.KnownValues values(boolean isHtml) {
+            return isHtml ? html : plain;
+        }
     }
 
     private void rewriteMessage(MimeMessage message, Context context) throws MessagingException, IOException {
@@ -91,7 +97,7 @@ class MimeRewriter {
         }
         var subject = message.getSubject();
         if (subject != null) {
-            message.setSubject(pseudonymizer.apply(subject, context.values(), context.keepDomains(), false), "UTF-8");
+            message.setSubject(pseudonymizer.apply(subject, context.plain(), context.keepDomains()), "UTF-8");
         }
         for (var header : ADDRESS_HEADERS) {
             var addresses = message.getHeader(header, ",");
@@ -113,7 +119,7 @@ class MimeRewriter {
             var charset = type.getParameter("charset") == null ? "UTF-8" : type.getParameter("charset");
             var encoding = part.getEncoding();
             var text = content(part);
-            part.setText(pseudonymizer.apply(text, context.values(), context.keepDomains(), html), charset,
+            part.setText(pseudonymizer.apply(text, context.values(html), context.keepDomains()), charset,
                     type.getSubType());
             // Keep quoted-printable and base64; for 7bit/8bit Jakarta Mail picks a valid one for the new text.
             if (encoding != null && (encoding.equalsIgnoreCase("quoted-printable") || encoding.equalsIgnoreCase("base64"))) {
@@ -152,14 +158,14 @@ class MimeRewriter {
             var result = new ArrayList<String>();
             for (var address : parsed) {
                 var personal = address.getPersonal() == null ? null
-                        : pseudonymizer.apply(address.getPersonal(), context.values(), context.keepDomains(), false);
-                var mail = pseudonymizer.address(address.getAddress(), context.values(), context.keepDomains());
+                        : pseudonymizer.apply(address.getPersonal(), context.plain(), context.keepDomains());
+                var mail = pseudonymizer.address(address.getAddress(), context.plain(), context.keepDomains());
                 result.add(new InternetAddress(mail, personal, "UTF-8").toString());
             }
             return String.join(", ", result);
         } catch (MessagingException | UnsupportedEncodingException ex) {
             // Unparseable address header: pseudonymize it as text.
-            return pseudonymizer.apply(header, context.values(), context.keepDomains(), false);
+            return pseudonymizer.apply(header, context.plain(), context.keepDomains());
         }
     }
 

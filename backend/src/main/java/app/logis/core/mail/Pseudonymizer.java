@@ -42,17 +42,38 @@ class Pseudonymizer {
     }
 
     /**
-     * Pseudonymizes {@code text}. {@code keepDomains}: e-mail domains that stay, such as the agency's sender domain;
-     * {@code html}: the text is HTML, so escaped forms of the values are replaced too.
+     * The known values of one mail, prepared for {@link #apply(String, KnownValues, Set)}. Build it once per mail and
+     * reuse it for all its texts (design D2 of mail-export-performance). {@code html}: the texts are HTML, so escaped
+     * forms of the values are replaced too.
      */
+    KnownValues index(Collection<SensitiveValue> values, boolean html) {
+        var root = new Node();
+        for (var pair : pairs(values, html)) {
+            root.insert(pair[0], pair[1]);
+        }
+        var emails = new HashMap<String, String>();
+        for (var v : values) {
+            if (v.kind() == SensitiveValue.Kind.EMAIL) {
+                emails.putIfAbsent(v.value().toLowerCase(Locale.ROOT), replacement(v));
+            }
+        }
+        return new KnownValues(root, emails);
+    }
+
+    /** Pseudonymizes {@code text}; see {@link #apply(String, KnownValues, Set)}. */
     String apply(String text, Collection<SensitiveValue> values, Set<String> keepDomains, boolean html) {
+        return apply(text, index(values, html), keepDomains);
+    }
+
+    /**
+     * Pseudonymizes {@code text}: known values in one pass, then IBANs, e-mail addresses and phone numbers by
+     * pattern. {@code keepDomains}: e-mail domains that stay, such as the agency's sender domain.
+     */
+    String apply(String text, KnownValues known, Set<String> keepDomains) {
         if (text == null || text.isEmpty()) {
             return text;
         }
-        var result = text;
-        for (var pair : pairs(values, html)) {
-            result = replaceWord(result, pair[0], pair[1]);
-        }
+        var result = known.replace(text);
         result = replaceAll(result, IBAN, m -> m.group().substring(0, 2) + sameFormat(m.group().substring(2)));
         result = replaceAll(result, EMAIL, m -> email(m.group(), m.group(1), keepDomains));
         result = replaceAll(result, PHONE, m -> digits(m.group()) >= 7 ? sameFormat(m.group()) : m.group());
@@ -61,13 +82,17 @@ class Pseudonymizer {
 
     /** An address in a header: the address part only. */
     String address(String address, Collection<SensitiveValue> values, Set<String> keepDomains) {
+        return address(address, index(values, false), keepDomains);
+    }
+
+    /** An address in a header: the address part only. */
+    String address(String address, KnownValues known, Set<String> keepDomains) {
         if (address == null) {
             return null;
         }
-        for (var v : values) {
-            if (v.kind() == SensitiveValue.Kind.EMAIL && v.value().equalsIgnoreCase(address)) {
-                return replacement(v);
-            }
+        var replacement = known.emails.get(address.toLowerCase(Locale.ROOT));
+        if (replacement != null) {
+            return replacement;
         }
         var at = address.lastIndexOf('@');
         return at < 0 ? address : email(address, address.substring(at + 1), keepDomains);
@@ -156,11 +181,6 @@ class Pseudonymizer {
         });
     }
 
-    private static String replaceWord(String text, String original, String replacement) {
-        var pattern = Pattern.compile("(?<![\\p{L}\\p{N}])" + Pattern.quote(original) + "(?![\\p{L}\\p{N}])");
-        return pattern.matcher(text).replaceAll(Matcher.quoteReplacement(replacement));
-    }
-
     private static String replaceAll(String text, Pattern pattern, java.util.function.Function<Matcher, String> f) {
         var matcher = pattern.matcher(text);
         var sb = new StringBuilder();
@@ -173,5 +193,94 @@ class Pseudonymizer {
 
     private static int digits(String s) {
         return (int) s.chars().filter(Character::isDigit).count();
+    }
+
+    /**
+     * Known values of one mail as a character trie, replaced in a single pass (design D1 of
+     * mail-export-performance): at each word start, the longest value that also ends at a word boundary wins.
+     * Inserted replacements are not searched again.
+     */
+    static final class KnownValues {
+
+        private final Node root;
+        /** Replacements of known e-mail addresses, by lower-case address. */
+        private final Map<String, String> emails;
+
+        private KnownValues(Node root, Map<String, String> emails) {
+            this.root = root;
+            this.emails = emails;
+        }
+
+        String replace(String text) {
+            StringBuilder out = null;
+            int copied = 0;
+            int i = 0;
+            var n = text.length();
+            while (i < n) {
+                if (i == 0 || !isWordChar(Character.codePointBefore(text, i))) {
+                    var node = root;
+                    var end = -1;
+                    String replacement = null;
+                    for (int j = i; j < n; j++) {
+                        node = node.child(text.charAt(j));
+                        if (node == null) {
+                            break;
+                        }
+                        if (node.replacement != null && (j + 1 == n || !isWordChar(Character.codePointAt(text, j + 1)))) {
+                            end = j + 1;
+                            replacement = node.replacement;
+                        }
+                    }
+                    if (replacement != null) {
+                        if (out == null) {
+                            out = new StringBuilder(n + 32);
+                        }
+                        out.append(text, copied, i).append(replacement);
+                        i = end;
+                        copied = end;
+                        continue;
+                    }
+                }
+                i++;
+            }
+            return out == null ? text : out.append(text, copied, n).toString();
+        }
+
+        /** The same characters as {@code [\p{L}\p{N}]}. */
+        private static boolean isWordChar(int codePoint) {
+            if (Character.isLetter(codePoint)) {
+                return true;
+            }
+            var type = Character.getType(codePoint);
+            return type == Character.DECIMAL_DIGIT_NUMBER || type == Character.LETTER_NUMBER
+                    || type == Character.OTHER_NUMBER;
+        }
+    }
+
+    private static final class Node {
+
+        private Map<Character, Node> children;
+        private String replacement;
+
+        Node child(char c) {
+            return children == null ? null : children.get(c);
+        }
+
+        /** The first replacement for an original wins, as the pairs are ordered longest first. */
+        void insert(String original, String replacement) {
+            if (original.isEmpty()) {
+                return;
+            }
+            var node = this;
+            for (int i = 0; i < original.length(); i++) {
+                if (node.children == null) {
+                    node.children = new HashMap<>(4);
+                }
+                node = node.children.computeIfAbsent(original.charAt(i), c -> new Node());
+            }
+            if (node.replacement == null) {
+                node.replacement = replacement;
+            }
+        }
     }
 }

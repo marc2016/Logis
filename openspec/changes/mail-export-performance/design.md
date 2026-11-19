@@ -90,7 +90,7 @@ A plain unit test (no Spring context) runs:
 - `MimeRewriter` over 600 generated multipart mails, each with a text part and a ~40 KB HTML part;
 - 4,000 generated `SensitiveValue`s.
 
-It asserts completion within a generous bound, 20 seconds, so it is not flaky on CI. The point is to catch a return to the multiplicative cost, not to benchmark.
+It asserts completion within a generous bound, 30 seconds, so it is not flaky on CI. Measured locally: about 9 s, of which about 5 s is MIME parsing and the fixed patterns. The point is to catch a return to the multiplicative cost, not to benchmark.
 
 Before the change, the same test is run once to record the old time in the task notes. It is expected to take minutes.
 
