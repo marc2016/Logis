@@ -52,7 +52,8 @@ class AuthController {
     record PasswordRequest(String newPassword) {
     }
 
-    record SessionUser(Long id, String username, String displayName, Role role) {
+    /** {@code emailMissing}: the user has no e-mail address yet (design D5 of outgoing-mail). */
+    record SessionUser(Long id, String username, String displayName, Role role, boolean emailMissing) {
     }
 
     /**
@@ -81,7 +82,8 @@ class AuthController {
         var user = users.findById(userId).orElseThrow();
         var restored = Boolean.TRUE.equals(session.getAttribute(AuthSession.RESTORED));
         return new SessionResponse(stage,
-                new SessionUser(user.getId(), user.getUsername(), user.getDisplayName(), user.getRole()), null,
+                new SessionUser(user.getId(), user.getUsername(), user.getDisplayName(), user.getRole(),
+                        user.getEmail() == null), null,
                 passkeys.enabled(), restored && user.getRole() == Role.ADMIN);
     }
 

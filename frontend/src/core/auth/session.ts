@@ -13,6 +13,8 @@ export interface SessionUser {
   username: string
   displayName: string
   role: 'ADMIN' | 'USER'
+  /** No e-mail address yet: the app shell asks for one (from `/me`). */
+  emailMissing?: boolean
 }
 
 export interface SessionResponse {

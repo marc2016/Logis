@@ -153,3 +153,60 @@ export async function fetchMails(api: APIRequestContext, subject: RegExp, count:
   }
   throw new Error(`Mails ${subject} not fetched`)
 }
+
+/** IMAP of the test mail server as published for the tests (not as the backend sees it). */
+const READ_HOST = process.env.LOGIS_E2E_IMAP_READ_HOST ?? SMTP_HOST
+const READ_PORT = Number(process.env.LOGIS_E2E_IMAP_READ_PORT ?? 3143)
+
+/**
+ * The raw messages in the INBOX of `address` on the test mail server, oldest first. A minimal IMAP dialogue:
+ * GreenMail accepts any login (authentication disabled) and creates the mailbox on first delivery.
+ */
+export async function readMails(address: string): Promise<string[]> {
+  const socket = net.createConnection({ host: READ_HOST, port: READ_PORT })
+  socket.setEncoding('binary')
+  let buffer = ''
+  socket.on('data', (chunk: string) => {
+    buffer += chunk
+  })
+  let tag = 0
+  const until = (done: () => boolean) =>
+    new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`IMAP timeout: ${buffer.slice(-200)}`)), 10_000)
+      const check = () => {
+        if (done()) {
+          clearTimeout(timer)
+          socket.off('data', check)
+          resolve()
+        }
+      }
+      socket.on('data', check)
+      check()
+    })
+  const command = async (line: string) => {
+    const t = `a${++tag}`
+    buffer = ''
+    socket.write(`${t} ${line}\r\n`)
+    await until(() => new RegExp(`(^|\r\n)${t} (OK|NO|BAD)`).test(buffer))
+    if (!new RegExp(`(^|\r\n)${t} OK`).test(buffer)) throw new Error(`IMAP ${line.split(' ')[0]}: ${buffer.slice(-200)}`)
+    return buffer
+  }
+  try {
+    await until(() => buffer.includes('* OK'))
+    await command(`LOGIN "${address}" "beliebig"`)
+    const select = await command('SELECT INBOX')
+    const count = Number(/\* (\d+) EXISTS/.exec(select)?.[1] ?? 0)
+    const mails: string[] = []
+    for (let i = 1; i <= count; i++) {
+      const fetched = await command(`FETCH ${i} BODY.PEEK[]`)
+      const literal = /\{(\d+)\}\r\n/.exec(fetched)
+      if (!literal) continue
+      const start = literal.index + literal[0].length
+      mails.push(Buffer.from(fetched.slice(start, start + Number(literal[1])), 'binary').toString('utf8'))
+    }
+    await command('LOGOUT').catch(() => undefined)
+    return mails
+  } finally {
+    socket.end()
+  }
+}

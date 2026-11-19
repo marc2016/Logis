@@ -60,4 +60,22 @@ describe('Routing', () => {
     renderApp('/einstellungen/benutzer')
     expect(await screen.findByRole('heading', { name: 'Seite nicht gefunden' })).toBeInTheDocument()
   })
+
+  it('asks users without an e-mail address to add one', async () => {
+    const me = authenticated()
+    mockApi({
+      'GET /api/auth/me': { ...me, body: { ...me.body, user: { ...me.body.user, emailMissing: true } } },
+      'GET /api/modules': { body: [] },
+    })
+    renderApp('/')
+    expect(await screen.findByText(/Bitte hinterlege eine E-Mail-Adresse unter/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mein Konto' })).toHaveAttribute('href', '/konto')
+  })
+
+  it('shows no notice when the address exists', async () => {
+    mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': { body: [] } })
+    renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Übersicht' })).toBeInTheDocument()
+    expect(screen.queryByText(/Bitte hinterlege eine E-Mail-Adresse/)).not.toBeInTheDocument()
+  })
 })

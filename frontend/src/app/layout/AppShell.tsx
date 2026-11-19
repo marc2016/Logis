@@ -1,4 +1,7 @@
-import { Outlet } from 'react-router'
+import { Link, Outlet } from 'react-router'
+import { MailWarningIcon } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useCurrentUser } from '@/core/auth/session'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useActiveModules } from '../useActiveModules'
@@ -8,6 +11,26 @@ import { AppSidebar } from './AppSidebar'
 function initialSidebarOpen(): boolean {
   const match = document.cookie.split('; ').find((c) => c.startsWith('sidebar_state='))
   return match ? match.split('=')[1] !== 'false' : true
+}
+
+/** Shown until the user has an e-mail address (spec authentication, „Notice about a missing address“). */
+function MissingEmailNotice() {
+  const user = useCurrentUser()
+  if (!user.emailMissing) return null
+  return (
+    <Alert className="mb-4">
+      <MailWarningIcon />
+      <AlertDescription>
+        <span>
+          Bitte hinterlege eine E-Mail-Adresse unter{' '}
+          <Link to="/konto" className="font-medium underline underline-offset-4">
+            Mein Konto
+          </Link>
+          .
+        </span>
+      </AlertDescription>
+    </Alert>
+  )
 }
 
 export function AppShell() {
@@ -23,6 +46,7 @@ export function AppShell() {
           <span className="text-sm text-muted-foreground">Logis</span>
         </header>
         <div className="flex-1 p-4 md:p-6">
+          <MissingEmailNotice />
           <Outlet />
         </div>
       </SidebarInset>

@@ -94,4 +94,54 @@ describe('My account', () => {
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(1))
     expect(calls).toEqual(['delete 2', 'others'])
   })
+
+  it('changes the own address with a code', async () => {
+    let state = { email: 'anna@example.org', pendingEmail: null as string | null, canChange: true }
+    const calls: unknown[] = []
+    mockApi({
+      'GET /api/auth/me': authenticated(),
+      'GET /api/modules': { body: [] },
+      'GET /api/account/email': () => ({ body: state }),
+      'POST /api/account/email': (init) => {
+        const body = JSON.parse(String(init?.body))
+        calls.push(body)
+        state = { ...state, pendingEmail: body.email }
+        return { status: 204 }
+      },
+      'POST /api/account/email/confirm': (init) => {
+        const body = JSON.parse(String(init?.body))
+        calls.push(body)
+        if (body.code !== '123456') return { status: 400, body: { detail: 'Der Code ist ungültig oder abgelaufen.' } }
+        state = { email: state.pendingEmail!, pendingEmail: null, canChange: true }
+        return { body: state }
+      },
+    })
+    renderApp('/konto')
+    const user = userEvent.setup()
+    expect(await screen.findByText('anna@example.org')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Neue E-Mail-Adresse'), 'anna.neu@example.org')
+    await user.click(screen.getByRole('button', { name: 'Code senden' }))
+
+    const code = await screen.findByLabelText('Bestätigungscode')
+    await user.type(code, '000000')
+    await user.click(screen.getByRole('button', { name: 'Bestätigen' }))
+    expect(await screen.findByText('Der Code ist ungültig oder abgelaufen.')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Bestätigungscode'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Bestätigen' }))
+    expect(await screen.findByText('anna.neu@example.org')).toBeInTheDocument()
+    expect(calls).toEqual([{ email: 'anna.neu@example.org' }, { code: '000000' }, { code: '123456' }])
+  })
+
+  it('cannot change the address without outgoing mail', async () => {
+    mockApi({
+      'GET /api/auth/me': authenticated(),
+      'GET /api/modules': { body: [] },
+      'GET /api/account/email': { body: { email: null, pendingEmail: null, canChange: false } },
+    })
+    renderApp('/konto')
+    expect(await screen.findByText('Keine Adresse hinterlegt')).toBeInTheDocument()
+    expect(screen.getByText('Der E-Mail-Versand ist nicht eingerichtet. Bitte wende dich an einen Admin.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Neue E-Mail-Adresse')).not.toBeInTheDocument()
+  })
 })

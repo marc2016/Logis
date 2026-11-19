@@ -36,6 +36,8 @@ class PasskeysMigrationTest {
             var after = db.queryForMap("SELECT * FROM core.users");
             assertThat(after.get("webauthn_user_handle")).isNull();
             after.remove("webauthn_user_handle");
+            // Added by a later migration (outgoing-mail), checked in OutgoingMailMigrationTest.
+            after.remove("email");
             assertThat(after).isEqualTo(before);
             assertThat(db.queryForObject("SELECT count(*) FROM core.passkeys", Long.class)).isZero();
         } finally {

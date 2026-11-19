@@ -26,6 +26,7 @@ test('create a user, disable, enable and reset two-factor sign-in', async ({ bro
   const dialog = admin.getByRole('dialog', { name: 'Benutzer anlegen' })
   await dialog.getByLabel('Benutzername').fill(username)
   await dialog.getByLabel('Anzeigename').fill(`Test ${username}`)
+  await dialog.getByLabel('E-Mail-Adresse').fill(`${username}@example.org`)
   await dialog.getByLabel('Startpasswort').fill(password)
   await dialog.getByRole('button', { name: 'Anlegen' }).click()
   await expect(dialog).toBeHidden()

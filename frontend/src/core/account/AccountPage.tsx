@@ -20,6 +20,7 @@ import { RecoveryCodes } from '@/components/RecoveryCodes'
 import { api, ApiError } from '@/lib/api'
 import { useSession } from '@/core/auth/session'
 import { DevicesCard } from './DevicesCard'
+import { EmailCard } from './EmailCard'
 import { PasskeysCard } from './PasskeysCard'
 
 function ChangePasswordCard() {
@@ -139,6 +140,7 @@ export function AccountPage() {
     <>
       <PageHeader title="Mein Konto" />
       <div className="grid max-w-4xl gap-6 lg:grid-cols-2">
+        <EmailCard />
         <ChangePasswordCard />
         <RecoveryCodesCard />
         {session?.passkeys && <PasskeysCard />}

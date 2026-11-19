@@ -2,6 +2,7 @@ package app.logis.core.users;
 
 import app.logis.core.auth.PasskeyService;
 import app.logis.core.auth.RecoveryCodeService;
+import app.logis.core.mail.EmailAddress;
 import app.logis.core.web.ApiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,8 +44,9 @@ class UserAdminService {
         return users.findAllByOrderByUsernameAsc();
     }
 
-    User create(String username, String displayName, Role role, String password) {
+    User create(String username, String displayName, String email, Role role, String password) {
         var name = username.trim();
+        var address = EmailAddress.require(email, EmailAddress.INVALID);
         if (users.existsByUsernameIgnoreCase(name)) {
             throw ApiException.conflict("Benutzername ist bereits vergeben");
         }
@@ -52,13 +54,16 @@ class UserAdminService {
         var display = displayName == null || displayName.isBlank() ? name : displayName.trim();
         var user = new User(name, display, role, encoder.encode(password), clock.instant());
         user.setPasswordChangeRequired(true);
+        user.setEmail(address);
         users.save(user);
         events.publishEvent(new UserCreatedEvent(user.getId(), user.getDisplayName()));
         return user;
     }
 
-    User update(Long actingUserId, Long id, String displayName, Role role, Boolean enabled) {
+    User update(Long actingUserId, Long id, String displayName, String email, Role role, Boolean enabled) {
         var user = load(id);
+        // An address set by an admin takes effect without confirmation.
+        var address = email == null ? null : EmailAddress.require(email, EmailAddress.INVALID);
         if (enabled != null && !enabled && Objects.equals(actingUserId, id)) {
             throw ApiException.badRequest("Du kannst dein eigenes Konto nicht deaktivieren.");
         }
@@ -75,6 +80,9 @@ class UserAdminService {
         }
         if (role != null) {
             user.setRole(role);
+        }
+        if (address != null) {
+            user.setEmail(address);
         }
         if (enabled != null && enabled != user.isEnabled()) {
             user.setEnabled(enabled);

@@ -33,7 +33,10 @@ class RememberedDevicesMigrationTest {
 
             config.target("latest").load().migrate();
 
-            assertThat(db.queryForMap("SELECT * FROM core.users")).isEqualTo(before);
+            var after = db.queryForMap("SELECT * FROM core.users");
+            // Added by a later migration (outgoing-mail), checked in OutgoingMailMigrationTest.
+            after.remove("email");
+            assertThat(after).isEqualTo(before);
             assertThat(db.queryForObject("SELECT count(*) FROM core.remembered_devices", Long.class)).isZero();
         } finally {
             server.execute("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)");

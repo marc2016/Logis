@@ -31,12 +31,12 @@ class AdminUserController {
     }
 
     /** Returned view - without hashes, secrets or codes. */
-    record UserView(Long id, String username, String displayName, Role role, boolean enabled, boolean totpEnabled,
-            Instant lastLoginAt, Instant createdAt) {
+    record UserView(Long id, String username, String displayName, String email, Role role, boolean enabled,
+            boolean totpEnabled, Instant lastLoginAt, Instant createdAt) {
 
         static UserView of(User u) {
-            return new UserView(u.getId(), u.getUsername(), u.getDisplayName(), u.getRole(), u.isEnabled(),
-                    u.isTotpEnabled(), u.getLastLoginAt(), u.getCreatedAt());
+            return new UserView(u.getId(), u.getUsername(), u.getDisplayName(), u.getEmail(), u.getRole(),
+                    u.isEnabled(), u.isTotpEnabled(), u.getLastLoginAt(), u.getCreatedAt());
         }
     }
 
@@ -46,12 +46,14 @@ class AdminUserController {
                     message = "Benutzername: 3-64 Zeichen, nur Buchstaben, Ziffern, Punkt, Binde- und Unterstrich.")
             String username,
             @Size(max = 128, message = "Der Anzeigename darf hoechstens 128 Zeichen lang sein.") String displayName,
+            String email,
             @NotNull(message = "Bitte eine Rolle waehlen.") Role role,
             @NotBlank(message = "Bitte ein Startpasswort angeben.") String password) {
     }
 
     record UpdateUserRequest(
             @Size(max = 128, message = "Der Anzeigename darf hoechstens 128 Zeichen lang sein.") String displayName,
+            String email,
             Role role,
             Boolean enabled) {
     }
@@ -67,13 +69,13 @@ class AdminUserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     UserView create(@Valid @RequestBody CreateUserRequest body) {
-        return UserView.of(service.create(body.username(), body.displayName(), body.role(), body.password()));
+        return UserView.of(service.create(body.username(), body.displayName(), body.email(), body.role(), body.password()));
     }
 
     @PatchMapping("/{id}")
     UserView update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest body,
             @AuthenticationPrincipal LogisPrincipal principal) {
-        return UserView.of(service.update(principal.userId(), id, body.displayName(), body.role(), body.enabled()));
+        return UserView.of(service.update(principal.userId(), id, body.displayName(), body.email(), body.role(), body.enabled()));
     }
 
     @PostMapping("/{id}/reset-password")

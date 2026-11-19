@@ -30,7 +30,7 @@ class LegalEntitiesTest extends LedgerTest {
         var admin = actor(app.logis.core.users.Role.ADMIN);
         var name = "neu" + System.nanoTime();
         postJson("/api/admin/users", Map.of("username", name, "displayName", "Neu", "role", "USER",
-                "password", "start-passwort-123"), admin.session()).andExpect(status().isCreated());
+                "email", "neu@example.org", "password", "start-passwort-123"), admin.session()).andExpect(status().isCreated());
         var count = jdbc.queryForObject("SELECT count(*) FROM core.legal_entities le JOIN core.users u "
                 + "ON u.id = le.manager_user_id WHERE u.username = ? AND le.personal AND le.name = 'Neu privat'",
                 Integer.class, name);

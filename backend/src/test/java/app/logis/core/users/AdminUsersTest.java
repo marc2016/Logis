@@ -41,7 +41,7 @@ class AdminUsersTest extends IntegrationTest {
         var admin = adminSession();
         var name = "anna" + System.nanoTime();
         postJson("/api/admin/users", Map.of("username", name, "displayName", "Anna", "role", "USER",
-                "password", "start-passwort-123"), admin)
+                "email", "anna@example.org", "password", "start-passwort-123"), admin)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.totpEnabled").value(false));
@@ -58,7 +58,8 @@ class AdminUsersTest extends IntegrationTest {
     void duplicateUsernameIgnoringCase() throws Exception {
         var admin = adminSession();
         var name = "anna" + System.nanoTime();
-        var body = new HashMap<String, Object>(Map.of("username", name, "role", "USER", "password", "start-passwort-123"));
+        var body = new HashMap<String, Object>(Map.of("username", name, "role", "USER", "password", "start-passwort-123",
+                "email", "anna@example.org"));
         postJson("/api/admin/users", body, admin).andExpect(status().isCreated());
         body.put("username", name.toUpperCase());
         postJson("/api/admin/users", body, admin)
@@ -189,5 +190,49 @@ class AdminUsersTest extends IntegrationTest {
                 assertStatus(device.get("/api/modules"), 401);
             }
         }
+    }
+
+    // --- outgoing-mail: e-mail address ---------------------------------------------------------------
+
+    @Test
+    void createRequiresAValidEmailAddress() throws Exception {
+        var admin = adminSession();
+        for (var email : new String[] {null, "", "keine-adresse", "Anna <anna@example.org>", "a@b@example.org"}) {
+            var body = new HashMap<String, Object>(Map.of("username", "neu" + System.nanoTime() % 100000,
+                    "role", "USER", "password", "start-passwort-123"));
+            if (email != null) {
+                body.put("email", email);
+            }
+            postJson("/api/admin/users", body, admin).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("Bitte eine gültige E-Mail-Adresse angeben."));
+        }
+    }
+
+    @Test
+    void createAndEditStoreTheAddress() throws Exception {
+        var admin = adminSession();
+        var name = "mail" + System.nanoTime() % 100000;
+        var created = postJson("/api/admin/users", Map.of("username", name, "role", "USER",
+                "email", " erika@example.org ", "password", "start-passwort-123"), admin)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("erika@example.org")).andReturn();
+        var id = json.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        patchJson("/api/admin/users/" + id, Map.of("email", "erika.neu@example.org"), admin)
+                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("erika.neu@example.org"));
+        patchJson("/api/admin/users/" + id, Map.of("email", "kaputt"), admin).andExpect(status().isBadRequest());
+        getWith("/api/admin/users", admin)
+                .andExpect(content().string(containsString("erika.neu@example.org")));
+    }
+
+    @Test
+    void meReportsAMissingAddress() throws Exception {
+        var anna = createUser(Role.USER, true);
+        var session = login(anna);
+        getWith("/api/auth/me", session).andExpect(jsonPath("$.user.emailMissing").value(true));
+
+        patchJson("/api/admin/users/" + anna.id(), Map.of("email", "anna@example.org"), adminSession())
+                .andExpect(status().isOk());
+        getWith("/api/auth/me", session).andExpect(jsonPath("$.user.emailMissing").value(false));
     }
 }

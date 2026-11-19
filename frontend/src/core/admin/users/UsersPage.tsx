@@ -34,6 +34,7 @@ export interface AdminUser {
   id: number
   username: string
   displayName: string
+  email: string | null
   role: Role
   enabled: boolean
   totpEnabled: boolean
@@ -70,17 +71,19 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   const queryClient = useQueryClient()
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('USER')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const create = useMutation({
-    mutationFn: () => api<AdminUser>('/api/admin/users', { json: { username, displayName, role, password } }),
+    mutationFn: () => api<AdminUser>('/api/admin/users', { json: { username, displayName, email, role, password } }),
     onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: usersKey })
       toast.success(`Benutzer „${user.username}“ angelegt.`)
       setUsername('')
       setDisplayName('')
+      setEmail('')
       setRole('USER')
       setPassword('')
       onOpenChange(false)
@@ -113,6 +116,10 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             <Input id="new-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="new-email">E-Mail-Adresse</Label>
+            <Input id="new-email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="role">Rolle</Label>
             <RoleSelect value={role} onChange={setRole} />
           </div>
@@ -138,11 +145,17 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
 function EditUserDialog({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const queryClient = useQueryClient()
   const [displayName, setDisplayName] = useState(user.displayName)
+  const [email, setEmail] = useState(user.email ?? '')
   const [role, setRole] = useState<Role>(user.role)
   const [error, setError] = useState<string | null>(null)
 
   const update = useMutation({
-    mutationFn: () => api<AdminUser>(`/api/admin/users/${user.id}`, { method: 'PATCH', json: { displayName, role } }),
+    mutationFn: () =>
+      api<AdminUser>(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        // An empty field leaves a missing address missing; an address set by an admin needs no confirmation.
+        json: { displayName, role, ...(email.trim() ? { email } : {}) },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usersKey })
       toast.success('Änderungen gespeichert.')
@@ -168,6 +181,10 @@ function EditUserDialog({ user, onClose }: { user: AdminUser; onClose: () => voi
           <div className="space-y-2">
             <Label htmlFor="edit-display-name">Anzeigename</Label>
             <Input id="edit-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-email">E-Mail-Adresse</Label>
+            <Input id="edit-email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="noch keine hinterlegt" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Rolle</Label>
@@ -352,6 +369,7 @@ export function UsersPage() {
                 <TableCell>
                   <div className="font-medium">{user.displayName}</div>
                   <div className="text-xs text-muted-foreground">{user.username}</div>
+                  <div className="text-xs text-muted-foreground">{user.email ?? 'Keine E-Mail-Adresse'}</div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>{roleLabel[user.role]}</Badge>

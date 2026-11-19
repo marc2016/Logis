@@ -59,6 +59,10 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Null for users created before addresses existed (design D5 of outgoing-mail). */
+    @Column(length = 254)
+    private String email;
+
     protected User() {
     }
 
@@ -89,6 +93,14 @@ public class User {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getDisplayName() {

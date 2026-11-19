@@ -108,7 +108,8 @@
   - the current address, or „Keine Adresse hinterlegt“;
   - a form for the new address, then the code input (6 digits), and „Code erneut senden“;
   - the notice from the spec when `canChange` is false.
-- **App shell:** a dismissible-per-page `Alert` above the content when `emailMissing`, with the link „Mein Konto“. It reappears on the next page until an address exists.
+- **App shell:** an `Alert` above the content when `emailMissing`, with the link „Mein Konto“. It is not dismissible, so it stays until an address exists.
+- **Validation:** shared by the SMTP sender address and user addresses as `core.mail.EmailAddress`. The own address change lives in `core.users` (`EmailChangeService`, `/api/account/email`) next to the address it changes.
 
 ## Risks / Trade-offs
 

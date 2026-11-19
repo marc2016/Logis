@@ -8,6 +8,7 @@ const admin: AdminUser = {
   id: 1,
   username: 'admin',
   displayName: 'Anna Admin',
+  email: 'admin@example.org',
   role: 'ADMIN',
   enabled: true,
   totpEnabled: true,
@@ -30,6 +31,7 @@ async function openCreateDialog() {
   await user.click(await screen.findByRole('button', { name: 'Benutzer anlegen' }))
   const dialog = await screen.findByRole('dialog')
   await user.type(within(dialog).getByLabelText('Benutzername'), 'anna')
+  await user.type(within(dialog).getByLabelText('E-Mail-Adresse'), 'anna@example.org')
   await user.type(within(dialog).getByLabelText('Startpasswort'), 'start-passwort-123')
   await user.click(within(dialog).getByRole('button', { name: 'Anlegen' }))
   return dialog
@@ -53,7 +55,28 @@ describe('User management', () => {
     })
     await openCreateDialog()
     expect(await screen.findByText('Benutzer „anna“ angelegt.')).toBeInTheDocument()
-    expect(body).toEqual({ username: 'anna', displayName: '', role: 'USER', password: 'start-passwort-123' })
+    expect(body).toEqual({ username: 'anna', displayName: '', email: 'anna@example.org', role: 'USER', password: 'start-passwort-123' })
+  })
+
+  it('shows the address and changes it', async () => {
+    let body: unknown
+    setup({
+      'GET /api/admin/users': { body: [admin, { ...admin, id: 2, username: 'bert', displayName: 'Bert', email: null, role: 'USER' }] },
+      'PATCH /api/admin/users/2': (init) => {
+        body = JSON.parse(String(init?.body))
+        return { body: {} }
+      },
+    })
+    expect(await screen.findByText('admin@example.org')).toBeInTheDocument()
+    expect(screen.getByText('Keine E-Mail-Adresse')).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Aktionen für bert' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByLabelText('E-Mail-Adresse')).toHaveValue('')
+    await user.type(within(dialog).getByLabelText('E-Mail-Adresse'), 'bert@example.org')
+    await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
+    await waitFor(() => expect(body).toEqual({ displayName: 'Bert', role: 'USER', email: 'bert@example.org' }))
   })
 
   it('shows the message for a duplicate username', async () => {

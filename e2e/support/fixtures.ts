@@ -4,6 +4,7 @@ import { ADMIN_STATE } from './global-setup'
 
 export interface TestUser extends Credentials {
   displayName: string
+  email: string
   id: number
 }
 
@@ -13,9 +14,10 @@ export async function createUser(baseURL: string, prefix = 'e2e'): Promise<TestU
   const username = unique(`${prefix}.`)
   const password = `Start-${username}-2026`
   const displayName = `Test ${username}`
-  const created = await call<{ id: number }>(admin, 'POST', '/api/admin/users', { username, displayName, role: 'USER', password })
+  const email = `${username}@example.org`
+  const created = await call<{ id: number }>(admin, 'POST', '/api/admin/users', { username, displayName, email, role: 'USER', password })
   await admin.dispose()
-  return { username, password, displayName, id: created.id }
+  return { username, password, displayName, email, id: created.id }
 }
 
 /** A further user, signed in in its own browser context (e.g. to see what a share allows). Close `page.context()`. */
