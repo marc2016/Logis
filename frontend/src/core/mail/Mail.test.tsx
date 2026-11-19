@@ -465,3 +465,19 @@ describe('Owner block mails', () => {
     expect(within(row).getByText('Eigentümerblockung')).toBeInTheDocument()
   })
 })
+
+describe('Ticket receipts', () => {
+  it('shows an agency ticket receipt as ignored', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': {
+        body: [inboxItem({ subject: '[#ABC-123-45678]: Eigentümerblockung', kind: 'TICKET_RECEIPT', result: 'IGNORED', source: 'Fewo & Meer', reference: 'ABC-123-45678' })],
+      },
+    })
+    renderApp('/posteingang')
+    const row = await screen.findByRole('row', { name: /ABC-123-45678/ })
+    expect(within(row).getByText('Ignoriert')).toBeInTheDocument()
+    expect(within(row).getByText('Eingangsbestätigung')).toBeInTheDocument()
+  })
+})

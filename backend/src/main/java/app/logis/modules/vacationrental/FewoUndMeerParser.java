@@ -82,6 +82,26 @@ class FewoUndMeerParser implements MailParser {
         return Optional.empty();
     }
 
+    private static final Pattern RECEIPT = Pattern.compile("vielen\\s+Dank\\s+für\\s+Ihre\\s+E-Mail",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern TICKET_ID = Pattern.compile("Ticket-ID:\\s*([A-Z]{3}-\\d{3}-\\d{5})\\b");
+    /** A line quoted with „>“: a reply that quotes a receipt is no receipt itself. */
+    private static final Pattern QUOTED_LINE = Pattern.compile("(?m)^\\s*>.*$");
+
+    /** The ticket system's automatic receipt („vielen Dank für Ihre E-Mail … Ticket-ID: …“). */
+    @Override
+    public Optional<String> ticketReceipt(MailContent mail) {
+        if (!fromAgency(mail)) {
+            return Optional.empty();
+        }
+        var text = QUOTED_LINE.matcher(mail.text()).replaceAll("");
+        if (!RECEIPT.matcher(text).find()) {
+            return Optional.empty();
+        }
+        var id = TICKET_ID.matcher(text);
+        return id.find() ? Optional.of(id.group(1)) : Optional.empty();
+    }
+
     @Override
     public java.util.Set<String> agencyDomains() {
         return java.util.Set.of("fewoundmeer.de", "fewoscout.com");

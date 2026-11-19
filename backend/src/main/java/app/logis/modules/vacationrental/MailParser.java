@@ -17,4 +17,12 @@ interface MailParser {
     default Set<String> agencyDomains() {
         return Set.of();
     }
+
+    /**
+     * The ticket ID if the mail is the agency's automatic receipt of a mail the owner sent (spec booking-mails,
+     * „Ticket receipts“); empty otherwise.
+     */
+    default Optional<String> ticketReceipt(MailContent mail) {
+        return Optional.empty();
+    }
 }

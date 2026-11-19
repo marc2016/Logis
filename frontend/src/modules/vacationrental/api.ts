@@ -242,6 +242,7 @@ export const mailKindLabel: Record<string, string> = {
   CANCELLATION: 'Stornierung',
   BLOCK_NOTICE: 'Blockung',
   OWNER_BLOCK: 'Eigentümerblockung',
+  TICKET_RECEIPT: 'Eingangsbestätigung',
 }
 
 // Kept equal to RESULT_LABELS in the backend's BookingMailHandler (checked by MailLabelsTest).

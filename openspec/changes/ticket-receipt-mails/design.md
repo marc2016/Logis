@@ -46,4 +46,8 @@ The kind label „Eingangsbestätigung“ is added to `mailKindLabel` in the fro
 ## Risks / Trade-offs
 
 - **The agency changes its receipt text.** → Receipts fall back to „Nicht erkannt“, which is the same as today. No harm.
-- **A staff reply quotes an earlier receipt** (contains both phrases). → It would be ignored. Mitigation: only the text before the first quote marker counts. Use the existing handling of quoted text if the parser has one, otherwise the text before the first line starting with „>“ or „Von:“/„From:“.
+- **A staff reply quotes an earlier receipt** (contains both phrases). → Lines quoted with „>“ are left out before the check.
+
+  Cutting at the first „Von:“/„From:“ line was considered and dropped: a receipt forwarded by the owner starts with exactly such a header and would be missed.
+
+  A reply that quotes a receipt without „>“ (Outlook style) would still be ignored. Accepted: in the real export, none of the 65 staff replies in ticket threads contained the receipt text.

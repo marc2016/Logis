@@ -21,6 +21,9 @@ import java.util.Set;
 class BookingMailHandler implements MailHandler {
 
     static final String KEY = "vacationrental.booking";
+    /** The core's result for ignored mails, labelled „Ignoriert“ by the inbox. */
+    static final String IGNORED = "IGNORED";
+    static final String TICKET_RECEIPT = "TICKET_RECEIPT";
 
     private final MailRecognizer recognizer;
     private final ImportEngine engine;
@@ -47,6 +50,12 @@ class BookingMailHandler implements MailHandler {
 
     @Override
     public Optional<Handled> handle(Long ownerUserId, MailContent mail, byte[] raw) {
+        // Before every other rule and the AI: receipts carry no booking data (spec booking-mails, „Ticket receipts“).
+        var receipt = recognizer.ticketReceipt(mail);
+        if (receipt.isPresent()) {
+            return Optional.of(new Handled(IGNORED, null, TICKET_RECEIPT, FewoUndMeerParser.AGENCY, receipt.get(),
+                    null, null, null, null, MailRecognizer.Source.RULE.name()));
+        }
         var recognition = recognizer.recognize(mail);
         var parsed = recognition.parsed();
         if (parsed == null) {
@@ -77,7 +86,8 @@ class BookingMailHandler implements MailHandler {
             "CHANGE", "Änderung",
             "CANCELLATION", "Stornierung",
             "BLOCK_NOTICE", "Blockung",
-            "OWNER_BLOCK", "Eigentümerblockung");
+            "OWNER_BLOCK", "Eigentümerblockung",
+            "TICKET_RECEIPT", "Eingangsbestätigung");
 
     @Override
     public java.util.Set<String> agencyDomains() {

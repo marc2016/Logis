@@ -274,4 +274,43 @@ class MailParsersTest {
         assertThat(GermanText.amount("abc")).isNull();
         assertThat(GermanText.children("4 Erwachsene/ 0 Kinder")).isZero();
     }
+
+    // --- Ticket receipts (spec booking-mails, „Ticket receipts“) -------------------------------------
+
+    private static MailContent receiptLike(String sender, String text) {
+        return new MailContent("<r@example.org>", java.time.Instant.parse("2026-11-02T09:00:00Z"), sender,
+                "[#ABC-123-45678]: Eigentümerblockung", text);
+    }
+
+    private static final String RECEIPT = "Sehr geehrter Kunde,\n\nvielen Dank für Ihre E-Mail, die wir gerne "
+            + "bearbeiten werden.\n\n\tTicket-ID: ABC-123-45678\n\tBetreff: Eigentümerblockung\n";
+
+    @Test
+    void ticketReceipt() throws Exception {
+        assertThat(fewo.ticketReceipt(mail("fewo-ticket-receipt.eml"))).contains("ABC-123-45678");
+        assertThat(fewo.parse(mail("fewo-ticket-receipt.eml"))).isEmpty();
+    }
+
+    @Test
+    void ticketReceiptForwardedByTheOwner() {
+        var forwarded = receiptLike("anna@example.org", "---------- Weitergeleitete Nachricht ----------\n"
+                + "Von: Fewo & Meer Service <service@fewoundmeer.de>\n\n" + RECEIPT);
+        assertThat(fewo.ticketReceipt(forwarded)).contains("ABC-123-45678");
+    }
+
+    @Test
+    void staffReplyInTheSameTicketIsNoReceipt() {
+        var reply = receiptLike("service@fewoundmeer.de", "Guten Tag,\n\ndie Blockung ist eingetragen.\n\n"
+                + "Ticket-ID: ABC-123-45678\n");
+        assertThat(fewo.ticketReceipt(reply)).isEmpty();
+        var quoting = receiptLike("service@fewoundmeer.de", "Guten Tag,\n\ndie Blockung ist eingetragen.\n\n"
+                + RECEIPT.lines().map(l -> "> " + l).reduce("", (a, b) -> a + b + "\n"));
+        assertThat(fewo.ticketReceipt(quoting)).isEmpty();
+    }
+
+    @Test
+    void receiptTextFromAnotherSenderIsNoReceipt() {
+        assertThat(fewo.ticketReceipt(receiptLike("support@anbieter.example", RECEIPT))).isEmpty();
+        assertThat(holidu.ticketReceipt(receiptLike("service@fewoundmeer.de", RECEIPT))).isEmpty();
+    }
 }

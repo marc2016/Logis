@@ -98,4 +98,20 @@ class MailRecognizerTest {
         assertThat(recognizer.recognizeByRules(MailParsersTest.mail("fewo-confirmation-adults.eml"))).isPresent();
         assertThat(calls).hasValue(0);
     }
+
+    @Test
+    void ticketReceiptIsHandledAsIgnoredWithoutTheAi() throws Exception {
+        var calls = new AtomicInteger();
+        var handler = new BookingMailHandler(recognizer((s, sub, t) -> {
+            calls.incrementAndGet();
+            return Optional.empty();
+        }), null, null, null);
+        var handled = handler.handle(1L, MailParsersTest.mail("fewo-ticket-receipt.eml"), new byte[0]).orElseThrow();
+        assertThat(handled.result()).isEqualTo("IGNORED");
+        assertThat(handled.kind()).isEqualTo("TICKET_RECEIPT");
+        assertThat(handled.source()).isEqualTo("Fewo & Meer");
+        assertThat(handled.reference()).isEqualTo("ABC-123-45678");
+        assertThat(handled.linkId()).isNull();
+        assertThat(calls).hasValue(0);
+    }
 }

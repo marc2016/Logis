@@ -215,6 +215,31 @@ class MailImportTest extends VacationRentalTest {
     }
 
     @Test
+    void ticketReceiptIsIgnoredAndAStoredOneOnRetry() throws Exception {
+        deliver("fewo-ticket-receipt.eml", "2026-11-02T09:00:00Z");
+        imports.pollNow(anna.id());
+        var item = inboxItem(anna, "Eigentümerblockung");
+        assertThat(item.get("result")).isEqualTo("IGNORED");
+        assertThat(item.get("kind")).isEqualTo("TICKET_RECEIPT");
+        assertThat(item.get("reference")).isEqualTo("ABC-123-45678");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM vacationrental.bookings WHERE unit_id = ?", Integer.class,
+                unit)).isZero();
+
+        // Stored as not recognised before receipts were known; the user processes it again.
+        byte[] raw;
+        try (var in = getClass().getResourceAsStream("/mails/fewo-ticket-receipt.eml")) {
+            raw = in.readAllBytes();
+        }
+        var id = jdbc.queryForObject("INSERT INTO core.mails (owner_user_id, message_id, received_at, raw, result) "
+                + "VALUES (?, '<old-receipt@example.org>', now(), ?, 'NOT_RECOGNISED') RETURNING id", Long.class,
+                anna.id(), raw);
+        postJson("/api/mail/inbox/" + id + "/retry", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("IGNORED"))
+                .andExpect(jsonPath("$.kind").value("TICKET_RECEIPT"));
+    }
+
+    @Test
     void manualBookingIsMatchedByNumberAndDiscardMarksTheMail() throws Exception {
         var body = stay(unit, "2026-11-06", "2026-11-08");
         body.put("externalRef", "250905");

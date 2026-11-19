@@ -43,6 +43,11 @@ class MailRecognizer {
         return ai.getIfAvailable() != null;
     }
 
+    /** The ticket ID if a rule knows the mail as an agency's ticket receipt; never asks the AI. */
+    Optional<String> ticketReceipt(MailContent mail) {
+        return rules.stream().map(r -> r.ticketReceipt(mail)).flatMap(Optional::stream).findFirst();
+    }
+
     /** Sender domains of all agencies the rules know. */
     java.util.Set<String> agencyDomains() {
         var domains = new java.util.HashSet<String>();
