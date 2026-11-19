@@ -14,6 +14,9 @@ export interface MailboxSettings {
   lastPollAt: string | null
   lastError: string | null
   aiEnabled: boolean
+  /** The owner allows admins to export pseudonymized copies of their mails. */
+  adminExportAllowed: boolean
+  lastExport: { at: string; mailCount: number; adminName: string } | null
 }
 
 /** Progress of the current or last fetch of the mailbox; `total` is null until the folder has been searched. */

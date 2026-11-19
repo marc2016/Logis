@@ -27,6 +27,8 @@ const mailbox: MailboxSettings = {
   lastPollAt: '2026-11-07T10:00:00Z',
   lastError: null,
   aiEnabled: false,
+  adminExportAllowed: false,
+  lastExport: null,
 }
 
 function inboxItem(overrides: Partial<InboxItem> = {}): InboxItem {
@@ -70,6 +72,43 @@ describe('Inbox', () => {
     expect(screen.getByText(/KI ist ausgeschaltet/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Speichern' }))
     await waitFor(() => expect(sent).toMatchObject({ host: 'imap.example.org', folder: 'Buchungen', password: '', cutoffDate: '2026-11-01' }))
+  })
+
+  it('switches the consent to the admin export and shows the last export', async () => {
+    let current: MailboxSettings = mailbox
+    const sent: unknown[] = []
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': () => ({ body: current }),
+      'GET /api/mail/inbox': { body: [] },
+      'PUT /api/mail/mailbox/export-consent': (init) => {
+        const body = JSON.parse(String(init?.body))
+        sent.push(body)
+        current = { ...current, adminExportAllowed: body.allowed }
+        return { body: current }
+      },
+    })
+    renderApp('/posteingang')
+    const user = userEvent.setup()
+    const consent = await screen.findByRole('checkbox', { name: 'Admins dürfen meine Mails pseudonymisiert exportieren' })
+    expect(consent).not.toBeChecked()
+    expect(screen.queryByText(/Zuletzt exportiert/)).not.toBeInTheDocument()
+
+    await user.click(consent)
+    await waitFor(() => expect(consent).toBeChecked())
+    expect(sent).toEqual([{ allowed: true }])
+  })
+
+  it('shows the last admin export', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': {
+        body: { ...mailbox, adminExportAllowed: true, lastExport: { at: '2026-11-19T09:30:00Z', mailCount: 42, adminName: 'Anna Admin' } },
+      },
+      'GET /api/mail/inbox': { body: [] },
+    })
+    renderApp('/posteingang')
+    expect(await screen.findByText(/Zuletzt exportiert am .* · 42 Mails · von Anna Admin/)).toBeInTheDocument()
   })
 
   it('shows the AI notice when AI is active', async () => {

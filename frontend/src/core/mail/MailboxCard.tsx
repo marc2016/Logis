@@ -65,6 +65,15 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
     onError: (err) => toast.error(errorMessage(err)),
   })
   const busy = trigger.isPending || status?.state === 'RUNNING'
+  const consent = useMutation({
+    mutationFn: (allowed: boolean) =>
+      api<MailboxSettings>('/api/mail/mailbox/export-consent', { method: 'PUT', json: { allowed } }),
+    onSuccess: async (saved) => {
+      await refresh()
+      toast.success(saved.adminExportAllowed ? 'Export durch Admins erlaubt.' : 'Export durch Admins nicht mehr erlaubt.')
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  })
 
   // When a fetch ends, show its mails and the new time of the last fetch.
   const running = status?.state === 'RUNNING'
@@ -189,6 +198,30 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
               </div>
               <p className="text-xs text-muted-foreground">Bereits abgerufene Mails werden übersprungen, es entstehen keine doppelten Einträge.</p>
             </div>
+          </div>
+        )}
+
+        {mailbox.configured && (
+          <div className="space-y-2 border-t pt-4 text-sm">
+            <label className="inline-flex items-center gap-2">
+              <Checkbox
+                checked={mailbox.adminExportAllowed}
+                disabled={consent.isPending}
+                onCheckedChange={(v) => consent.mutate(v === true)}
+                aria-label="Admins dürfen meine Mails pseudonymisiert exportieren"
+              />
+              Admins dürfen meine Mails pseudonymisiert exportieren
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Zum Beispiel, um die Erkennung neuer Mail-Formate zu verbessern. Namen, Adressen, Telefonnummern, E-Mail-Adressen und
+              Buchungsnummern werden nach bestem Bemühen ersetzt, Anhänge entfernt. Jeder Export wird protokolliert.
+            </p>
+            {mailbox.lastExport && (
+              <p className="text-muted-foreground">
+                Zuletzt exportiert am {dateTime.format(new Date(mailbox.lastExport.at))} · {mailbox.lastExport.mailCount}{' '}
+                {mailbox.lastExport.mailCount === 1 ? 'Mail' : 'Mails'} · von {mailbox.lastExport.adminName}
+              </p>
+            )}
           </div>
         )}
 

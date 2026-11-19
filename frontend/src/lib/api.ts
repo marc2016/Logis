@@ -85,3 +85,42 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T
 }
+
+/**
+ * A POST that answers with a file (e.g. a ZIP): returns it as a Blob with the file name from Content-Disposition.
+ * Errors and the sign-in redirect behave like {@link api}.
+ */
+export async function apiDownload(path: string, json: unknown): Promise<{ blob: Blob; filename: string | null }> {
+  const headers = new Headers({ 'Content-Type': 'application/json' })
+  const token = readCookie('XSRF-TOKEN')
+  if (token) headers.set('X-XSRF-TOKEN', decodeURIComponent(token))
+  const response = await fetch(path, { method: 'POST', headers, credentials: 'include', body: JSON.stringify(json) })
+  if (response.status === 401) redirectToLogin()
+  if (!response.ok) {
+    let message = defaultMessage(response.status)
+    let reauthenticationRequired = false
+    try {
+      const problem = await response.json()
+      if (typeof problem?.detail === 'string' && problem.detail) message = problem.detail
+      reauthenticationRequired = problem?.type === REAUTHENTICATION_REQUIRED
+    } catch {
+      // no JSON body
+    }
+    throw new ApiError(response.status, message, reauthenticationRequired)
+  }
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? null
+  return { blob: await response.blob(), filename }
+}
+
+/** Offers a Blob to the user as a download. */
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

@@ -48,6 +48,13 @@ class Mailbox {
     @Column(name = "last_error")
     private String lastError;
 
+    /** The owner allows admins to export pseudonymized copies of their mails. */
+    @Column(name = "admin_export_allowed", nullable = false)
+    private boolean adminExportAllowed;
+
+    @Column(name = "admin_export_allowed_at")
+    private Instant adminExportAllowedAt;
+
     @Version
     @Column(nullable = false)
     private long version;
@@ -113,6 +120,21 @@ class Mailbox {
         this.useTls = useTls;
         this.cutoffDate = cutoffDate;
         this.enabled = enabled;
+    }
+
+    boolean isAdminExportAllowed() {
+        return adminExportAllowed;
+    }
+
+    Instant getAdminExportAllowedAt() {
+        return adminExportAllowedAt;
+    }
+
+    void allowAdminExport(boolean allowed, Instant now) {
+        if (allowed != adminExportAllowed) {
+            this.adminExportAllowed = allowed;
+            this.adminExportAllowedAt = allowed ? now : null;
+        }
     }
 
     void polled(Instant at, String error) {

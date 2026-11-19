@@ -120,6 +120,9 @@ http:
 - Under *Mein Konto* everyone changes their password and generates new recovery codes.
 - **Passkeys** (when `LOGIS_PUBLIC_URL` is set): under *Mein Konto* everyone can add passkeys after confirming their password. „Mit Passkey anmelden“ then signs in with Face ID, Touch ID or the device PIN, without password or code. 2FA stays mandatory as the way back. Resetting a user's 2FA also deletes their passkeys.
   - Passkeys are bound to the domain in `LOGIS_PUBLIC_URL`. **Changing the domain later makes all existing passkeys unusable**; users then sign in with password and code and add new ones.
+- **Mail-Export for admins:** under *Einstellungen > Mail-Export* an admin downloads a ZIP of stored mails (one `.eml` per mail plus `index.csv`), filtered by mailbox, period, result and agency, for example to improve the recognition of new agency formats. Only mailboxes whose owners switched on „Admins dürfen meine Mails pseudonymisiert exportieren“ in their mailbox settings are offered.
+  - The mails are pseudonymized **on a best-effort basis**: guest names, addresses, phone numbers, e-mail addresses and booking numbers that Logis knows or recognises are replaced, as are addresses, phone numbers and IBANs found by pattern. Names and addresses Logis does not know can remain. Dates and amounts stay. Attachments are removed. Deleted mails are never exported.
+  - Every export is logged per mailbox; the owner sees their last export in the mailbox settings. This is the only way an admin gets content from other users' mailboxes.
 - **Angemeldet bleiben:** with this box checked at sign-in, the device stays signed in without password or code: for 30 days after its last use and for 90 days after the sign-in at most. It also survives backend restarts. *Mein Konto > Angemeldete Geräte* lists these devices and signs them out, one at a time or all others at once. On such a device, the admin area asks for a fresh sign-in.
 
 ## Finances and sharing
@@ -300,6 +303,7 @@ npx playwright test                 # npx playwright test --project=phone for on
 - Sign-in with password and mandatory TOTP, plus 10 single-use recovery codes. The TOTP secrets are encrypted with AES-256-GCM.
 - After 5 failed attempts the user is locked; the lockout grows up to 15 minutes. In addition, a per-IP rate limit applies to the sign-in steps.
 - Sessions end after 30 minutes of inactivity and after 12 hours at the latest. The cookie is `HttpOnly`, `SameSite=Lax` and `Secure` behind HTTPS. There is CSRF protection.
+- The role `ADMIN` gives no access to domain data, with one exception: the pseudonymized mail export from mailboxes whose owners consented, which is logged.
 - „Angemeldet bleiben“ sets a second cookie `LOGIS_REMEMBER` (same attributes, path `/api`). The database stores only a hash of it. Its token changes on every new session; a replayed old token or a different browser or operating system ends the device. The durations are set by `logis.auth.remember-me.sliding` (default `30d`) and `logis.auth.remember-me.absolute` (default `90d`). Password changes, admin resets and disabling a user end all remembered devices.
 - Responses carry the headers HSTS, CSP, `X-Frame-Options`, `nosniff` and `Referrer-Policy`. Error responses contain no internal details.
 - Backend and database are reachable only in the internal Docker network. `/actuator` is not reachable from outside.

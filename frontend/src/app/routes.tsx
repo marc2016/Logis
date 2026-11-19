@@ -5,6 +5,7 @@ import { DashboardPage } from '@/core/dashboard/DashboardPage'
 import { AccountPage } from '@/core/account/AccountPage'
 import { UsersPage } from '@/core/admin/users/UsersPage'
 import { CategoriesPage } from '@/core/admin/categories/CategoriesPage'
+import { MailExportPage } from '@/core/admin/mail-export/MailExportPage'
 import { AccountsPage } from '@/core/ledger/accounts/AccountsPage'
 import { AccountDetailPage } from '@/core/ledger/accounts/AccountDetailPage'
 import { TransactionsPage } from '@/core/ledger/transactions/TransactionsPage'
@@ -46,6 +47,14 @@ export const routes: RouteObject[] = [
             element: (
               <RequireAdmin>
                 <UsersPage />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: 'einstellungen/mail-export',
+            element: (
+              <RequireAdmin>
+                <MailExportPage />
               </RequireAdmin>
             ),
           },

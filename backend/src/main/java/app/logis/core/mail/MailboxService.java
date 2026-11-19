@@ -5,6 +5,7 @@ import app.logis.shared.SecretCipher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -18,8 +19,10 @@ class MailboxService {
     private final MailboxRepository mailboxes;
     private final ImapClient imap;
     private final SecretCipher cipher;
+    private final Clock clock;
 
-    MailboxService(MailboxRepository mailboxes, ImapClient imap, SecretCipher cipher) {
+    MailboxService(MailboxRepository mailboxes, ImapClient imap, SecretCipher cipher, Clock clock) {
+        this.clock = clock;
         this.mailboxes = mailboxes;
         this.imap = imap;
         this.cipher = cipher;
@@ -66,6 +69,13 @@ class MailboxService {
         mailbox.apply(host, port, username, cipher.encrypt(password), folder, useTls, input.cutoffDate(),
                 input.enabled() == null || input.enabled());
         return mailboxes.save(mailbox);
+    }
+
+    /** Only the owner calls this, through their own mailbox settings (design D1 of admin-mail-export). */
+    Mailbox allowAdminExport(Long userId, boolean allowed) {
+        var mailbox = mailboxes.findById(userId).orElseThrow(() -> ApiException.notFound("Kein Postfach eingerichtet"));
+        mailbox.allowAdminExport(allowed, clock.instant());
+        return mailbox;
     }
 
     void delete(Long userId) {

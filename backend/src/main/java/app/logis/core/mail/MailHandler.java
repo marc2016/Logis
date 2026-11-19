@@ -1,6 +1,7 @@
 package app.logis.core.mail;
 
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Handles fetched mails it understands, e.g. booking mails in vacation rental. The core offers each mail to the
@@ -18,4 +19,19 @@ public interface MailHandler {
 
     /** What the handler did with the mail, or empty if the mail is not one it handles. */
     Optional<Handled> handle(Long ownerUserId, MailContent mail, byte[] raw);
+
+    /**
+     * Values to pseudonymize when mails of this owner are exported by an admin. Called once per exported mailbox, so
+     * the result may hold values collected for the owner; it is then asked once per mail. Must not use AI services.
+     */
+    default SensitiveValues sensitiveValues(Long ownerUserId) {
+        return mail -> Set.of();
+    }
+
+    /** Sensitive values of one mail, see {@link #sensitiveValues(Long)}. */
+    @FunctionalInterface
+    interface SensitiveValues {
+
+        Set<SensitiveValue> of(MailContent mail);
+    }
 }

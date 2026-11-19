@@ -9,6 +9,7 @@ import {
   InboxIcon, LayoutDashboardIcon,
   LogOutIcon,
   TagsIcon,
+  MailOpenIcon,
   UserCogIcon,
   UsersIcon,
   WalletIcon,
@@ -178,6 +179,7 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
             items={[
               { label: 'Benutzer', to: '/einstellungen/benutzer', icon: UsersIcon },
               { label: 'Kategorien', to: '/einstellungen/kategorien', icon: TagsIcon },
+              { label: 'Mail-Export', to: '/einstellungen/mail-export', icon: MailOpenIcon },
             ]}
           />
         )}

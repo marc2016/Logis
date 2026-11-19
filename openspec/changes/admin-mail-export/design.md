@@ -30,7 +30,7 @@
 
 ### D1. Consent on the mailbox
 - Columns `admin_export_allowed BOOLEAN NOT NULL DEFAULT false` and `admin_export_allowed_at TIMESTAMPTZ` on `core.mailboxes`. All existing rows get `false`.
-- `MailboxService.MailboxInput` gets the flag. Only the owner's endpoint `/api/mail/mailbox` can set it, and no admin endpoint writes it.
+- The owner sets the flag through its own endpoint `PUT /api/mail/mailbox/export-consent`. Saving the IMAP settings tests the connection and needs the password, and switching the consent should need neither. No admin endpoint writes the flag.
 - Consent is checked when an export starts. A mailbox without consent is treated as unknown (404), so its existence is not revealed.
 
 ### D2. Export endpoints under `/api/admin/mail-export`
@@ -77,13 +77,15 @@ A `Pseudonymizer` lives per export and keeps the mappings, so the same value get
   - e-mail → `gastN@example.org`.
   - In HTML parts, the HTML-escaped form of each value (`&uuml;`, `&amp;`) is replaced too.
 - **Patterns**, applied after the known values:
-  - e-mail addresses → `personN@example.org`, except addresses on the domain of the mail's From header. Agency addresses such as `noreply@<agency>` stay, because parsers and agency mapping depend on them.
+  - e-mail addresses → `personN@example.org`, except addresses on an agency domain. Agency addresses such as `noreply@<agency>` stay, because parsers and agency mapping depend on them.
+  - Agency domains are the sender domains of the owner's mails that a handler took, without public mail providers (gmail.com, web.de, …).
+  - The From header of the mail itself is not used for this. A guest who writes directly from their own domain, or the owner forwarding a mail, would otherwise keep their address.
   - phone numbers (`+` or `0` followed by at least 7 digits with spaces, `/`, `-` or parentheses) → same format.
   - IBANs → same format with a valid-looking country prefix kept.
 - Dates and amounts are never replaced. The phone pattern requires a leading `+` or `0` and at least 7 digits, so dates (`23.12.2026`) and amounts (`1.234,56`) do not match.
 
 ### D6. ZIP and index
-- `java.util.zip.ZipOutputStream` writes directly to the response.
+- `java.util.zip.ZipOutputStream` writes directly to the response. It is finished but not closed before the log is written. Closing it would end the response, and a client that already has the complete download could then miss the export in the log.
 - File names: `NNNN-<result>-<source>.eml`, with result and source in kebab-case ASCII.
 - `index.csv`:
   - UTF-8 with BOM, `;`-separated, so that German Excel opens it;

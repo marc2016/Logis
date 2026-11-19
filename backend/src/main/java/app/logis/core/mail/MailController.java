@@ -29,9 +29,11 @@ class MailController {
     private final MailboxService mailboxes;
     private final MailService mails;
     private final TaskExecutor executor;
+    private final MailExportLog exportLog;
 
     MailController(MailboxService mailboxes, MailService mails,
-            @Qualifier("applicationTaskExecutor") TaskExecutor executor) {
+            @Qualifier("applicationTaskExecutor") TaskExecutor executor, MailExportLog exportLog) {
+        this.exportLog = exportLog;
         this.mailboxes = mailboxes;
         this.mails = mails;
         this.executor = executor;
@@ -40,7 +42,14 @@ class MailController {
     /** Never contains the password, only whether one is stored. */
     record MailboxView(boolean configured, String host, Integer port, String username, boolean hasPassword,
             String folder, Boolean useTls, LocalDate cutoffDate, Boolean enabled, Instant lastPollAt,
-            String lastError, boolean aiEnabled) {
+            String lastError, boolean aiEnabled, boolean adminExportAllowed, LastExport lastExport) {
+    }
+
+    /** The last admin export of the user's mails (design D7 of admin-mail-export). */
+    record LastExport(Instant at, int mailCount, String adminName) {
+    }
+
+    record ExportConsentRequest(boolean allowed) {
     }
 
     record FetchOlderRequest(@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from) {
@@ -64,12 +73,18 @@ class MailController {
     MailboxView mailbox(@AuthenticationPrincipal LogisPrincipal me) {
         return mailboxes.get(me.userId()).map(this::view)
                 .orElse(new MailboxView(false, null, null, null, false, null, null, null, null, null, null,
-                        mails.aiEnabled()));
+                        mails.aiEnabled(), false, null));
     }
 
     @PutMapping("/mailbox")
     MailboxView saveMailbox(@RequestBody MailboxService.MailboxInput body, @AuthenticationPrincipal LogisPrincipal me) {
         return view(mailboxes.save(me.userId(), body));
+    }
+
+    /** Consent to the admin export; only the owner can change it (design D1 of admin-mail-export). */
+    @PutMapping("/mailbox/export-consent")
+    MailboxView exportConsent(@RequestBody ExportConsentRequest body, @AuthenticationPrincipal LogisPrincipal me) {
+        return view(mailboxes.allowAdminExport(me.userId(), body.allowed()));
     }
 
     @DeleteMapping("/mailbox")
@@ -146,6 +161,8 @@ class MailController {
 
     private MailboxView view(Mailbox m) {
         return new MailboxView(true, m.getHost(), m.getPort(), m.getUsername(), true, m.getFolder(), m.isUseTls(),
-                m.getCutoffDate(), m.isEnabled(), m.getLastPollAt(), m.getLastError(), mails.aiEnabled());
+                m.getCutoffDate(), m.isEnabled(), m.getLastPollAt(), m.getLastError(), mails.aiEnabled(),
+                m.isAdminExportAllowed(), exportLog.last(m.getOwnerUserId())
+                        .map(e -> new LastExport(e.at(), e.mailCount(), e.adminName())).orElse(null));
     }
 }
