@@ -9,7 +9,7 @@ In the review mode, the booking page SHALL:
 
 The queue SHALL hold the bookings „zu prüfen“ that match the list's filters, sorted by arrival, soonest first.
 
-After confirming, applying, rejecting or discarding, the next booking of the queue SHALL open. When none is left, the page SHALL show „Alles geprüft.“ with a link back to the list.
+After confirming, applying or discarding, the next booking of the queue SHALL open. When none is left, the page SHALL show „Alles geprüft.“ with a link back to the list.
 
 Leaving a booking with unsaved edits MUST ask „Ungespeicherte Änderungen verwerfen?“ first. Decisions MUST NOT be bound to a key.
 
@@ -23,7 +23,7 @@ Leaving a booking with unsaved edits MUST ask „Ungespeicherte Änderungen verw
 
 #### Scenario: Proposed change in the queue
 - **WHEN** the queue reaches a booking with a proposed change
-- **THEN** old and new values are shown, and only „Übernehmen“ or „Ablehnen“ moves on to the next booking
+- **THEN** old and new values are shown, and only „Übernehmen“ or „Verwerfen“ moves on to the next booking
 
 #### Scenario: Filtered queue
 - **WHEN** the list is filtered to „Haus Düne“ and Anna chooses „Prüfen“

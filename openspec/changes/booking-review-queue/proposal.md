@@ -14,7 +14,7 @@ The bulk action „Bestätigen“ skips this, but it deliberately works only for
 
 - **A review mode („Prüfen“) on the booking page.** It shows a queue of all bookings „zu prüfen“ (new ones, proposed changes and cancellations), soonest arrival first, limited by the list's filters (e.g. one unit).
 - **Navigation:** the page shows „3 von 12“, „Zurück“ and „Weiter“; the arrow keys ← and → do the same while no field has the focus.
-- **Decisions:** after „Bestätigen“, „Übernehmen“, „Ablehnen“ or „Verwerfen“ the next booking opens by itself. Deciding stays a click: there is no key for it.
+- **Decisions:** after „Bestätigen“, „Übernehmen“ or „Verwerfen“ the next booking opens by itself. Deciding stays a click: there is no key for it.
 - **Unsaved edits:** leaving a booking with unsaved edits asks first.
 - **End:** when nothing is left, the page says „Alles geprüft.“ and leads back to the list.
 - **Entry:**

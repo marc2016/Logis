@@ -82,6 +82,12 @@ test('the booking dialog fits on phone and tablet screens', async ({ page, api }
   expect(problems).toEqual([])
 })
 
+test('the review mode fits on phone and tablet screens', async ({ page, api }) => {
+  const home = await holidayHome(api)
+  const stay = await booking(api, home.unitId, '2030-07-01', '2030-07-08', 'Erika Musterfrau', 'L-4001')
+  expect(await check(page, `/ferienvermietung/buchungen/${stay.id}?pruefen=1`, 'Erika Musterfrau')).toEqual([])
+})
+
 test('a booking imported from a mail fits on phone and tablet screens', async ({ page, api, user }) => {
   const home = await holidayHome(api)
   const address = `${user.username}@example.org`

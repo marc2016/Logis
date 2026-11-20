@@ -4,7 +4,7 @@
 
 **Booking page:** `BookingPage` (`/ferienvermietung/buchungen/:id`).
 - It shows the `ReviewPanel` for bookings with `reviewState` NEW or CHANGE.
-- `ReviewPanel` posts `confirm`, `discard`, `apply` or `reject` and then calls `onChanged(next)`. The page navigates back only when the booking is gone (discard).
+- `ReviewPanel` posts `confirm`, `discard`, `proposal/apply` or `proposal/discard` and then calls `onChanged(next)`. The page navigates back only when the booking is gone (discard).
 - The back link comes from the location state `back`, the list's address with its filters.
 
 **Booking list and API:**
@@ -44,7 +44,7 @@ The page remembers the arrival and ID of the current booking:
 - **After a decision**, the queue is refetched and the first entry that comes after the decided booking in the queue order (arrival, then ID) opens. Because a decided booking leaves the queue, this is the booking that was next.
 - **Empty queue** → „Alles geprüft.“ with a link to the list and its filters.
 
-`ReviewPanel` gets an `onDecided` callback for all four decisions. Outside the review mode, the behaviour stays as today.
+`ReviewPanel` gets an `onDecided` callback for all decisions. Outside the review mode, the behaviour stays as today.
 
 ### D3 — Entry points
 

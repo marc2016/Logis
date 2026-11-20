@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { DateField } from '@/components/DateField'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { createColumnHelper } from '@tanstack/react-table'
-import { PlusIcon } from 'lucide-react'
+import { ListChecksIcon, PlusIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -24,6 +24,7 @@ import { api } from '@/lib/api'
 import { SkipError } from '@/lib/bulk'
 import { backTo, bookingPath } from '../BookingPage.paths'
 import { IdSelect } from '../RentalFilters'
+import { queueParams, reviewStartPath, useReviewCount } from '../reviewQueue'
 import { kindLabel, rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingKind, type BookingStatus } from '../api'
 
 const PAGE_SIZE = 50
@@ -97,6 +98,9 @@ export function BuchungenPage() {
     size: PAGE_SIZE,
   }
   const { data, isLoading } = useBookings(filter)
+  // „Prüfen (n)“: the bookings to review that match the current filters (spec bookings, „Review mode“).
+  const reviewFilters = queueParams(params)
+  const { data: toReview = 0 } = useReviewCount(reviewFilters)
   const properties = useMemo(() => rentalProperties(units), [units])
   const unitOptions = units
     .filter((u) => filter.propertyId === undefined || u.propertyId === filter.propertyId)
@@ -125,12 +129,20 @@ export function BuchungenPage() {
         title="Buchungen"
         description="Alle Buchungen der Ferienwohnungen."
         actions={
-          canRecord && (
-            <Button onClick={() => setRecording(true)}>
-              <PlusIcon />
-              Buchung
-            </Button>
-          )
+          <div className="flex flex-wrap gap-2">
+            {toReview > 0 && (
+              <Button variant="outline" onClick={() => navigate(reviewStartPath(reviewFilters))}>
+                <ListChecksIcon />
+                Prüfen ({toReview})
+              </Button>
+            )}
+            {canRecord && (
+              <Button onClick={() => setRecording(true)}>
+                <PlusIcon />
+                Buchung
+              </Button>
+            )}
+          </div>
         }
       />
       <label className="mb-2 inline-flex items-center gap-2 text-sm">

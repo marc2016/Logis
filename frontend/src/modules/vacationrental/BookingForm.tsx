@@ -1,4 +1,4 @@
-import { useState, type FocusEvent, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FocusEvent, type FormEvent, type ReactNode } from 'react'
 import { DateField } from '@/components/DateField'
 import { useMutation } from '@tanstack/react-query'
 import { FileSearchIcon } from 'lucide-react'
@@ -53,6 +53,8 @@ interface Props {
   activeField?: string | null
   /** A field with a location was focused or clicked. */
   onFieldFocus?: (field: string) => void
+  /** Whether the form holds edits that are not saved yet (design D4 of booking-review-queue). */
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 function addDays(iso: string, days: number) {
@@ -115,7 +117,7 @@ function Field({ field, label, htmlFor, className, children, location, active, o
 }
 
 /** The booking's fields; used by the booking page and the dialog for a new booking. */
-export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved, onCancel, locations = {}, activeField, onFieldFocus }: Props) {
+export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved, onCancel, locations = {}, activeField, onFieldFocus, onDirtyChange }: Props) {
   const { data: units = [] } = useRentalUnits()
   const isNew = booking === null
   const canEdit = isNew || booking.canEdit
@@ -137,6 +139,14 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
   const [pending, setPending] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const invalidate = useInvalidateRental()
+
+  // Edits not saved yet: the values differ from the stored booking, or documents wait for upload.
+  const values = JSON.stringify([kind, unitId, arrival, departure, externalRef, adults, children, agency?.id ?? null, pets, rent, guest])
+  const [initial] = useState(values)
+  const dirty = values !== initial || pending.length > 0
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   // A unit chosen before the units loaded may be missing from the editable list.
   if (!unitId && preset) setUnitId(String(preset))

@@ -40,7 +40,8 @@ export const rentalWidgets = [arrivals, occupancy, income] as unknown as Dashboa
 export const rentalTodoSources: TodoSource[] = [
   {
     label: 'Buchungen prüfen',
-    to: '/ferienvermietung/buchungen?review=true',
+    // Opens the review mode directly (spec dashboard, „Tile catalog“).
+    to: '/ferienvermietung/pruefen',
     query: () => ({
       queryKey: ['vacationrental', 'bookings', 'review-count'] as const,
       queryFn: async () => (await api<BookingPage>('/api/vacationrental/bookings?review=true&size=1')).totalItems,

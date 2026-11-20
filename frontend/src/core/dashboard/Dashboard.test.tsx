@@ -80,7 +80,7 @@ describe('Start page', () => {
     expect(assign).toHaveAttribute('href', '/posteingang?ergebnis=UNASSIGNED_UNIT')
     const review = await within(tile).findByRole('link', { name: /Buchungen prüfen/ })
     expect(review).toHaveTextContent('1')
-    expect(review).toHaveAttribute('href', '/ferienvermietung/buchungen?review=true')
+    expect(review).toHaveAttribute('href', '/ferienvermietung/pruefen')
     expect(within(tile).queryByText(/Nicht erkannt/)).not.toBeInTheDocument()
   })
 

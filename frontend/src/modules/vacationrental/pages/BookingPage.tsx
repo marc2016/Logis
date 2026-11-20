@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeftIcon } from 'lucide-react'
@@ -9,12 +9,15 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Money } from '@/components/Money'
 import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { BookingForm } from '../BookingForm'
 import { ReviewPanel } from '../ReviewPanel'
+import { ReviewBar } from '../ReviewBar'
+import { REVIEW_PARAM, listPath, nextAfter, previousBefore, queueParams, reviewPath, reviewStartPath, useReviewQueue } from '../reviewQueue'
 import { SourcePanel } from '../SourcePanel'
 import type { ActiveField } from '../sources'
 import { backLabel, type BackState } from '../BookingPage.paths'
@@ -74,6 +77,14 @@ function Header({ booking }: { booking: Booking }) {
   )
 }
 
+/** Arrow keys only move while nothing else wants them: no field, dialog or popover has the focus (design D4). */
+function arrowFree(e: KeyboardEvent) {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return false
+  const target = e.target instanceof Element ? e.target : null
+  if (target?.closest('input, textarea, select, [contenteditable="true"], [role="combobox"], [role="listbox"], [role="slider"]')) return false
+  return !document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]')
+}
+
 /** A booking as its own page: header, data and, for editors, its sources with the location of every value. */
 export function BookingPage() {
   const { bookingId } = useParams()
@@ -87,12 +98,61 @@ export function BookingPage() {
   const [sourceId, setSourceId] = useState<number | null>(null)
   const [tab, setTab] = useState('data')
 
+  // Review mode (spec bookings, „Review mode“): the queue of bookings to review lives in the address.
+  const [params] = useSearchParams()
+  const reviewing = params.get(REVIEW_PARAM) === '1'
+  const filters = queueParams(params)
+  const queue = useReviewQueue(filters, reviewing)
+  const [dirty, setDirty] = useState(false)
+  const [leaveTo, setLeaveTo] = useState<string | null>(null)
+  const [shown, setShown] = useState(id)
+  if (id !== shown) {
+    // Another booking of the queue: nothing of the previous one stays selected.
+    setShown(id)
+    setActive(null)
+    setSourceId(null)
+    setTab('data')
+    setDirty(false)
+  }
+  const items = queue.data?.items ?? []
+  const previous = booking && reviewing ? previousBefore(items, booking) : undefined
+  const next = booking && reviewing ? nextAfter(items, booking) : undefined
+  const index = booking ? items.findIndex((b) => b.id === booking.id) : -1
+
+  /** Leaves the booking, asking first if it has unsaved edits. */
+  function go(path: string) {
+    if (dirty) setLeaveTo(path)
+    else navigate(path)
+  }
+
+  /** After a decision: the booking that followed it in the queue, or „Alles geprüft.“ (design D2). */
+  async function moveOn(current: Booking) {
+    const fresh = (await queue.refetch()).data?.items ?? []
+    const following = nextAfter(fresh, current) ?? fresh[0]
+    navigate(following ? reviewPath(following.id, filters) : reviewStartPath(filters))
+  }
+
+  useEffect(() => {
+    if (!reviewing) return
+    function onKey(e: KeyboardEvent) {
+      if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !arrowFree(e)) return
+      const target = e.key === 'ArrowLeft' ? previous : next
+      if (!target) return
+      e.preventDefault()
+      if (dirty) setLeaveTo(reviewPath(target.id, filters))
+      else navigate(reviewPath(target.id, filters))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   const action = useMutation({
     mutationFn: ({ url, method }: { url: string; method: string; done: string; leave?: boolean }) => api<Booking | undefined>(url, { method }),
     onSuccess: async (_, { done, leave }) => {
       await invalidate()
       toast.success(done)
-      if (leave) navigate(back)
+      if (leave && reviewing && booking) await moveOn(booking)
+      else if (leave) navigate(back)
     },
     onError: (err) => toast.error(errorMessage(err)),
   })
@@ -140,6 +200,7 @@ export function BookingPage() {
         locations={withSources ? locations : {}}
         activeField={active?.scope === 'current' ? active.field : null}
         onFieldFocus={(field) => show({ field, scope: 'current' })}
+        onDirtyChange={setDirty}
         onSaved={({ failed }) => {
           if (failed.length) toast.error('Die Buchung wurde gespeichert, aber nicht alle Dokumente.')
           else toast.success('Buchung gespeichert.')
@@ -210,15 +271,27 @@ export function BookingPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={back} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-4" /> {backLabel(back)}
-      </Link>
+      {reviewing ? (
+        <ReviewBar
+          position={index >= 0 ? index + 1 : null}
+          total={queue.data?.total ?? 0}
+          onPrevious={previous ? () => go(reviewPath(previous.id, filters)) : undefined}
+          onNext={next ? () => go(reviewPath(next.id, filters)) : undefined}
+          onList={() => go(listPath(filters))}
+        />
+      ) : (
+        <Link to={back} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeftIcon className="size-4" /> {backLabel(back)}
+        </Link>
+      )}
       <Header booking={booking} />
       {booking.canEdit && booking.reviewState !== 'NONE' && (
         <ReviewPanel
           booking={booking}
-          onChanged={(next) => {
-            if (!next) navigate(back)
+          onChanged={(result) => {
+            // In the review mode every decision moves on; otherwise only a discarded booking leaves.
+            if (reviewing) void moveOn(booking)
+            else if (!result) navigate(back)
           }}
           onShowProposal={(field) => {
             show({ field, scope: 'proposal' })
@@ -244,6 +317,28 @@ export function BookingPage() {
       ) : (
         <div className="max-w-2xl">{form}</div>
       )}
+      <Dialog open={leaveTo !== null} onOpenChange={(open) => !open && setLeaveTo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ungespeicherte Änderungen verwerfen?</DialogTitle>
+            <DialogDescription>Die Änderungen an dieser Buchung sind noch nicht gespeichert.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeaveTo(null)}>
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => {
+                const to = leaveTo!
+                setLeaveTo(null)
+                navigate(to)
+              }}
+            >
+              Verwerfen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
