@@ -243,6 +243,7 @@ export const mailKindLabel: Record<string, string> = {
   BLOCK_NOTICE: 'Blockung',
   OWNER_BLOCK: 'Eigentümerblockung',
   TICKET_RECEIPT: 'Eingangsbestätigung',
+  EXTENSION: 'Verlängerung',
 }
 
 // Kept equal to RESULT_LABELS in the backend's BookingMailHandler (checked by MailLabelsTest).

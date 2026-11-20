@@ -4,8 +4,8 @@
 The system SHALL recognise a Fewo & Meer mail that reports a „Verlängerungsbuchung“ with property, original period („Zeitraum ursprüngliche Buchung“), extension period („Verlängerung“) and number of adults and children as an extension notice, also when it is forwarded. The notice SHALL be matched to the guest booking on the unit mapped to the property whose period equals the original period. The new period SHALL run from the earlier arrival to the later departure of both periods. Extension notices MUST be recognised only by the rules.
 
 #### Scenario: Extension before the stay
-- **WHEN** Anna's booking for „Haus Düne“ runs from 25.08.2026 to 28.08.2026 and Fewo & Meer reports an extension from 24.08.2026 to 25.08.2026
-- **THEN** a change to 24.08.2026 – 28.08.2026 is proposed on that booking, and the mail shows as „Änderung vorgeschlagen“ with the kind „Verlängerung“
+- **WHEN** Anna's booking for „Haus Düne“ runs from 14.09.2027 to 17.09.2027 and Fewo & Meer reports an extension from 12.09.2027 to 14.09.2027
+- **THEN** a change to 12.09.2027 – 17.09.2027 is proposed on that booking, and the mail shows as „Änderung vorgeschlagen“ with the kind „Verlängerung“
 
 #### Scenario: Extension after the stay with more guests
 - **WHEN** the booking runs from 10.07.2026 to 14.07.2026 for 2 adults and the notice reports an extension from 14.07.2026 to 16.07.2026 for 3 adults

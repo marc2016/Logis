@@ -87,7 +87,8 @@ class BookingMailHandler implements MailHandler {
             "CANCELLATION", "Stornierung",
             "BLOCK_NOTICE", "Blockung",
             "OWNER_BLOCK", "Eigentümerblockung",
-            "TICKET_RECEIPT", "Eingangsbestätigung");
+            "TICKET_RECEIPT", "Eingangsbestätigung",
+            "EXTENSION", "Verlängerung");
 
     @Override
     public java.util.Set<String> agencyDomains() {

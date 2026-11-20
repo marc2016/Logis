@@ -313,4 +313,68 @@ class MailParsersTest {
         assertThat(fewo.ticketReceipt(receiptLike("support@anbieter.example", RECEIPT))).isEmpty();
         assertThat(holidu.ticketReceipt(receiptLike("service@fewoundmeer.de", RECEIPT))).isEmpty();
     }
+
+    // --- Extension notices (spec booking-mails, „Extension notices“) ----------------------------------
+
+    private static MailContent extensionLike(String sender, String text) {
+        return new MailContent("<e@example.org>", java.time.Instant.parse("2026-11-03T09:00:00Z"), sender,
+                "[#XYZ-111-22222]: Verlängerungsbuchung zum Objekt Ferienhaus Düne", text);
+    }
+
+    private static final String AFTER_THE_STAY = "Sehr geehrte Damen und Herren,\n\nwir möchten Sie über eine "
+            + "Verlängerungsbuchung informieren.\nObjekt: Ferienhaus Düne\nGäste: Erika Musterfrau\n"
+            + "Zeitraum ursprüngliche Buchung: 10.07.2027 - 14.07.2027\nVerlängerung: 14.07.2027 \u2013 16.07.2027\n"
+            + "Personen: ( 3 ) Erwachsene/ ( 1 ) Kinder\nHaustiere: 0\n";
+
+    @Test
+    void extensionBeforeTheStay() throws Exception {
+        var mail = mail("fewo-extension.eml");
+        var p = fewo.parse(mail).orElseThrow();
+        assertThat(p.type()).isEqualTo(ParsedMail.MailType.EXTENSION);
+        assertThat(p.agency()).isEqualTo("Fewo & Meer");
+        assertThat(p.bookingRef()).isNull();
+        assertThat(p.propertyName()).isEqualTo("Ferienhaus Düne");
+        assertThat(p.original()).isEqualTo(new ParsedMail.Period(LocalDate.of(2027, 9, 14), LocalDate.of(2027, 9, 17)));
+        assertThat(p.arrival()).isEqualTo(LocalDate.of(2027, 9, 12));
+        assertThat(p.departure()).isEqualTo(LocalDate.of(2027, 9, 17));
+        assertThat(p.adults()).isEqualTo(3);
+        assertThat(p.children()).isZero();
+        assertThat(p.usable()).isTrue();
+        // The arrival comes from the extension line, the departure from the original period.
+        var text = mail.text();
+        var arrival = p.locations().get(BookingField.ARRIVAL);
+        assertThat(text.substring(arrival.start(), arrival.end())).isEqualTo("12.09.2027");
+        assertThat(text.substring(0, arrival.start())).endsWith("Verlängerung: ");
+        var departure = p.locations().get(BookingField.DEPARTURE);
+        assertThat(text.substring(departure.start(), departure.end())).isEqualTo("17.09.2027");
+        var property = p.locations().get(BookingField.PROPERTY_NAME);
+        assertThat(text.substring(property.start(), property.end())).isEqualTo("Ferienhaus Düne");
+    }
+
+    @Test
+    void extensionAfterTheStayWithBlanksInTheCounts() {
+        var p = fewo.parse(extensionLike("service@fewoundmeer.de", AFTER_THE_STAY)).orElseThrow();
+        assertThat(p.original()).isEqualTo(new ParsedMail.Period(LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 14)));
+        assertThat(p.arrival()).isEqualTo(LocalDate.of(2027, 7, 10));
+        assertThat(p.departure()).isEqualTo(LocalDate.of(2027, 7, 16));
+        assertThat(p.adults()).isEqualTo(3);
+        assertThat(p.children()).isEqualTo(1);
+    }
+
+    @Test
+    void forwardedExtension() {
+        var forwarded = extensionLike("anna@example.org", "---------- Weitergeleitete Nachricht ----------\n"
+                + "Von: Fewo & Meer Service <service@fewoundmeer.de>\n\n" + AFTER_THE_STAY);
+        assertThat(fewo.parse(forwarded)).get().extracting(ParsedMail::type).isEqualTo(ParsedMail.MailType.EXTENSION);
+    }
+
+    @Test
+    void extensionTextFromAnotherSenderOrIncomplete() {
+        assertThat(fewo.parse(extensionLike("info@anbieter.example", AFTER_THE_STAY))).isEmpty();
+        assertThat(fewo.parse(extensionLike("service@fewoundmeer.de",
+                AFTER_THE_STAY.replaceAll("Zeitraum ursprüngliche Buchung:[^\n]*\n", "")))).isEmpty();
+        // A reply quoting a notice is no notice itself.
+        var quoting = "Danke, ist notiert.\n" + AFTER_THE_STAY.lines().map(l -> "> " + l).reduce("", (a, b) -> a + b + "\n");
+        assertThat(fewo.parse(extensionLike("service@fewoundmeer.de", quoting))).isEmpty();
+    }
 }

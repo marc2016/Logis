@@ -91,8 +91,9 @@ class MailRecognizer {
         } catch (IllegalArgumentException | NullPointerException ex) {
             return Optional.empty();
         }
-        if (type == ParsedMail.MailType.BLOCK_NOTICE || type == ParsedMail.MailType.OWNER_BLOCK) {
-            // Only the rules know block notices; the AI is not asked for them.
+        if (type == ParsedMail.MailType.BLOCK_NOTICE || type == ParsedMail.MailType.OWNER_BLOCK
+                || type == ParsedMail.MailType.EXTENSION) {
+            // Only the rules know block notices and extension notices; the AI is not asked for them.
             return Optional.empty();
         }
         var guest = new Guest(text(e.guestName()), text(e.guestStreet()), text(e.guestPostalCode()),

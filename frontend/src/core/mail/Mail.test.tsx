@@ -481,3 +481,19 @@ describe('Ticket receipts', () => {
     expect(within(row).getByText('Eingangsbestätigung')).toBeInTheDocument()
   })
 })
+
+describe('Extension notices', () => {
+  it('shows an extension notice that proposed a change', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': {
+        body: [inboxItem({ subject: '[#XYZ-111-22222]: Information über eine Verlängerungsbuchung', kind: 'EXTENSION', result: 'CHANGE_PROPOSED', source: 'Fewo & Meer', linkType: 'vacationrental.booking', linkId: 505 })],
+      },
+    })
+    renderApp('/posteingang')
+    const row = await screen.findByRole('row', { name: /Verlängerungsbuchung/ })
+    expect(within(row).getByText('Änderung vorgeschlagen')).toBeInTheDocument()
+    expect(within(row).getByText('Verlängerung')).toBeInTheDocument()
+  })
+})

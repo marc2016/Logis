@@ -79,7 +79,65 @@ class FewoUndMeerParser implements MailParser {
             return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.OWNER_BLOCK, ref, property, date(from),
                     date(to), null, null, null, null, null).withLocations(r.locations()));
         }
-        return Optional.empty();
+        return extension(subject, mail.text());
+    }
+
+    // "Zeitraum ursprüngliche Buchung: 14.09.2027 — 17.09.2027" / "Verlängerung: 12.09.2027 — 14.09.2027"
+    private static final String DASH = "[ \\t\\u00a0]*[-\\u2013\\u2014][ \\t\\u00a0]*";
+    private static final Pattern EXTENSION_NOTICE = Pattern.compile("Verlängerungsbuchung");
+    private static final Pattern ORIGINAL_PERIOD = Pattern.compile(
+            "(?m)^[ \\t\\u00a0]*Zeitraum ursprüngliche Buchung:[ \\t\\u00a0]*" + DATE + DASH + DATE);
+    private static final Pattern EXTENSION_PERIOD = Pattern.compile(
+            "(?m)^[ \\t\\u00a0]*Verlängerung:[ \\t\\u00a0]*" + DATE + DASH + DATE);
+    private static final Pattern OBJECT_LINE = Pattern.compile("(?m)^[ \\t\\u00a0]*Objekt:[ \\t\\u00a0]*(.+?)[ \\t\\u00a0]*$");
+    private static final Pattern PERSONS_LINE = Pattern.compile("(?m)^[ \\t\\u00a0]*Personen:[ \\t\\u00a0]*(.+?)[ \\t\\u00a0]*$");
+
+    /**
+     * „Information über eine Verlängerungsbuchung“ (spec booking-mails, „Extension notices“; design D1 of
+     * fewo-extension-mails): recognised by its text, since its subject is often a ticket subject.
+     */
+    private static Optional<ParsedMail> extension(String subject, String text) {
+        // Quoted lines are blanked, not removed, so that the locations still fit the text.
+        var own = blankQuotedLines(text);
+        if (!EXTENSION_NOTICE.matcher(own).find()) {
+            return Optional.empty();
+        }
+        var original = ORIGINAL_PERIOD.matcher(own);
+        var extension = EXTENSION_PERIOD.matcher(own);
+        if (!original.find() || !extension.find()) {
+            return Optional.empty();
+        }
+        var originalFrom = date(original.group(1));
+        var originalTo = date(original.group(2));
+        var extensionFrom = date(extension.group(1));
+        var extensionTo = date(extension.group(2));
+        if (originalFrom == null || originalTo == null || extensionFrom == null || extensionTo == null) {
+            return Optional.empty();
+        }
+        var r = new Reading(subject, own);
+        // The extended stay: the earlier arrival and the later departure of both periods.
+        var arrivalFromExtension = extensionFrom.isBefore(originalFrom);
+        r.group(Location.Part.TEXT, arrivalFromExtension ? extension : original, 1, BookingField.ARRIVAL);
+        var departureFromExtension = extensionTo.isAfter(originalTo);
+        r.group(Location.Part.TEXT, departureFromExtension ? extension : original, 2, BookingField.DEPARTURE);
+        var property = r.text(OBJECT_LINE, BookingField.PROPERTY_NAME);
+        var persons = r.text(PERSONS_LINE, BookingField.ADULTS, BookingField.CHILDREN);
+        // "(3) Erwachsene/ (0) Kinder" and "( 3 ) Erwachsene/ ( 0 ) Kinder"
+        var counts = persons == null ? null : persons.replaceAll("[()]", "");
+        return Optional.of(new ParsedMail(AGENCY, ParsedMail.MailType.EXTENSION, null, property,
+                arrivalFromExtension ? extensionFrom : originalFrom, departureFromExtension ? extensionTo : originalTo,
+                GermanText.adults(counts), GermanText.children(counts), null, null, null, null, r.locations(),
+                new ParsedMail.Period(originalFrom, originalTo)));
+    }
+
+    private static String blankQuotedLines(String text) {
+        var m = QUOTED_LINE.matcher(text);
+        var sb = new StringBuilder();
+        while (m.find()) {
+            m.appendReplacement(sb, " ".repeat(m.group().length()));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     private static final Pattern RECEIPT = Pattern.compile("vielen\\s+Dank\\s+für\\s+Ihre\\s+E-Mail",

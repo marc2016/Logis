@@ -114,4 +114,11 @@ class MailRecognizerTest {
         assertThat(handled.linkId()).isNull();
         assertThat(calls).hasValue(0);
     }
+
+    @Test
+    void theAiCannotReportAnExtension() {
+        var e = new AiExtraction(true, "Fewo & Meer", "extension", "250905", "Ferienhaus Düne", "2027-09-12",
+                "2027-09-17", "3", "", "", "", "", "", "", "", "", "", "");
+        assertThat(MailRecognizer.toParsed(e)).isEmpty();
+    }
 }

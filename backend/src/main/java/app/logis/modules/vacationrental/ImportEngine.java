@@ -54,6 +54,9 @@ class ImportEngine {
         if (mail.type() == ParsedMail.MailType.OWNER_BLOCK) {
             return ownerBlock(ownerId, agencyId, in);
         }
+        if (mail.type() == ParsedMail.MailType.EXTENSION) {
+            return extension(ownerId, agencyId, in);
+        }
         var existing = bookings.findByRef(ownerId, agencyId, mail.bookingRef()).stream().findFirst();
         try {
             return switch (mail.type()) {
@@ -68,7 +71,7 @@ class ImportEngine {
                         ? cancel(ownerId, agencyId, existing.get(), in)
                         : new Outcome(BookingMailResult.NOT_MATCHED, null, "Buchung " + mail.bookingRef()
                                 + " ist nicht erfasst");
-                case BLOCK_NOTICE, OWNER_BLOCK -> throw new IllegalStateException("handled above");
+                case BLOCK_NOTICE, OWNER_BLOCK, EXTENSION -> throw new IllegalStateException("handled above");
             };
         } catch (ApiException e) {
             return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
@@ -142,6 +145,37 @@ class ImportEngine {
             }
             return new Outcome(BookingMailResult.FAILED, existing.map(Booking::getId).orElse(null), e.getMessage());
         }
+    }
+
+    /**
+     * The agency extended a stay (design D3 of fewo-extension-mails): the guest booking with exactly the original
+     * period gets the extended period, proposed for review or taken over while it is not reviewed yet.
+     */
+    private Outcome extension(Long ownerId, Long agencyId, Mail in) {
+        var mail = in.parsed();
+        var unit = editableUnit(ownerId, agencyId, mail);
+        if (unit.outcome() != null) {
+            return unit.outcome();
+        }
+        var original = mail.original();
+        var booking = bookings.findSamePeriod(ownerId, unit.unitId(), original.arrival(), original.departure())
+                .filter(b -> !b.isOwnerUse());
+        if (booking.isPresent()) {
+            try {
+                return update(ownerId, agencyId, booking.get(), in);
+            } catch (ApiException e) {
+                return new Outcome(BookingMailResult.FAILED, booking.get().getId(), e.getMessage());
+            }
+        }
+        var extended = bookings.findSamePeriod(ownerId, unit.unitId(), mail.arrival(), mail.departure())
+                .filter(b -> !b.isOwnerUse());
+        if (extended.isPresent()) {
+            var id = extended.get().getId();
+            attach(id, in);
+            return new Outcome(BookingMailResult.ATTACHED, id, "Verlängerung bereits erfasst");
+        }
+        return new Outcome(BookingMailResult.NOT_MATCHED, null, "Keine Buchung vom "
+                + GermanText.format(original.arrival()) + " bis " + GermanText.format(original.departure()));
     }
 
     private record UnitLookup(Long unitId, Outcome outcome) {
@@ -226,8 +260,9 @@ class ImportEngine {
     private Long attach(Long bookingId, Mail in) {
         var mail = in.parsed();
         var label = label(mail.type());
-        var documentId = documents.store(Booking.DOCUMENT_TYPE, bookingId, mail.agency() + " " + label + " "
-                + mail.bookingRef() + ".eml", "message/rfc822", in.raw());
+        // An extension notice carries no booking number.
+        var name = mail.agency() + " " + label + (mail.bookingRef() == null ? "" : " " + mail.bookingRef());
+        var documentId = documents.store(Booking.DOCUMENT_TYPE, bookingId, name + ".eml", "message/rfc822", in.raw());
         return sources.addMail(bookingId, documentId, mail.agency() + " " + label, in.content());
     }
 
@@ -240,6 +275,7 @@ class ImportEngine {
             case CANCELLATION -> "Stornierung";
             case BLOCK_NOTICE -> "Blockung";
             case OWNER_BLOCK -> "Eigentümerblockung";
+            case EXTENSION -> "Verlängerung";
         };
     }
 

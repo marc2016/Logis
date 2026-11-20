@@ -239,6 +239,111 @@ class MailImportTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.kind").value("TICKET_RECEIPT"));
     }
 
+    // --- Extension notices (spec booking-mails, „Extension notices“) ----------------------------------
+
+    /** The invented extension sample with other property, periods and persons; the subject ends with {@code tag}. */
+    private void deliverExtension(String tag, String property, String original, String extension, String persons)
+            throws Exception {
+        String text;
+        try (var in = getClass().getResourceAsStream("/mails/fewo-extension.eml")) {
+            text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        text = text.replace("Verlängerungsbuchung\r\n", "Verlängerungsbuchung " + tag + "\r\n")
+                .replace("Information über eine Verlängerungsbuchung\n", "Information über eine Verlängerungsbuchung "
+                        + tag + "\n")
+                .replace("Objekt: Ferienhaus Düne", "Objekt: " + property)
+                .replace("14.09.2027 — 17.09.2027", original).replace("12.09.2027 — 14.09.2027", extension)
+                .replace("(3) Erwachsene/ (0) Kinder", persons);
+        var message = new MimeMessage(Session.getInstance(new Properties()),
+                new java.io.ByteArrayInputStream(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        message.setHeader("Message-ID", "<extension-" + tag + "@example.org>");
+        greenMail.getManagers().getImapHostManager().getInbox(mailUser)
+                .appendMessage(message, new Flags(), Date.from(clock.instant()));
+    }
+
+    @Test
+    void extensionProposesTheLongerStayWithMoreGuests() throws Exception {
+        var booking = booking(anna, unit, "2027-09-14", "2027-09-17");
+        deliverExtension("E1", "Ferienhaus Düne", "14.09.2027 — 17.09.2027", "12.09.2027 — 14.09.2027",
+                "(3) Erwachsene/ (0) Kinder");
+        imports.pollNow(anna.id());
+        // An unknown property waits for a unit like other Fewo & Meer mails.
+        assertThat(inboxItem(anna, "E1").get("result")).isEqualTo("UNASSIGNED_UNIT");
+        assign("E1");
+        var item = inboxItem(anna, "E1");
+        assertThat(item.get("result")).isEqualTo("CHANGE_PROPOSED");
+        assertThat(item.get("kind")).isEqualTo("EXTENSION");
+        assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(booking);
+        getWith("/api/vacationrental/bookings/" + booking, anna.session())
+                .andExpect(jsonPath("$.reviewState").value("CHANGE"))
+                .andExpect(jsonPath("$.proposal.arrival").value("2027-09-12"))
+                .andExpect(jsonPath("$.proposal.departure").doesNotExist())
+                .andExpect(jsonPath("$.proposal.adults").value(3));
+    }
+
+    @Test
+    void extensionCompletesABookingNotReviewedYet() throws Exception {
+        deliver("fewo-confirmation-adults.eml", "2026-11-06T11:15:00Z");
+        imports.pollNow(anna.id());
+        assign("Neue Buchung");
+        var booking = bookingOf("Neue Buchung");
+        var property = jdbc.queryForObject("SELECT property_name FROM vacationrental.unit_mappings WHERE unit_id = ? "
+                + "LIMIT 1", String.class, unit);
+        deliverExtension("E2", property, "06.11.2026 — 08.11.2026", "08.11.2026 — 09.11.2026",
+                "(4) Erwachsene/ (0) Kinder");
+        imports.pollNow(anna.id());
+        var item = inboxItem(anna, "E2");
+        assertThat(item.get("result")).isEqualTo("ATTACHED");
+        assertThat(item.get("resultDetail")).isEqualTo("Angaben ergänzt");
+        getWith("/api/vacationrental/bookings/" + booking, anna.session())
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.departure").value("2026-11-09"));
+    }
+
+    @Test
+    void extensionAlreadyRecordedOrWithoutBooking() throws Exception {
+        var booking = booking(anna, unit, "2027-03-01", "2027-03-05");
+        deliverExtension("E3", "Ferienhaus Düne", "01.03.2027 — 04.03.2027", "04.03.2027 — 05.03.2027",
+                "(2) Erwachsene/ (0) Kinder");
+        deliverExtension("E4", "Ferienhaus Düne", "01.05.2027 — 03.05.2027", "03.05.2027 — 04.05.2027",
+                "(2) Erwachsene/ (0) Kinder");
+        imports.pollNow(anna.id());
+        assign("E3");
+        var recorded = inboxItem(anna, "E3");
+        assertThat(recorded.get("result")).isEqualTo("ATTACHED");
+        assertThat(recorded.get("resultDetail")).isEqualTo("Verlängerung bereits erfasst");
+        assertThat(((Number) recorded.get("linkId")).longValue()).isEqualTo(booking);
+        // The unit mapping now exists: the second mail is processed again on retry.
+        var missing = inboxItem(anna, "E4");
+        postJson("/api/mail/inbox/" + ((Number) missing.get("id")).longValue() + "/retry", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("NOT_MATCHED"))
+                .andExpect(jsonPath("$.resultDetail").value("Keine Buchung vom 01.05.2027 bis 03.05.2027"));
+    }
+
+    @Test
+    void storedExtensionIsRecognisedOnRetry() throws Exception {
+        var booking = booking(anna, unit, "2027-09-14", "2027-09-17");
+        // Stored as not recognised before extension notices were known ...
+        byte[] raw;
+        try (var in = getClass().getResourceAsStream("/mails/fewo-extension.eml")) {
+            raw = in.readAllBytes();
+        }
+        var id = jdbc.queryForObject("INSERT INTO core.mails (owner_user_id, message_id, received_at, raw, result) "
+                + "VALUES (?, '<old-extension@example.org>', now(), ?, 'NOT_RECOGNISED') RETURNING id", Long.class,
+                anna.id(), raw);
+        // ... and recognised once the user retries it.
+        postJson("/api/mail/inbox/" + id + "/retry", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("UNASSIGNED_UNIT"))
+                .andExpect(jsonPath("$.kind").value("EXTENSION"));
+        postJson("/api/vacationrental/mail/" + id + "/assign", Map.of("unitId", unit), anna.session())
+                .andExpect(status().isNoContent());
+        getWith("/api/vacationrental/bookings/" + booking, anna.session())
+                .andExpect(jsonPath("$.reviewState").value("CHANGE"))
+                .andExpect(jsonPath("$.proposal.arrival").value("2027-09-12"));
+    }
+
     @Test
     void manualBookingIsMatchedByNumberAndDiscardMarksTheMail() throws Exception {
         var body = stay(unit, "2026-11-06", "2026-11-08");
