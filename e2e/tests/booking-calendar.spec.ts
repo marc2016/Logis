@@ -80,3 +80,24 @@ test('month labels stay visible when the calendar is scrolled sideways', async (
   const container = (await grid.locator('..').boundingBox())!
   expect(box.x).toBeLessThanOrEqual(container.x + 1)
 })
+
+test('the calendar shows weekdays and today, scrolled into view', async ({ page, api }) => {
+  await holidayHome(api)
+  await page.goto('/ferienvermietung/kalender')
+  const today = page.locator('[data-today="true"]')
+  await expect(today).toHaveCount(1)
+  // On the phone the calendar is wider than the screen: it opens scrolled sideways to today, next to the month
+  // column (80 px), while the page itself stays where it is.
+  await expect(async () => {
+    const frame = (await page.getByRole('grid', { name: 'Belegung' }).locator('..').boundingBox())!
+    const cell = (await today.boundingBox())!
+    expect(cell.x).toBeGreaterThanOrEqual(frame.x + 80)
+    expect(cell.x + cell.width).toBeLessThanOrEqual(frame.x + frame.width)
+  }).toPass()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  const now = new Date()
+  const weekday = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][now.getDay()]
+  await expect(today).toHaveText(`${now.getDate()}${weekday}`)
+  await expect(today).toHaveAttribute('aria-label', /, heute$/)
+  await expect(today).toHaveAttribute('aria-current', 'date')
+})

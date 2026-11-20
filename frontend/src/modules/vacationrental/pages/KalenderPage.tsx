@@ -29,7 +29,8 @@ export function KalenderPage() {
   )
   const unit = options.find((u) => u.id === Number(params.get('unitId'))) ?? options[0]
   const propertyId = unit?.propertyId ?? null
-  const currentMonth = todayIso().slice(0, 7)
+  const today = todayIso()
+  const currentMonth = today.slice(0, 7)
   const currentYear = Number(currentMonth.slice(0, 4))
   const year = yearFrom(params, currentYear)
   const calendar = useCalendarYear(propertyId, year)
@@ -118,6 +119,8 @@ export function KalenderPage() {
               months={monthRange(data.from, data.to)}
               year={data.year}
               currentMonth={currentMonth}
+              today={today}
+              scrollToToday={year === currentYear}
               bookings={bookings}
               onOpen={(bookingId) => navigate(bookingPath(bookingId), { state: backTo(location) })}
             />

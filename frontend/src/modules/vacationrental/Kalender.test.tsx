@@ -114,6 +114,53 @@ describe('Calendar by year', () => {
     expect(router.state.location.search).not.toContain('year=')
   })
 
+  it('shows the weekday of every day and marks today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-20T10:00:00Z'))
+    mockApi({ ...base, ...years() })
+    renderApp('/ferienvermietung/kalender')
+    await waitFor(() => expect(headings()).toHaveLength(14))
+    const friday = within(monthRow('November 2026')).getByRole('gridcell', { name: 'Freitag, 20. November 2026, heute' })
+    expect(friday).toHaveTextContent('20Fr')
+    expect(friday).toHaveAttribute('aria-current', 'date')
+    expect(within(monthRow('November 2026')).getByRole('gridcell', { name: 'Samstag, 21. November 2026' })).toHaveTextContent('21Sa')
+    // Exactly one day is today; the same day of the neighbouring years is not.
+    expect(document.querySelectorAll('[data-today]')).toHaveLength(1)
+  })
+
+  it('scrolls the calendar sideways to today for the current year and after "Heute", not for other years', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-28T10:00:00Z'))
+    // A frame 300 px wide; today's cell lies at 900 px, outside it.
+    const rect = (left: number, width: number) => ({ left, right: left + width, width, top: 0, bottom: 36, height: 36, x: left, y: 0, toJSON: () => ({}) })
+    const originalRect = Element.prototype.getBoundingClientRect
+    const originalScroll = Element.prototype.scrollTo
+    const scrolls: number[] = []
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.getAttribute('data-today')) return rect(900, 28) as DOMRect
+      if (this.classList.contains('overflow-x-auto')) return rect(0, 300) as DOMRect
+      return rect(0, 0) as DOMRect
+    }
+    Element.prototype.scrollTo = function (this: Element, options?: ScrollToOptions | number) {
+      scrolls.push((options as ScrollToOptions).left ?? 0)
+    } as typeof Element.prototype.scrollTo
+    try {
+      mockApi({ ...base, ...years() })
+      renderApp('/ferienvermietung/kalender')
+      const user = userEvent.setup()
+      // Centre of the cell (914) to the centre of the part right of the month column (80 + 110 = 190).
+      await waitFor(() => expect(scrolls).toEqual([724]))
+      await user.click(screen.getByRole('button', { name: 'Jahr 2027' }))
+      await waitFor(() => expect(headings()[0]).toBe('Dezember 2026'))
+      expect(scrolls).toHaveLength(1)
+      await user.click(screen.getByRole('button', { name: 'Heute' }))
+      await waitFor(() => expect(scrolls).toHaveLength(2))
+    } finally {
+      Element.prototype.getBoundingClientRect = originalRect
+      Element.prototype.scrollTo = originalScroll
+    }
+  })
+
   it('opens the year of an old month link', async () => {
     mockApi({ ...base, ...years() })
     const { router } = renderApp('/ferienvermietung/kalender?month=2028-03')
