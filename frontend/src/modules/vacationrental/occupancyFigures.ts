@@ -37,3 +37,27 @@ export function unitsTotal(rows: UnitTotal[], year: number): MonthFigures {
     plannedRent: sum(rows.map((r) => r.total.plannedRent)),
   }
 }
+
+/**
+ * Months of several units added up: nights and money summed, occupancy over the days of the month × units, rounded
+ * like the per-unit rate. Used by the start page tiles for „Alle Einheiten“.
+ */
+export function monthsTotal(perUnit: MonthFigures[][], year: number): MonthFigures[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const months = perUnit.map((m) => m[i])
+    const nights = months.reduce((n, m) => n + m.nights, 0)
+    return {
+      month: i + 1,
+      nights,
+      occupancy: rate(nights, daysInMonth(year, i + 1) * perUnit.length),
+      ownerNights: months.reduce((n, m) => n + m.ownerNights, 0),
+      settledNet: sum(months.map((m) => m.settledNet)),
+      plannedRent: sum(months.map((m) => m.plannedRent)),
+    }
+  })
+}
+
+/** Settled net of the months 1 to `month`, e.g. this year up to today. */
+export function netUpTo(months: MonthFigures[], month: number): string {
+  return sum(months.filter((m) => m.month <= month).map((m) => m.settledNet))
+}

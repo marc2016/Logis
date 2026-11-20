@@ -136,13 +136,13 @@ Labels come from the existing inbox label registry. The booking count is contrib
 - each row: date, „Anreise“/„Abreise“, unit, guest name, or „Eigenbelegung“ for owner uses.
 
 **„Belegung“ (`vacationrental.occupancy`, wide):**
-- `useOverview(unitId, year)`, or `useUnitsOverview(year)` with `unitsTotal` for all units;
+- `useOverview(unitId, year)` for one unit. For all units, `useUnitsOverview(year)` lists the units with figures, and their monthly overviews are loaded and added up (`monthsTotal`, occupancy over days × units, as on the evaluation page). `useUnitsOverview` alone has only year totals, not months. This means one request per unit, sharing the evaluation's cache; an aggregate endpoint can follow if it gets slow;
 - a compact Recharts bar chart of the 12 months, using the existing `ChartContainer` and palette, plus the yearly total in percent;
 - the previous year optionally as a line, as on the evaluation page;
 - links to the evaluation page with the same selection.
 
 **„Einnahmen“ (`vacationrental.income`):**
-- the sum of `settledNet` of the months up to the current month for this year and for the previous year, from the same overview data;
+- the sum of `settledNet` of the months up to the current month for this year and for the previous year, from the same per-unit monthly data;
 - the difference in percent; links to the evaluation page.
 
 **„Kontostände“ (`core.balances`):** the accounts from `useAccounts`, without archived ones, filtered by `accountIds` when set; name and balance, plus a total per currency.

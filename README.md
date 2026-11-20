@@ -128,6 +128,16 @@ http:
   - Every export is logged per mailbox; the owner sees their last export in the mailbox settings. This is the only way an admin gets content from other users' mailboxes.
 - **Angemeldet bleiben:** with this box checked at sign-in, the device stays signed in without password or code: for 30 days after its last use and for 90 days after the sign-in at most. It also survives backend restarts. *Mein Konto > Angemeldete Geräte* lists these devices and signs them out, one at a time or all others at once. On such a device, the admin area asks for a fresh sign-in.
 
+## Start page
+
+*Übersicht* shows tiles each user arranges for themselves: „Anpassen“ adds, moves, configures and removes tiles, and „Standard wiederherstellen“ goes back to the default. The arrangement is stored per user and is the same on every device.
+
+- **Zu erledigen:** inbox mails waiting for a unit, with a proposed change or not recognised, and bookings awaiting review; each count links to its list.
+- **Nächste An- und Abreisen** (7, 14 or 30 days), **Belegung** (current year, optionally with the previous year) and **Einnahmen** (settled net up to today against the previous year), each for one unit or all; only while *Ferienvermietung* is active.
+- **Kontostände** (all or selected accounts) and **Letzte Transaktionen** (5 or 10, one account or all).
+
+Tiles show only what the user may see. A tile set to a unit or account the user no longer sees says „Nicht mehr verfügbar“.
+
 ## Finances and sharing
 
 - **Owners (legal entities)** separate accounts for tax purposes, e.g. „Anna privat“ and „GbR Ostsee“. Every user automatically has their private owner. Further ones are created under *Finanzen > Eigentümer*. Only whoever created an owner manages it and creates accounts in it.

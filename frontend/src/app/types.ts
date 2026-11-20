@@ -22,6 +22,31 @@ export interface LogisModule {
   MailActions?: ComponentType<{ item: MailInboxItem; onDone: () => void }>
   /** Extra bulk actions in the core inbox for the selected mails this module handled. */
   BulkMailActions?: ComponentType<{ items: MailInboxItem[]; busy: boolean; run: BulkMailRun }>
+  /** Tiles this module offers on the start page (see core/dashboard). */
+  dashboardWidgets?: DashboardWidget[]
+  /** Counts this module adds to the start page tile „Zu erledigen“. */
+  todoSources?: TodoSource[]
+}
+
+/** A tile type of the start page (design D2 of configurable-dashboard). */
+export interface DashboardWidget<S extends object = Record<string, unknown>> {
+  /** Stable and namespaced, e.g. 'core.todo' or 'vacationrental.occupancy'; stored with the user's tiles. */
+  type: string
+  /** German title, e.g. 'Belegung'. */
+  title: string
+  description: string
+  defaultSettings: S
+  Tile: ComponentType<{ settings: S }>
+  Settings?: ComponentType<{ value: S; onChange: (settings: S) => void }>
+  /** Spans two columns where there are two or more. */
+  wide?: boolean
+}
+
+/** One line of „Zu erledigen“: a count that links to the list it was taken from. */
+export interface TodoSource {
+  label: string
+  to: string
+  query: () => { queryKey: readonly unknown[]; queryFn: () => Promise<number> }
 }
 
 /** Runs an action for each mail, reports the summary and refreshes the inbox (see core/mail). */

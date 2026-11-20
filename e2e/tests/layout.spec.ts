@@ -46,6 +46,14 @@ test('the evaluation fits on phone and tablet screens', async ({ page, api }) =>
   expect(problems).toEqual([])
 })
 
+test('the start page fits on phone and tablet screens', async ({ page, api }) => {
+  const home = await holidayHome(api)
+  await booking(api, home.unitId, '2030-07-01', '2030-07-11', 'Erika Musterfrau', 'L-3001')
+  const entity = await owner(api)
+  await account(api, entity.id)
+  expect(await check(page, '/', 'Übersicht')).toEqual([])
+})
+
 test('the sharing dialog fits on phone and tablet screens', async ({ page, api }) => {
   const home = await holidayHome(api)
   const problems: string[] = []

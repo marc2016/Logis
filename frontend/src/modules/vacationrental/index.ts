@@ -5,6 +5,7 @@ import type { LogisModule } from '@/app/types'
 import { mailKindLabel, mailResultLabel } from './api'
 import { BookingMailActions } from './BookingMailActions'
 import { BulkMailActions } from './BulkMailActions'
+import { rentalTodoSources, rentalWidgets } from './dashboard/widgets'
 
 export const vacationRentalModule: LogisModule = {
   id: 'vacationrental',
@@ -34,4 +35,6 @@ export const vacationRentalModule: LogisModule = {
   mailKindLabels: mailKindLabel,
   MailActions: BookingMailActions,
   BulkMailActions,
+  dashboardWidgets: rentalWidgets,
+  todoSources: rentalTodoSources,
 }
