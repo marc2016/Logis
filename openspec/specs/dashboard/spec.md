@@ -56,7 +56,7 @@ A tile type MAY appear more than once with different settings. The arrangement S
 
 ### Requirement: Tile catalog
 The catalog SHALL offer these tiles with these settings:
-- „Zu erledigen“: no settings. Counts inbox mails waiting for a unit, mails with a proposed change, unrecognised mails and bookings awaiting review, each linking to the matching list.
+- „Zu erledigen“: no settings. Counts inbox mails waiting for a unit, mails with a proposed change, unrecognised mails and bookings awaiting review, each linking to the matching list; „Buchungen prüfen“ SHALL open the review mode of the bookings.
 - „Nächste An- und Abreisen“: period of 7, 14 or 30 days; one unit or all. Lists arrivals and departures in that period, soonest first.
 - „Belegung“: one unit or all; with or without the previous year. Shows the current year's occupancy per month and in total.
 - „Einnahmen“: one unit or all. Shows the settled net income of the current year up to today and of the same period of the previous year.
@@ -67,7 +67,7 @@ The tiles „Nächste An- und Abreisen“, „Belegung“ and „Einnahmen“ SH
 
 #### Scenario: Things to do
 - **WHEN** Anna has two mails waiting for a unit and one booking awaiting review
-- **THEN** „Zu erledigen“ shows 2 for „Einheit zuordnen“ and 1 for „Buchungen prüfen“, each linking to the list
+- **THEN** „Zu erledigen“ shows 2 for „Einheit zuordnen“, linking to the inbox, and 1 for „Buchungen prüfen“, opening the review mode
 
 #### Scenario: Arrivals of one unit
 - **WHEN** „Nächste An- und Abreisen“ is set to 7 days and „Haus Düne“
