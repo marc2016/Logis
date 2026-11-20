@@ -1,5 +1,5 @@
 import { expect, test } from '../support/fixtures'
-import { holidayHome, inDays } from '../support/data'
+import { holidayHome, inDays, germanDate } from '../support/data'
 import { connectMailbox, deliver, fetchMails, fewoOwnerBlock } from '../support/mail'
 
 test('an owner block mail creates an owner use that blocks the calendar', async ({ page, api, user }) => {
@@ -34,8 +34,8 @@ test('an owner block mail creates an owner use that blocks the calendar', async 
   await page.getByRole('button', { name: 'Buchung' }).click()
   const form = page.getByRole('dialog', { name: 'Buchung erfassen' })
   await expect(form.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
-  await form.getByLabel('Anreise').fill(inDays(31))
-  await form.getByLabel('Abreise').fill(inDays(33))
+  await form.getByRole('textbox', { name: 'Anreise' }).fill(germanDate(inDays(31)))
+  await form.getByRole('textbox', { name: 'Abreise' }).fill(germanDate(inDays(33)))
   await form.getByRole('button', { name: 'Speichern' }).click()
   await expect(form.getByText('Die Einheit ist in diesem Zeitraum bereits belegt')).toBeVisible()
 })

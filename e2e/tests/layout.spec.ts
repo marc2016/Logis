@@ -67,6 +67,21 @@ test('the sharing dialog fits on phone and tablet screens', async ({ page, api }
   expect(problems).toEqual([])
 })
 
+test('the booking dialog fits on phone and tablet screens', async ({ page, api }) => {
+  await holidayHome(api)
+  const problems: string[] = []
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/ferienvermietung/buchungen')
+    await page.getByRole('button', { name: 'Buchung' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Buchung erfassen' })
+    await expect(dialog.getByRole('textbox', { name: 'Anreise' })).toHaveAttribute('placeholder', 'TT.MM.JJJJ')
+    for (const p of await layoutProblems(page, '[role=dialog]')) problems.push(`booking dialog at ${width} px: ${p}`)
+    await page.keyboard.press('Escape')
+  }
+  expect(problems).toEqual([])
+})
+
 test('a booking imported from a mail fits on phone and tablet screens', async ({ page, api, user }) => {
   const home = await holidayHome(api)
   const address = `${user.username}@example.org`

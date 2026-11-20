@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { DateField } from '@/components/DateField'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -109,7 +110,7 @@ export function TransactionDialog({ transaction, accounts, defaultAccountId, onC
             </div>
             <div className="space-y-2">
               <Label htmlFor="tx-date">Datum</Label>
-              <Input id="tx-date" type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required />
+              <DateField id="tx-date" label="Datum" value={bookingDate} onChange={setBookingDate} required />
             </div>
           </div>
           <div className="space-y-2">

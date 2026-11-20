@@ -79,7 +79,7 @@ describe('Review of imported bookings', () => {
     expect(within(diff).getByText('08.11.2026')).toBeInTheDocument()
     expect(within(diff).getByText('09.11.2026')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Übernehmen' }))
-    await waitFor(() => expect(screen.getByLabelText('Abreise')).toHaveValue('2026-11-09'))
+    await waitFor(() => expect(screen.getByLabelText('Abreise')).toHaveValue('09.11.2026'))
     expect(screen.queryByRole('table', { name: 'Vorgeschlagene Änderung' })).not.toBeInTheDocument()
   })
 

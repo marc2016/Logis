@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,8 @@ interface Props {
   max?: string
   /** Names the calendar button, e.g. the field's label. */
   label: string
+  /** An empty or invalid date stops the form from being submitted, like any required field. */
+  required?: boolean
   className?: string
 }
 
@@ -28,11 +30,12 @@ interface Props {
  * Date as typed text `TT.MM.JJJJ` with a calendar whose month and year can be chosen directly. Reports a valid
  * date as soon as it is complete and '' otherwise; tells why once the field is left.
  */
-export function DateField({ id, value, onChange, max, label, className }: Props) {
+export function DateField({ id, value, onChange, max, label, required, className }: Props) {
   const [text, setText] = useState(value ? formatDate(value) : '')
   const [shown, setShown] = useState(value)
   const [touched, setTouched] = useState(false)
   const [open, setOpen] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
 
   // A value set from outside (e.g. a quick range) replaces the typed text.
   if (value !== shown) {
@@ -48,6 +51,12 @@ export function DateField({ id, value, onChange, max, label, className }: Props)
 
   const parsed = parseGermanDate(text)
   const error = !text ? null : !parsed ? INVALID_DATE : max && parsed > max ? FUTURE_DATE : null
+
+  // The browser's own form check refuses to submit while the typed text is no valid date (design D1 of
+  // german-date-fields); an empty required field is refused through `required`.
+  useEffect(() => {
+    input.current?.setCustomValidity(error ?? '')
+  }, [error])
 
   function change(next: string) {
     setText(next)
@@ -66,8 +75,10 @@ export function DateField({ id, value, onChange, max, label, className }: Props)
     <div className={className}>
       <div className="flex w-full max-w-44 gap-1">
         <Input
+          ref={input}
           id={id}
           value={text}
+          required={required}
           inputMode="numeric"
           placeholder="TT.MM.JJJJ"
           aria-invalid={visibleError ? true : undefined}

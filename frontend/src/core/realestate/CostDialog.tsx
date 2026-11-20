@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { DateField } from '@/components/DateField'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -122,7 +123,7 @@ export function CostDialog({ property, cost: initial, onClose }: Props) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="cost-date">Datum</Label>
-              <Input id="cost-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <DateField id="cost-date" label="Datum" value={date} onChange={setDate} required />
             </div>
           </div>
           {showTarget && (

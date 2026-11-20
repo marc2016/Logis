@@ -250,6 +250,29 @@ describe('Booking dialog', () => {
 })
 
 describe('Statements', () => {
+  it('does not save a statement with an invalid date', async () => {
+    const fetch = mockApi({
+      ...base,
+      'GET /api/vacationrental/statements': { body: [] },
+      'GET /api/vacationrental/statements/providers': { body: [] },
+    })
+    renderApp('/ferienvermietung/abrechnungen')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Abrechnung' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Dienstleister'), 'Fewo & Meer')
+    // The dialog suggests dates; replace them.
+    for (const [name, text] of [['Zeitraum von', '01.10.2026'], ['bis', '31.10.2026'], ['Abrechnungsdatum', '31.02.2026']]) {
+      const field = within(dialog).getByRole('textbox', { name })
+      await user.clear(field)
+      await user.type(field, text)
+    }
+    await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
+    expect(await within(dialog).findAllByText('Bitte ein gültiges Datum eingeben.')).toHaveLength(1)
+    expect(within(dialog).getByRole('textbox', { name: 'Abrechnungsdatum' })).toHaveAttribute('aria-invalid', 'true')
+    expect(fetch.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'POST')).toBe(false)
+  })
+
   it('shows the net per line and the payout after assigning a booking', async () => {
     let assigned = false
     const settledLine = {

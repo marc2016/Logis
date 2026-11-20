@@ -1,6 +1,6 @@
 import { expect, test } from '../support/fixtures'
 import { call } from '../support/api'
-import { holidayHome, inDays } from '../support/data'
+import { holidayHome, inDays, germanDate } from '../support/data'
 
 test('record a booking, see it in the calendar and settle it', async ({ page, api }) => {
   const home = await holidayHome(api)
@@ -17,8 +17,8 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await page.getByRole('button', { name: 'Buchung' }).click()
   const dialog = page.getByRole('dialog', { name: 'Buchung erfassen' })
   await expect(dialog.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
-  await dialog.getByLabel('Anreise').fill(arrival)
-  await dialog.getByLabel('Abreise').fill(departure)
+  await dialog.getByRole('textbox', { name: 'Anreise' }).fill(germanDate(arrival))
+  await dialog.getByRole('textbox', { name: 'Abreise' }).fill(germanDate(departure))
   await dialog.getByLabel('Buchungsnummer').fill('E2E-42')
   await dialog.getByRole('combobox', { name: /Vermittler/ }).click()
   await page.getByPlaceholder('Vermittler suchen oder anlegen').fill(agency.name)

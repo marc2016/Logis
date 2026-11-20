@@ -130,7 +130,7 @@ export function MailboxCard({ mailbox }: { mailbox: MailboxSettings }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="mb-cutoff">Stichtag</Label>
-              <Input id="mb-cutoff" type="date" value={cutoffDate} onChange={(e) => setCutoffDate(e.target.value)} required />
+              <DateField id="mb-cutoff" label="Stichtag" value={cutoffDate} onChange={setCutoffDate} required />
             </div>
           </div>
           <div className="flex flex-wrap gap-6 text-sm">

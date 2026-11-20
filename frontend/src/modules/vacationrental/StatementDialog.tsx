@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { DateField } from '@/components/DateField'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -100,15 +101,15 @@ export function StatementDialog({ statement, defaultUnitId, onSaved, onClose }: 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="st-from">Zeitraum von</Label>
-              <Input id="st-from" type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} required />
+              <DateField id="st-from" label="Zeitraum von" value={periodFrom} onChange={setPeriodFrom} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="st-to">bis</Label>
-              <Input id="st-to" type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} required />
+              <DateField id="st-to" label="bis" value={periodTo} onChange={setPeriodTo} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="st-date">Abrechnungsdatum</Label>
-              <Input id="st-date" type="date" value={statementDate} onChange={(e) => setStatementDate(e.target.value)} required />
+              <DateField id="st-date" label="Abrechnungsdatum" value={statementDate} onChange={setStatementDate} required />
             </div>
           </div>
           <FormError message={error} />

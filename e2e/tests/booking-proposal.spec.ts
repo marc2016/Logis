@@ -34,5 +34,5 @@ test('a change mail proposes a new departure that is applied on the booking page
   await expect(proposal).toBeHidden()
   const dataTab = page.getByRole('tab', { name: 'Daten' })
   if (await dataTab.isVisible()) await dataTab.click()
-  await expect(page.getByLabel('Abreise', { exact: true })).toHaveValue('2030-08-15')
+  await expect(page.getByRole('textbox', { name: 'Abreise' })).toHaveValue('15.08.2030')
 })

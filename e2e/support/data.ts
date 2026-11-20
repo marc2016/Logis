@@ -33,6 +33,12 @@ export async function booking(api: APIRequestContext, unitId: number, arrival: s
   })
 }
 
+/** An ISO date as typed into the date fields: TT.MM.JJJJ. */
+export function germanDate(iso: string) {
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
+}
+
 /** ISO date `days` from today (local time). */
 export function inDays(days: number) {
   const d = new Date()

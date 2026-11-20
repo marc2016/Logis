@@ -1,4 +1,5 @@
 import { useState, type FocusEvent, type FormEvent, type ReactNode } from 'react'
+import { DateField } from '@/components/DateField'
 import { useMutation } from '@tanstack/react-query'
 import { FileSearchIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -236,10 +237,10 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field {...at('arrival')} field="arrival" label="Anreise" htmlFor="bk-arrival">
-            <Input id="bk-arrival" type="date" value={arrival} onChange={(e) => setArrival(e.target.value)} required />
+            <DateField id="bk-arrival" label="Anreise" value={arrival} onChange={setArrival} required />
           </Field>
           <Field {...at('departure')} field="departure" label="Abreise" htmlFor="bk-departure">
-            <Input id="bk-departure" type="date" value={departure} onChange={(e) => setDeparture(e.target.value)} required />
+            <DateField id="bk-departure" label="Abreise" value={departure} onChange={setDeparture} required />
           </Field>
           <Field {...at('externalRef')} field="externalRef" label="Buchungsnummer" htmlFor="bk-ref">
             <Input id="bk-ref" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
