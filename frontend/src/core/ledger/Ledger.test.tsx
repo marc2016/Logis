@@ -175,7 +175,7 @@ describe('Transactions', () => {
     expect(await screen.findByText('1.500,00 €')).toBeInTheDocument()
     expect(screen.getByLabelText('Summen')).toHaveTextContent('-84,90 €')
 
-    await user.type(screen.getByLabelText('Von'), '2026-10-01')
+    await user.type(screen.getByLabelText('Von'), '01.10.2026')
     await user.click(screen.getByLabelText('Nur ohne Kategorie'))
     await user.type(screen.getByLabelText('Suche'), 'edeka')
     await waitFor(() => {

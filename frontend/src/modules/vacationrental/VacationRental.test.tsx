@@ -38,6 +38,23 @@ describe('Bookings grid', () => {
     expect(screen.getByRole('columnheader', { name: /Nächte/ })).toHaveAttribute('aria-sort', 'ascending')
   })
 
+  it('filters by a period typed as TT.MM.JJJJ and keeps it in the address', async () => {
+    const fetch = mockApi({ ...base, 'GET /api/vacationrental/bookings': { body: bookingPage([]) } })
+    const { router } = renderApp('/ferienvermietung/buchungen?to=2026-12-31')
+    const user = userEvent.setup()
+    expect(await screen.findByText('Keine Buchungen gefunden.')).toBeInTheDocument()
+    // A date from the address shows in German format.
+    expect(screen.getByRole('textbox', { name: 'Bis' })).toHaveValue('31.12.2026')
+    await user.type(screen.getByRole('textbox', { name: 'Von' }), '01.12.2026')
+    await waitFor(() => expect(router.state.location.search).toContain('from=2026-12-01'))
+    await waitFor(() =>
+      expect(fetch.mock.calls.map((c) => String(c[0]))).toContainEqual(expect.stringMatching(/from=2026-12-01.*to=2026-12-31/)),
+    )
+    // Clearing the field removes it from the address.
+    await user.clear(screen.getByRole('textbox', { name: 'Von' }))
+    await waitFor(() => expect(router.state.location.search).not.toContain('from='))
+  })
+
   it('opens the dialog with the button at the top right', async () => {
     mockApi({ ...base, 'GET /api/vacationrental/bookings': { body: bookingPage([]) } })
     renderApp('/ferienvermietung/buchungen')

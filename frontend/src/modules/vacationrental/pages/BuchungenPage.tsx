@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { DateField } from '@/components/DateField'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { createColumnHelper } from '@tanstack/react-table'
 import { PlusIcon } from 'lucide-react'
@@ -180,13 +181,13 @@ export function BuchungenPage() {
           <Label htmlFor="flt-from" className="text-xs text-muted-foreground">
             Von
           </Label>
-          <Input id="flt-from" type="date" value={filter.from ?? ''} onChange={(e) => update({ from: e.target.value })} />
+          <DateField id="flt-from" label="Von" value={filter.from ?? ''} onChange={(from) => update({ from: from || undefined })} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="flt-to" className="text-xs text-muted-foreground">
             Bis
           </Label>
-          <Input id="flt-to" type="date" value={filter.to ?? ''} onChange={(e) => update({ to: e.target.value })} />
+          <DateField id="flt-to" label="Bis" value={filter.to ?? ''} onChange={(to) => update({ to: to || undefined })} />
         </div>
         <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="flt-q" className="text-xs text-muted-foreground">

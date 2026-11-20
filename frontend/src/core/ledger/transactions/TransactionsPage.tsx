@@ -1,4 +1,5 @@
 import { useDeferredValue, useState } from 'react'
+import { DateField } from '@/components/DateField'
 import { ArrowLeftRightIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -97,11 +98,11 @@ export function TransactionsPage() {
         </div>
         <div className="space-y-1">
           <Label htmlFor="f-from">Von</Label>
-          <Input id="f-from" type="date" value={from} onChange={(e) => reset(setFrom)(e.target.value)} />
+          <DateField id="f-from" label="Von" value={from} onChange={reset(setFrom)} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="f-to">Bis</Label>
-          <Input id="f-to" type="date" value={to} onChange={(e) => reset(setTo)(e.target.value)} />
+          <DateField id="f-to" label="Bis" value={to} onChange={reset(setTo)} />
         </div>
         <div className="space-y-1 @2xl:col-span-2">
           <Label htmlFor="f-category">Kategorie</Label>
