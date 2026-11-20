@@ -45,7 +45,7 @@ class MailSourcesTest extends VacationRentalTest {
     void setUp() throws Exception {
         mailUser = greenMail.setUser("anna@example.org", "anna", "geheim");
         anna = actor();
-        property = singleUnitProperty(anna, "Haus Seeufer");
+        property = singleUnitProperty(anna, "Haus Waldeck");
         unit = unitIds(property).getFirst();
         var body = new HashMap<String, Object>(Map.of("host", "localhost", "port", greenMail.getImap().getPort(),
                 "username", "anna", "password", "geheim", "folder", "INBOX", "useTls", false,
@@ -119,11 +119,11 @@ class MailSourcesTest extends VacationRentalTest {
         var sources = sources(booking);
         assertThat(sources).hasSize(1);
         assertThat(sources.getFirst().get("label")).isEqualTo("Fewo & Meer Buchungsbestätigung");
-        assertThat(sources.getFirst().get("subject")).isEqualTo("Neue Buchung für Haus Seeufer - Nordhorn");
+        assertThat(sources.getFirst().get("subject")).isEqualTo("Neue Buchung für Haus Waldeck - Talstadt");
         assertThat(at(booking, "CURRENT", "arrival")).containsEntry("written", "06.11.2026")
                 .containsEntry("source_value", "2026-11-06");
         assertThat(at(booking, "CURRENT", "externalRef")).containsEntry("written", "250905");
-        assertThat(at(booking, "CURRENT", "propertyName")).containsEntry("written", "Haus Seeufer - Nordhorn");
+        assertThat(at(booking, "CURRENT", "propertyName")).containsEntry("written", "Haus Waldeck - Talstadt");
         assertThat(at(booking, "CURRENT", "expectedRent")).containsEntry("source_value", "248.58");
         assertThat(at(booking, "CURRENT", "guestName")).containsEntry("written", "Erika Musterfrau");
         assertThat(at(booking, "CURRENT", "guestCity")).containsEntry("written", "Musterstadt");
@@ -254,7 +254,7 @@ class MailSourcesTest extends VacationRentalTest {
         int end = JsonPath.read(response, "$.locations.guestName.end");
         var text = getWith("/api/vacationrental/bookings/" + booking + "/sources/" + source, anna.session())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.subject").value("Neue Buchung für Haus Seeufer - Nordhorn"))
+                .andExpect(jsonPath("$.subject").value("Neue Buchung für Haus Waldeck - Talstadt"))
                 .andExpect(jsonPath("$.sender").value("buchung@fewoundmeer.de"))
                 .andReturn().getResponse().getContentAsString();
         String body = JsonPath.read(text, "$.text");

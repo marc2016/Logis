@@ -21,7 +21,7 @@ class ReadingTest {
 
     @Test
     void subjectAndSharedLocations() {
-        var r = new Reading("Stornierung 250905, Haus Seeufer", "2 Erwachsene, 1 Kind");
+        var r = new Reading("Stornierung 250905, Haus Waldeck", "2 Erwachsene, 1 Kind");
         r.subject(Pattern.compile("^Stornierung (\\S+),"), BookingField.EXTERNAL_REF);
         r.text(Pattern.compile("(.+)"), BookingField.ADULTS, BookingField.CHILDREN);
         assertThat(r.location(BookingField.EXTERNAL_REF)).isEqualTo(new Location(Location.Part.SUBJECT, 12, 18));

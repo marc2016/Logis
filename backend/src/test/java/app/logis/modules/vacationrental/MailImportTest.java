@@ -45,7 +45,7 @@ class MailImportTest extends VacationRentalTest {
     void setUp() throws Exception {
         mailUser = greenMail.setUser("anna@example.org", "anna", "geheim");
         anna = actor();
-        unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         saveMailbox(anna, "geheim").andExpect(status().isOk());
     }
 
@@ -81,7 +81,7 @@ class MailImportTest extends VacationRentalTest {
         try (var in = getClass().getResourceAsStream("/mails/ds-vvv-confirmation.eml")) {
             text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         }
-        text = text.replace("VVV-Stadt- und Citymarketing Nordhorn e.V.", intermediary)
+        text = text.replace("VVV-Stadt- und Citymarketing Talstadt e.V.", intermediary)
                 .replace("3e98f765kl", ref).replace("15.05.2027", arrival).replace("18.05.2027", departure);
         var message = new MimeMessage(Session.getInstance(new Properties()),
                 new java.io.ByteArrayInputStream(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
@@ -457,10 +457,10 @@ class MailImportTest extends VacationRentalTest {
         assign("Buchungsmitteilung 3e98f765kl");
         vvv = inboxItem(anna, "Buchungsmitteilung 3e98f765kl");
         assertThat(vvv.get("result")).isEqualTo("BOOKING_CREATED");
-        assertThat(vvv.get("source")).isEqualTo("VVV-Stadt- und Citymarketing Nordhorn e.V.");
+        assertThat(vvv.get("source")).isEqualTo("VVV-Stadt- und Citymarketing Talstadt e.V.");
         getWith("/api/vacationrental/bookings/" + ((Number) vvv.get("linkId")).longValue(), anna.session())
                 .andExpect(jsonPath("$.reviewState").value("NEW"))
-                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Talstadt e.V."))
                 .andExpect(jsonPath("$.adults").value(2))
                 .andExpect(jsonPath("$.children").value(2))
                 .andExpect(jsonPath("$.expectedRent").value("447.00"));
@@ -482,11 +482,11 @@ class MailImportTest extends VacationRentalTest {
         var item = inboxItem(anna, "Neue Blockung");
         assertThat(item.get("result")).isEqualTo("ATTACHED");
         assertThat(item.get("kind")).isEqualTo("BLOCK_NOTICE");
-        assertThat(item.get("resultDetail")).isEqualTo("Blockung durch VVV Nordhorn");
+        assertThat(item.get("resultDetail")).isEqualTo("Blockung durch VVV Talstadt");
         assertThat(((Number) item.get("linkId")).longValue()).isEqualTo(bookingId);
         getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
                 .andExpect(jsonPath("$.externalRef").value("3e98f765kl"))
-                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Nordhorn e.V."))
+                .andExpect(jsonPath("$.agency.name").value("VVV-Stadt- und Citymarketing Talstadt e.V."))
                 .andExpect(jsonPath("$.proposal").doesNotExist());
         getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
                 .andExpect(jsonPath("$", hasSize(2)))

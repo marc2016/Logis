@@ -30,7 +30,7 @@ class BookingDocumentsTest extends VacationRentalTest {
     void attachTheConfirmationAndRules() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var booking = booking(anna, unitIds(property).getFirst(), "2026-11-06", "2026-11-08");
 
@@ -52,7 +52,7 @@ class BookingDocumentsTest extends VacationRentalTest {
     @Test
     void documentsStayWithGuestDeletionAndGoWithTheBooking() throws Exception {
         var anna = actor();
-        var booking = booking(anna, unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst(),
+        var booking = booking(anna, unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst(),
                 "2026-11-06", "2026-11-08");
         var doc = id(attach(anna.session(), booking, "a.png", PNG).andExpect(status().isCreated()));
 
@@ -69,7 +69,7 @@ class BookingDocumentsTest extends VacationRentalTest {
     @Test
     void propertyWithBookingsCannotBeDeleted() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         booking(anna, unitIds(property).getFirst(), "2026-11-06", "2026-11-08");
         mvc.perform(delete("/api/properties/" + property).with(csrf()).session(anna.session()))
                 .andExpect(status().isConflict())

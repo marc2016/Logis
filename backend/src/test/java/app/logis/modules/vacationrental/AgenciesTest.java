@@ -55,15 +55,15 @@ class AgenciesTest extends VacationRentalTest {
     @Test
     void renameKeepsTheOldNameAsMailName() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
-        var longName = unique("VVV-Stadt- und Citymarketing Nordhorn e.V.");
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
+        var longName = unique("VVV-Stadt- und Citymarketing Talstadt e.V.");
         var id = id(postJson(BASE, Map.of("name", longName), anna.session()));
         var body = stay(unit, "2027-05-15", "2027-05-18");
         body.put("agencyId", id);
         body.put("externalRef", "3e98f765kl");
         var bookingId = id(book(anna, body).andExpect(status().isCreated()));
 
-        var shortName = unique("VVV Nordhorn");
+        var shortName = unique("VVV Talstadt");
         rename(anna, id, shortName, version(anna, id)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(shortName))
                 .andExpect(jsonPath("$.aliases[*].alias", hasItem(longName)))
@@ -86,7 +86,7 @@ class AgenciesTest extends VacationRentalTest {
     @Test
     void archivedAgenciesStayOnBookings() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var airbnb = agency(anna, "Airbnb");
         var body = stay(unit, "2027-06-01", "2027-06-03");
         body.put("agencyId", airbnb);
@@ -125,7 +125,7 @@ class AgenciesTest extends VacationRentalTest {
     @Test
     void mergeMovesBookingsMappingsAndNames() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var target = agency(anna, "Holidu");
         var source = agency(anna, "holidu.de");
         var sourceName = (String) find(anna, source).get("name");
@@ -134,7 +134,7 @@ class AgenciesTest extends VacationRentalTest {
         body.put("externalRef", "A1");
         var bookingId = id(book(anna, body));
         jdbc.update("INSERT INTO vacationrental.unit_mappings (owner_user_id, agency_id, property_name, unit_id) "
-                + "VALUES (?, ?, 'Ferienhaus Seeufer', ?), (?, ?, 'Ferienhaus Seeufer', ?), (?, ?, 'Anderes Haus', ?)",
+                + "VALUES (?, ?, 'Ferienhaus Waldeck', ?), (?, ?, 'Ferienhaus Waldeck', ?), (?, ?, 'Anderes Haus', ?)",
                 anna.id(), source, unit, anna.id(), target, unit, anna.id(), source, unit);
 
         postJson(BASE + "/" + source + "/merge", Map.of("targetId", target), anna.session())
@@ -146,7 +146,7 @@ class AgenciesTest extends VacationRentalTest {
         getWith(BASE, anna.session()).andExpect(jsonPath("$[*].id", not(hasItem(source.intValue()))));
         assertThat(jdbc.queryForList("SELECT property_name FROM vacationrental.unit_mappings "
                 + "WHERE owner_user_id = ? ORDER BY property_name", String.class, anna.id()))
-                .containsExactly("Anderes Haus", "Ferienhaus Seeufer");
+                .containsExactly("Anderes Haus", "Ferienhaus Waldeck");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM vacationrental.unit_mappings WHERE agency_id = ?",
                 Long.class, source)).isZero();
     }
@@ -154,7 +154,7 @@ class AgenciesTest extends VacationRentalTest {
     @Test
     void mergeIsRejectedWhenBookingNumbersCollide() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var a = agency(anna, "Agentur A");
         var b = agency(anna, "Agentur B");
         for (var entry : Map.of(a, "2027-08-01", b, "2027-08-05").entrySet()) {
@@ -171,7 +171,7 @@ class AgenciesTest extends VacationRentalTest {
     @Test
     void onlyUnusedAgenciesCanBeDeleted() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var used = agency(anna, "Holidu");
         var body = stay(unit, "2027-09-01", "2027-09-03");
         body.put("agencyId", used);
@@ -190,7 +190,7 @@ class AgenciesTest extends VacationRentalTest {
     void bookingCountsOnlyCoverVisibleBookings() throws Exception {
         var anna = actor();
         var bert = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = agency(anna, "Zählung");
         var body = stay(unit, "2027-10-01", "2027-10-03");
         body.put("agencyId", id);

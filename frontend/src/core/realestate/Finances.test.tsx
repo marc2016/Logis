@@ -13,7 +13,7 @@ const finances: Finances = {
   months,
   total: { month: 0, income: '248.58', expenses: '417.29', result: '-168.71' },
   items: [
-    { date: '2026-11-30', unitId: 70, unitName: 'Haus Seeufer', kind: 'INCOME', label: 'Buchung 250905', amount: '248.58', sourceType: 'vacationrental.statement', sourceId: 900, categoryName: null, counterparty: null, editable: false },
+    { date: '2026-11-30', unitId: 70, unitName: 'Haus Waldeck', kind: 'INCOME', label: 'Buchung 250905', amount: '248.58', sourceType: 'vacationrental.statement', sourceId: 900, categoryName: null, counterparty: null, editable: false },
     { date: '2026-11-12', unitId: null, unitName: null, kind: 'EXPENSE', label: 'Handwerker Meyer', amount: '320.00', sourceType: 'realestate.cost', sourceId: 5, categoryName: 'Wohnen', counterparty: 'Handwerker Meyer', editable: true },
   ],
   canRecord: true,
@@ -22,15 +22,15 @@ const finances: Finances = {
 function property(overrides: Partial<Property> = {}): Property {
   return {
     id: 7,
-    name: 'Haus Seeufer',
+    name: 'Haus Waldeck',
     street: null,
     postalCode: null,
-    city: 'Nordhorn',
+    city: 'Talstadt',
     legalEntity: { id: 10, name: 'Beispiel GbR', kind: 'PARTNERSHIP' as Property['legalEntity']['kind'] },
     multiUnit: false,
     archived: false,
     myRole: 'OWNER',
-    units: [{ id: 70, name: 'Haus Seeufer', usage: 'VACATION_RENTAL', archived: false, myRole: 'OWNER' }],
+    units: [{ id: 70, name: 'Haus Waldeck', usage: 'VACATION_RENTAL', archived: false, myRole: 'OWNER' }],
     ...overrides,
   }
 }
@@ -40,7 +40,7 @@ const base = {
   'GET /api/modules': { body: [] },
   'GET /api/categories': { body: categories },
   'GET /api/accounts': { body: [account()] },
-  'GET /api/transactions': { body: page([transaction({ propertyId: 7, targetName: 'Haus Seeufer' })]) },
+  'GET /api/transactions': { body: page([transaction({ propertyId: 7, targetName: 'Haus Waldeck' })]) },
   'GET /api/properties/7/finances': { body: finances },
 }
 

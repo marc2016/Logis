@@ -36,14 +36,14 @@ class AgencyMigrationTest {
             insert(db, 1, "2026-11-09", "5", "Holidu", "AIRBNB");
             insert(db, 1, "2026-11-11", null, null, null);
             db.update("INSERT INTO vacationrental.unit_mappings (owner_user_id, agency, property_name, unit_id) "
-                    + "VALUES (7, 'Fewo & Meer', 'Haus Seeufer - Nordhorn', 1), "
-                    + "(7, 'FEWO & MEER', 'haus seeufer - nordhorn', 2), "
-                    + "(7, 'VVV Nordhorn', 'Ferienhaus Seeufer', 1)");
+                    + "VALUES (7, 'Fewo & Meer', 'Haus Waldeck - Talstadt', 1), "
+                    + "(7, 'FEWO & MEER', 'haus waldeck - talstadt', 2), "
+                    + "(7, 'VVV Talstadt', 'Ferienhaus Waldeck', 1)");
 
             config.target("latest").load().migrate();
 
             assertThat(db.queryForList("SELECT name FROM vacationrental.agencies ORDER BY name", String.class))
-                    .containsExactly("Direkt", "Fewo & Meer", "Holidu", "VVV Nordhorn");
+                    .containsExactly("Direkt", "Fewo & Meer", "Holidu", "VVV Talstadt");
             assertThat(agencyOf(db, "1")).isEqualTo("Fewo & Meer");
             assertThat(agencyOf(db, "3")).isEqualTo("Fewo & Meer");
             assertThat(agencyOf(db, "4")).isEqualTo("Direkt");

@@ -17,7 +17,7 @@ const columns = [
   column.accessor('name', { header: 'Name', meta: { label: 'Name', sortable: true } }),
   column.accessor('city', { header: 'Ort', meta: { label: 'Ort' } }),
 ]
-const rows: Row[] = [{ id: 1, name: 'Anna', city: 'Nordhorn' }]
+const rows: Row[] = [{ id: 1, name: 'Anna', city: 'Talstadt' }]
 
 describe('DataTable', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -60,11 +60,11 @@ describe('DataTable', () => {
     })
     render(<DataTable tableId="t3" columns={columns} data={rows} getRowId={(r) => String(r.id)} />)
     expect(screen.getByRole('columnheader', { name: 'Ort' })).toBeInTheDocument()
-    expect(screen.getByText('Nordhorn')).toBeInTheDocument()
+    expect(screen.getByText('Talstadt')).toBeInTheDocument()
   })
 
   describe('selection', () => {
-    const many: Row[] = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, name: `Gast ${i + 1}`, city: i === 2 ? 'gesperrt' : 'Nordhorn' }))
+    const many: Row[] = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, name: `Gast ${i + 1}`, city: i === 2 ? 'gesperrt' : 'Talstadt' }))
 
     function Selectable({ onRowClick }: { onRowClick?: (row: Row) => void }) {
       const selection = useSelection('k')

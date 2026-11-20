@@ -67,7 +67,7 @@ class CalendarLinksTest extends VacationRentalTest {
     void createListAndRevoke() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var created = createLink(anna, unit, "Reinigung", false);
         var path = created.get("path").asText();
         assertThat(path).matches("/api/ical/[A-Za-z0-9_-]{43}\\.ics");
@@ -97,7 +97,7 @@ class CalendarLinksTest extends VacationRentalTest {
     void viewerCanCreateLinkWithGuests() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var unit = unitIds(property).getFirst();
         assertThat(createLink(dieter, unit, "Ich", true).get("link").get("withGuests").asBoolean()).isTrue();
@@ -106,7 +106,7 @@ class CalendarLinksTest extends VacationRentalTest {
     @Test
     void feedWithAndWithoutGuests() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var today = LocalDate.now();
         var arrival = today.plusDays(10);
         guestBooking(anna, unit, arrival.toString(), arrival.plusDays(2).toString(), "Erika Musterfrau", "250905");
@@ -134,7 +134,7 @@ class CalendarLinksTest extends VacationRentalTest {
     void feedStopsWhenCreatorLosesAccess() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var unit = unitIds(property).getFirst();
         var path = createLink(dieter, unit, "Dieter", false).get("path").asText();

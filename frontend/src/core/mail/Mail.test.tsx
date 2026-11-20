@@ -3,14 +3,14 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
-import { booking, seeufer } from '@/modules/vacationrental/fixtures'
+import { booking, waldeck } from '@/modules/vacationrental/fixtures'
 import type { FetchStatus, InboxItem, MailboxSettings } from './api'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
-  'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/vacationrental/units': { body: [waldeck] },
   'GET /api/mail/mailbox/fetch-status': { status: 204 },
 }
 
@@ -36,15 +36,15 @@ function inboxItem(overrides: Partial<InboxItem> = {}): InboxItem {
     id: 31,
     receivedAt: '2026-11-07T08:00:00Z',
     sender: 'buchung@fewoundmeer.de',
-    subject: 'Neue Buchung für Haus Seeufer - Nordhorn',
+    subject: 'Neue Buchung für Haus Waldeck - Talstadt',
     handler: 'vacationrental.booking',
     kind: 'CONFIRMATION',
     source: 'Fewo & Meer',
     reference: '250903',
-    subjectName: 'Haus Seeufer - Nordhorn',
+    subjectName: 'Haus Waldeck - Talstadt',
     parsedBy: 'RULE',
     result: 'UNASSIGNED_UNIT',
-    resultDetail: 'Einheit für „Haus Seeufer - Nordhorn“ zuordnen',
+    resultDetail: 'Einheit für „Haus Waldeck - Talstadt“ zuordnen',
     linkType: null,
     linkId: null,
     retryable: true,
@@ -139,7 +139,7 @@ describe('Inbox', () => {
     const dialog = await screen.findByRole('dialog')
     expect(await within(dialog).findByText('Buchungsnummer 250903')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('combobox', { name: /Einheit für/ }))
-    await user.click(await screen.findByRole('option', { name: 'Haus Seeufer' }))
+    await user.click(await screen.findByRole('option', { name: 'Haus Waldeck' }))
     await user.click(within(dialog).getByRole('button', { name: 'Zuordnen' }))
     await waitFor(() => expect(assigned).toEqual({ unitId: 70 }))
   })
@@ -256,7 +256,7 @@ describe('Inbox', () => {
       const dialog = await screen.findByRole('dialog', { name: 'Einheit zuordnen' })
       expect(within(dialog).getByText(/2 Mails warten auf eine Einheit/)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('combobox', { name: 'Einheit' }))
-      await user.click(await screen.findByRole('option', { name: 'Haus Seeufer' }))
+      await user.click(await screen.findByRole('option', { name: 'Haus Waldeck' }))
       await user.click(within(dialog).getByRole('button', { name: 'Zuordnen' }))
       expect(await screen.findByText('2 zugeordnet, 1 nicht: Die Mail wartet nicht auf eine Einheit')).toBeInTheDocument()
       expect(assigned.sort()).toEqual([31, 32])
@@ -456,7 +456,7 @@ describe('Owner block mails', () => {
       ...base,
       'GET /api/mail/mailbox': { body: mailbox },
       'GET /api/mail/inbox': {
-        body: [inboxItem({ subject: 'Eigentümerblockung 275001, Haus Seeufer - Nordhorn', kind: 'OWNER_BLOCK', result: 'OWNER_USE_CREATED', linkType: 'vacationrental.booking', linkId: 504, retryable: false })],
+        body: [inboxItem({ subject: 'Eigentümerblockung 275001, Haus Waldeck - Talstadt', kind: 'OWNER_BLOCK', result: 'OWNER_USE_CREATED', linkType: 'vacationrental.booking', linkId: 504, retryable: false })],
       },
     })
     renderApp('/posteingang')

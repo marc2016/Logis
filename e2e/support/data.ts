@@ -14,7 +14,7 @@ export async function holidayHome(api: APIRequestContext, prefix = 'Haus'): Prom
   const property = await call<{ id: number; units: { id: number }[] }>(api, 'POST', '/api/properties', {
     legalEntityId: entity.id,
     name,
-    city: 'Nordhorn',
+    city: 'Talstadt',
     multiUnit: false,
     firstUnit: { usage: 'VACATION_RENTAL' },
   })

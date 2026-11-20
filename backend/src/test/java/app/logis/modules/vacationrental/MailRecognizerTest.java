@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MailRecognizerTest {
 
     private static AiExtraction change(String departure) {
-        return new AiExtraction(true, "Fewo & Meer", "change", "250905", "Haus Seeufer - Nordhorn", "2026-11-07",
+        return new AiExtraction(true, "Fewo & Meer", "change", "250905", "Haus Waldeck - Talstadt", "2026-11-07",
                 departure, "4", "", "", "", "", "", "", "", "", "", "");
     }
 
@@ -73,7 +73,7 @@ class MailRecognizerTest {
         // A passage that occurs in the mail, quoted with other blanks than the mail uses.
         var line = text.lines().filter(l -> l.contains("2026")).findFirst().orElseThrow();
         var quoted = line.strip().replaceAll("\\s+", "  \n ");
-        var e = new AiExtraction(true, "Fewo & Meer", "change", "250905", "Haus Seeufer - Nordhorn", "2026-11-07",
+        var e = new AiExtraction(true, "Fewo & Meer", "change", "250905", "Haus Waldeck - Talstadt", "2026-11-07",
                 "2026-11-09", "4", "", "", "", "Erika Musterfrau", "", "", "", "", "", "",
                 List.of(new AiExtraction.Quote("departure", quoted),
                         new AiExtraction.Quote("guestName", "Max Mustermann wohnt woanders"),

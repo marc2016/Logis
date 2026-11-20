@@ -24,7 +24,7 @@ class BookingReviewTest extends VacationRentalTest {
     @Test
     void agencyAndPets() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var fewo = agency(anna, "Fewo & Meer");
         var holiduId = agency(anna, "Holidu");
         var body = stay(unit, "2026-11-06", "2026-11-08");
@@ -61,7 +61,7 @@ class BookingReviewTest extends VacationRentalTest {
     @Test
     void confirmAndFilterImportedBookings() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var imported = booking(anna, unit, "2026-12-23", "2026-12-27");
         var manual = booking(anna, unit, "2026-11-06", "2026-11-08");
         markNew(imported);
@@ -91,7 +91,7 @@ class BookingReviewTest extends VacationRentalTest {
     void discardDeletesTheBookingAndItsDocuments() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var unit = unitIds(property).getFirst();
         var imported = booking(anna, unit, "2026-12-23", "2026-12-27");
@@ -112,7 +112,7 @@ class BookingReviewTest extends VacationRentalTest {
     void applyAndDiscardProposals() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var unit = unitIds(property).getFirst();
         var id = booking(anna, unit, "2026-11-06", "2026-11-08");
@@ -153,7 +153,7 @@ class BookingReviewTest extends VacationRentalTest {
     @Test
     void applyCancellationFreesThePeriod() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = booking(anna, unit, "2026-11-06", "2026-11-08");
         propose(id, "{\"type\":\"CANCELLATION\"}");
         postJson("/api/vacationrental/bookings/" + id + "/proposal/apply", Map.of(), anna.session())

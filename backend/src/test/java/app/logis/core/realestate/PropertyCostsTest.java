@@ -32,7 +32,7 @@ class PropertyCostsTest extends RealestateTest {
     @Test
     void recordEditAndDeleteACost() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var costId = id(postJson("/api/properties/" + property + "/costs", repair("320.00"), anna.session())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.amount").value("320.00"))
@@ -58,7 +58,7 @@ class PropertyCostsTest extends RealestateTest {
     @Test
     void validatesAmountAndCategory() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var url = "/api/properties/" + property + "/costs";
         postJson(url, repair("0"), anna.session()).andExpect(status().isBadRequest());
         postJson(url, repair("-5.00"), anna.session()).andExpect(status().isBadRequest());
@@ -109,7 +109,7 @@ class PropertyCostsTest extends RealestateTest {
     void receiptsOnCosts() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var costId = id(postJson("/api/properties/" + property + "/costs", repair("320.00"), anna.session())
                 .andExpect(status().isCreated()));
@@ -134,7 +134,7 @@ class PropertyCostsTest extends RealestateTest {
     @Test
     void propertyWithCostsCannotBeDeleted() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         postJson("/api/properties/" + property + "/costs", repair("320.00"), anna.session())
                 .andExpect(status().isCreated());
         mvc.perform(delete("/api/properties/" + property).with(csrf()).session(anna.session()))

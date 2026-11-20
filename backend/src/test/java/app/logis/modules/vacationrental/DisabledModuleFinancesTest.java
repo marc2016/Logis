@@ -16,7 +16,7 @@ class DisabledModuleFinancesTest extends VacationRentalTest {
     @Test
     void noStatementItems() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var unit = unitIds(property).getFirst();
         var booking = jdbc.queryForObject("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults) "
                 + "VALUES (?, DATE '2026-11-06', DATE '2026-11-08', 2) RETURNING id", Long.class, unit);

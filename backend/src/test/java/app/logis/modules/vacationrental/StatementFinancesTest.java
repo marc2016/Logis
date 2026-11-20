@@ -13,7 +13,7 @@ class StatementFinancesTest extends VacationRentalTest {
     @Test
     void settledBookingAppearsOnThePropertyOnTheStatementDate() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var unit = unitIds(property).getFirst();
         var body = stay(unit, "2026-11-06", "2026-11-08");
         body.put("externalRef", "250905");

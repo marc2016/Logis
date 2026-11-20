@@ -4,18 +4,18 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { FieldLocation, SourceText } from './api'
-import { booking, seeufer } from './fixtures'
+import { booking, waldeck } from './fixtures'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
-  'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/vacationrental/units': { body: [waldeck] },
   'GET /api/vacationrental/agencies': { body: [] },
   'GET /api/documents': { body: [] },
 }
 
-const SUBJECT = 'Neue Buchung für Haus Seeufer - Nordhorn'
+const SUBJECT = 'Neue Buchung für Haus Waldeck - Talstadt'
 const TEXT = 'Buchungsnummer\t250905\nAnreise\t06.11.2026\nAbreise\t08.11.2026\nName\tErika Musterfrau'
 const CHANGE = 'Ihre Buchung 250905 wurde geändert.\nAbreise\t09.11.2026'
 
@@ -40,7 +40,7 @@ const imported = booking({
   ],
   locations: {
     externalRef: at(1, TEXT, '250905', '250905'),
-    propertyName: at(1, SUBJECT, 'Haus Seeufer - Nordhorn', 'Haus Seeufer - Nordhorn', false, 'SUBJECT'),
+    propertyName: at(1, SUBJECT, 'Haus Waldeck - Talstadt', 'Haus Waldeck - Talstadt', false, 'SUBJECT'),
     arrival: at(1, TEXT, '06.11.2026', '2026-11-06'),
     departure: at(1, TEXT, '08.11.2026', '2026-11-08'),
     guestName: at(1, TEXT, 'Erika Musterfrau', 'Erika Musterfrau', true),
@@ -66,7 +66,7 @@ describe('Booking page', () => {
     expect(await screen.findByRole('heading', { name: 'Erika Muster-Frau' })).toBeInTheDocument()
     const details = screen.getByLabelText('Wichtige Angaben')
     expect(details).toHaveTextContent('06.11.2026 – 08.11.2026 · 2 Nächte')
-    expect(details).toHaveTextContent('Haus Seeufer')
+    expect(details).toHaveTextContent('Haus Waldeck')
     expect(details).toHaveTextContent('Fewo & Meer')
     expect(details).toHaveTextContent('Nr. 250905')
     expect(details).toHaveTextContent('248,58 €')
@@ -86,7 +86,7 @@ describe('Booking page', () => {
     await waitFor(() => expect(activeMark()).toHaveTextContent('06.11.2026'))
     expect(activeMark()).toHaveAttribute('data-fields', 'arrival')
     expect(within(panel).getByRole('tab', { name: /Buchungsbestätigung/ })).toHaveAttribute('aria-selected', 'true')
-    expect(within(panel).getByLabelText('Betreff').querySelector('mark')).toHaveTextContent('Haus Seeufer - Nordhorn')
+    expect(within(panel).getByLabelText('Betreff').querySelector('mark')).toHaveTextContent('Haus Waldeck - Talstadt')
 
     await user.click(within(panel).getByText('Erika Musterfrau'))
     expect(screen.getByLabelText('Name')).toHaveFocus()

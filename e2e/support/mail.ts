@@ -61,7 +61,7 @@ export function fewoConfirmation(opts: { to: string; object: string; ref: string
   const until = germanDate(opts.departure)
   return `From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: ${opts.to}
-Subject: Neue Buchung für ${opts.object} - Nordhorn
+Subject: Neue Buchung für ${opts.object} - Talstadt
 Date: ${new Date().toUTCString().replace('GMT', '+0000')}
 Message-ID: <${opts.messageId ?? `fewo-${opts.ref}`}@fewoundmeer.de>
 MIME-Version: 1.0
@@ -70,7 +70,7 @@ Content-Transfer-Encoding: 8bit
 
 <html><body>
 <p>Sehr geehrte(r) Test GbR,</p>
-<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt ${opts.object} - Nordhorn vom ${from} bis ${until}.</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt ${opts.object} - Talstadt vom ${from} bis ${until}.</p>
 <table>
 <tr><td><b>Buchungsnummer</b></td><td>${opts.ref}</td></tr>
 <tr><td><b>Anzahl Gäste</b></td><td>2 Erwachsene</td></tr>
@@ -94,7 +94,7 @@ export function fewoOwnerBlock(opts: { to: string; object: string; ref: string; 
   const until = germanDate(opts.departure)
   return `From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: ${opts.to}
-Subject: Eigentümerblockung ${opts.ref}, ${opts.object} - Nordhorn, vom ${from} bis ${until}
+Subject: Eigentümerblockung ${opts.ref}, ${opts.object} - Talstadt, vom ${from} bis ${until}
 Date: ${new Date().toUTCString().replace('GMT', '+0000')}
 Message-ID: <fewo-owner-${opts.ref}@fewoundmeer.de>
 MIME-Version: 1.0
@@ -103,7 +103,7 @@ Content-Transfer-Encoding: 8bit
 
 Sehr geehrter Eigentümer,
 
-wir haben Ihr Objekt ${opts.object} - Nordhorn wunschgemäß vom ${from} bis ${until} für Sie geblockt.
+wir haben Ihr Objekt ${opts.object} - Talstadt wunschgemäß vom ${from} bis ${until} für Sie geblockt.
 
 Viele Grüße
 

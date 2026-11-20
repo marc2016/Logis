@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { Booking } from './api'
-import { booking, bookingPage, seeufer, statement } from './fixtures'
+import { booking, bookingPage, waldeck, statement } from './fixtures'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
-  'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/vacationrental/units': { body: [waldeck] },
   'GET /api/vacationrental/agencies': { body: [] },
 }
 
@@ -103,7 +103,7 @@ describe('Bulk actions on bookings', () => {
   it('shows viewers no checkboxes', async () => {
     mockApi({
       ...base,
-      'GET /api/vacationrental/units': { body: [{ ...seeufer, myRole: 'VIEWER' }] },
+      'GET /api/vacationrental/units': { body: [{ ...waldeck, myRole: 'VIEWER' }] },
       'GET /api/vacationrental/bookings': { body: bookingPage(bookings(2, () => ({ canEdit: false }))) },
     })
     renderApp('/ferienvermietung/buchungen')

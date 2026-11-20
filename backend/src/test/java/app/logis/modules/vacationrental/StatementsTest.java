@@ -37,7 +37,7 @@ class StatementsTest extends VacationRentalTest {
     @Test
     void createWithProviderSuggestions() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         postJson("/api/vacationrental/statements", Map.of("unitId", unit, "provider", "Ferienwohnungen Nord",
                 "periodFrom", "2026-10-01", "periodTo", "2026-10-31", "statementDate", "2026-11-05"), anna.session())
                 .andExpect(status().isCreated())
@@ -53,7 +53,7 @@ class StatementsTest extends VacationRentalTest {
     @Test
     void assignBookingComputesNetAndPayout() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var booking = confirmation(anna, unit);
         var november = statement(anna, unit, "Ferienwohnungen Nord", "2026-11-01", "2026-11-30");
 
@@ -93,7 +93,7 @@ class StatementsTest extends VacationRentalTest {
     @Test
     void cancellationPayout() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var booking = booking(anna, unit, "2026-11-06", "2026-11-08");
         postJson("/api/vacationrental/bookings/" + booking + "/cancel", Map.of(), anna.session())
                 .andExpect(status().isOk());
@@ -108,7 +108,7 @@ class StatementsTest extends VacationRentalTest {
     @Test
     void removeLineAndDeleteStatementRevertBookings() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var a = confirmation(anna, unit);
         var b = booking(anna, unit, "2026-11-20", "2026-11-22");
         var november = statement(anna, unit, "Nord", "2026-11-01", "2026-11-30");
@@ -129,7 +129,7 @@ class StatementsTest extends VacationRentalTest {
     @Test
     void editStatement() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = statement(anna, unit, "Nord", "2026-11-01", "2026-11-30");
         var change = new HashMap<String, Object>(Map.of("unitId", unit, "provider", "Nord GmbH",
                 "periodFrom", "2026-11-01", "periodTo", "2026-11-30", "statementDate", "2026-12-02", "version", 0));

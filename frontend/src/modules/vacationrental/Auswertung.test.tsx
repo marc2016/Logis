@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import type { MonthFigures, Overview, UnitTotal } from './api'
-import { seeufer } from './fixtures'
+import { waldeck } from './fixtures'
 import { ownerRate, unitsTotal } from './occupancyFigures'
 
 function months(overrides: Record<number, Partial<MonthFigures>> = {}): MonthFigures[] {
@@ -27,12 +27,12 @@ function overview(year: number, overrides: Record<number, Partial<MonthFigures>>
   }
 }
 
-const flat = { ...seeufer, id: 71, name: 'Whg. 1', propertyId: 8, propertyName: 'Strandhaus', propertyMultiUnit: true }
+const flat = { ...waldeck, id: 71, name: 'Whg. 1', propertyId: 8, propertyName: 'Strandhaus', propertyMultiUnit: true }
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
-  'GET /api/vacationrental/units': { body: [seeufer, flat] },
+  'GET /api/vacationrental/units': { body: [waldeck, flat] },
 }
 
 function total(t: Partial<MonthFigures>): MonthFigures {
@@ -93,7 +93,7 @@ describe('Evaluation charts', () => {
 
   it('compares all units with a total row', async () => {
     const rows: UnitTotal[] = [
-      { unitId: 70, unitName: 'Haus Seeufer', propertyId: 7, propertyName: 'Haus Seeufer', propertyMultiUnit: false, archived: false,
+      { unitId: 70, unitName: 'Haus Waldeck', propertyId: 7, propertyName: 'Haus Waldeck', propertyMultiUnit: false, archived: false,
         total: total({ nights: 80, occupancy: 22, settledNet: '6400.00', plannedRent: '500.00' }) },
       { unitId: 71, unitName: 'Whg. 1', propertyId: 8, propertyName: 'Strandhaus', propertyMultiUnit: true, archived: true,
         total: total({ nights: 60, occupancy: 16, ownerNights: 7, settledNet: '4800.50' }) },
@@ -114,7 +114,7 @@ describe('Evaluation charts', () => {
     expect(screen.queryByRole('checkbox', { name: 'Vorjahr einblenden' })).not.toBeInTheDocument()
 
     const table = screen.getByRole('table', { name: 'Alle Einheiten 2026' })
-    expect(within(table).getByRole('row', { name: /Haus Seeufer/ })).toHaveTextContent('6.400,00 €')
+    expect(within(table).getByRole('row', { name: /Haus Waldeck/ })).toHaveTextContent('6.400,00 €')
     expect(within(table).getByRole('row', { name: /Strandhaus · Whg\. 1/ })).toHaveTextContent('archiviert')
     // 140 nights / (365 × 2) = 19 %
     const sum = within(table).getByRole('row', { name: /Summe/ })

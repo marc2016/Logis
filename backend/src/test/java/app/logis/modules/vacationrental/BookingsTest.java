@@ -18,21 +18,21 @@ class BookingsTest extends VacationRentalTest {
         body.put("externalRef", "250905");
         body.put("adults", 4);
         body.put("expectedRent", "248.58");
-        body.put("guest", Map.of("name", "Max Gast", "street", "Seeweg 1", "postalCode", "48529",
-                "city", "Nordhorn", "country", "Deutschland", "phone", "0123 456", "email", "gast@example.org"));
+        body.put("guest", Map.of("name", "Max Gast", "street", "Seeweg 1", "postalCode", "34567",
+                "city", "Talstadt", "country", "Deutschland", "phone", "0123 456", "email", "gast@example.org"));
         return body;
     }
 
     @Test
     void bookingFromTheConfirmation() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         book(anna, confirmation(unit))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PLANNED"))
                 .andExpect(jsonPath("$.nights").value(2))
                 .andExpect(jsonPath("$.expectedRent").value("248.58"))
-                .andExpect(jsonPath("$.unit.propertyName").value("Haus Seeufer"))
+                .andExpect(jsonPath("$.unit.propertyName").value("Haus Waldeck"))
                 .andExpect(jsonPath("$.guest.email").value("gast@example.org"))
                 .andExpect(jsonPath("$.canEdit").value(true));
     }
@@ -56,7 +56,7 @@ class BookingsTest extends VacationRentalTest {
     @Test
     void overlapAndChangeoverDay() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         booking(anna, unit, "2026-11-06", "2026-11-08");
         book(anna, stay(unit, "2026-11-07", "2026-11-10"))
                 .andExpect(status().isConflict())
@@ -82,7 +82,7 @@ class BookingsTest extends VacationRentalTest {
     @Test
     void cancelFreesThePeriodAndReinstateChecksIt() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var first = booking(anna, unit, "2026-11-06", "2026-11-08");
         postJson("/api/vacationrental/bookings/" + first + "/cancel", Map.of(), anna.session())
                 .andExpect(status().isOk())
@@ -96,7 +96,7 @@ class BookingsTest extends VacationRentalTest {
     @Test
     void editAndDelete() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = booking(anna, unit, "2026-11-06", "2026-11-08");
         var change = stay(unit, "2026-11-06", "2026-11-09");
         change.put("version", 0);
@@ -150,7 +150,7 @@ class BookingsTest extends VacationRentalTest {
     @Test
     void deleteGuestData() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = id(book(anna, confirmation(unit)));
         mvc.perform(delete("/api/vacationrental/bookings/" + id + "/guest").with(csrf()).session(anna.session()))
                 .andExpect(status().isOk())
@@ -200,7 +200,7 @@ class BookingsTest extends VacationRentalTest {
         getWith(base + "&q=250905", anna.session()).andExpect(jsonPath("$.items", hasSize(1)));
         getWith(base + "&q=max gast", anna.session()).andExpect(jsonPath("$.items[0].id").value(a));
         // Contact data is never searched.
-        getWith(base + "&q=nordhorn", anna.session()).andExpect(jsonPath("$.totalItems").value(0));
+        getWith(base + "&q=talstadt", anna.session()).andExpect(jsonPath("$.totalItems").value(0));
         getWith(base + "&size=2&page=1", anna.session())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.totalItems").value(3));

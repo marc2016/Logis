@@ -47,7 +47,7 @@ class PropertyFinancesTest extends RealestateTest {
     @Test
     void mergesCostsAndContributedItems() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var unit = unitIds(property).getFirst();
         contribute(unit, "2026-11-30", FinanceItem.Kind.INCOME, "Buchung 250905", "248.58");
         contribute(unit, "2026-11-30", FinanceItem.Kind.EXPENSE, "Provision", "37.29");
@@ -76,7 +76,7 @@ class PropertyFinancesTest extends RealestateTest {
     @Test
     void attributedTransactionsDoNotCount() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var account = account(anna, "Giro");
         transaction(anna, Map.of("accountId", account, "amount", "-500.00", "bookingDate", "2026-05-02",
                 "propertyId", property));

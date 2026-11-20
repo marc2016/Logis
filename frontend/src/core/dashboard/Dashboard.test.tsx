@@ -5,7 +5,7 @@ import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/
 import { account, page, transaction } from '@/core/ledger/fixtures'
 import { formatDate, todayIso } from '@/core/ledger/transactions/format'
 import { formatEUR } from '@/lib/money'
-import { booking, bookingPage, seeufer } from '@/modules/vacationrental/fixtures'
+import { booking, bookingPage, waldeck } from '@/modules/vacationrental/fixtures'
 import type { MonthFigures } from '@/modules/vacationrental/api'
 import { change, plusDays, stayEvents } from '@/modules/vacationrental/dashboard/figures'
 import type { Tile } from './api'
@@ -13,7 +13,7 @@ import { move } from './catalog'
 
 const year = Number(todayIso().slice(0, 4))
 const today = todayIso()
-const flat = { ...seeufer, id: 71, name: 'Whg. 1', propertyId: 8, propertyName: 'Strandhaus', propertyMultiUnit: true }
+const flat = { ...waldeck, id: 71, name: 'Whg. 1', propertyId: 8, propertyName: 'Strandhaus', propertyMultiUnit: true }
 
 function months(occupancy = 0, settledNet = '0.00'): MonthFigures[] {
   return Array.from({ length: 12 }, (_, i) => ({ month: i + 1, nights: 0, occupancy, ownerNights: 0, settledNet, plannedRent: '0.00' }))
@@ -28,7 +28,7 @@ function inboxItem(id: number, result: string) {
 }
 
 /** The API with a dashboard that keeps what the page saves; returns the saved bodies. */
-function api({ tiles = null as Tile[] | null, rental = true, inbox = [] as unknown[], review = 0, units = [seeufer, flat] } = {}) {
+function api({ tiles = null as Tile[] | null, rental = true, inbox = [] as unknown[], review = 0, units = [waldeck, flat] } = {}) {
   let stored = tiles
   const saved: (Tile[] | null)[] = []
   const fetch = mockApi({
@@ -48,7 +48,7 @@ function api({ tiles = null as Tile[] | null, rental = true, inbox = [] as unkno
     'GET /api/vacationrental/bookings?review=true&size=1': { body: { items: [], page: 0, size: 1, totalItems: review } },
     'GET /api/vacationrental/bookings': { body: bookingPage([]) },
     'GET /api/vacationrental/occupancy/overview/units': {
-      body: [{ unitId: 70, unitName: 'Haus Seeufer', propertyId: 7, propertyName: 'Haus Seeufer', propertyMultiUnit: false, archived: false,
+      body: [{ unitId: 70, unitName: 'Haus Waldeck', propertyId: 7, propertyName: 'Haus Waldeck', propertyMultiUnit: false, archived: false,
         total: { month: 0, nights: 0, occupancy: 0, ownerNights: 0, settledNet: '0.00', plannedRent: '0.00' } }],
     },
     'GET /api/vacationrental/occupancy/overview': { body: { unitId: 70, year, months: months(40, '100.00'), total: months()[0] } },
@@ -184,9 +184,9 @@ describe('Tiles', () => {
     const tile = await screen.findByRole('region', { name: 'Nächste An- und Abreisen' })
     const rows = await within(tile).findAllByRole('listitem')
     expect(rows.map((r) => r.textContent)).toEqual([
-      `${formatDate(soon)}AbreiseEigenbelegung · Haus Seeufer`,
-      `${formatDate(soon)}AnreiseErika Musterfrau · Haus Seeufer`,
-      `${formatDate(later)}AbreiseErika Musterfrau · Haus Seeufer`,
+      `${formatDate(soon)}AbreiseEigenbelegung · Haus Waldeck`,
+      `${formatDate(soon)}AnreiseErika Musterfrau · Haus Waldeck`,
+      `${formatDate(later)}AbreiseErika Musterfrau · Haus Waldeck`,
     ])
   })
 

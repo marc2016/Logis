@@ -4,19 +4,19 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive, type MockResponse } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { Calendar, CalendarBooking } from './api'
-import { booking, calendar, seeufer } from './fixtures'
+import { booking, calendar, waldeck } from './fixtures'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
-  'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/vacationrental/units': { body: [waldeck] },
 }
 
 const URL = '/api/vacationrental/occupancy/calendar?propertyId=7&year='
 
 /** One mock per year from 2025 to 2028; the bookings go to the first unit of every year. */
-function years(bookings: CalendarBooking[] = [], units = ['Haus Seeufer']) {
+function years(bookings: CalendarBooking[] = [], units = ['Haus Waldeck']) {
   const handlers: Record<string, () => MockResponse> = {}
   for (const year of [2025, 2026, 2027, 2028]) {
     handlers[`GET ${URL}${year}`] = () => ({
@@ -37,7 +37,7 @@ function stay(id: number, arrival: string, departure: string, guestName: string,
 
 const headings = () => screen.queryAllByRole('row').map((r) => r.getAttribute('aria-label'))
 const monthRow = (name: string) => screen.getByRole('row', { name })
-const whg = (id: number, name: string) => ({ ...seeufer, id, name, propertyMultiUnit: true })
+const whg = (id: number, name: string) => ({ ...waldeck, id, name, propertyMultiUnit: true })
 
 describe('Calendar by year', () => {
   afterEach(() => vi.useRealTimers())
@@ -140,10 +140,10 @@ describe('Calendar by year', () => {
     mockApi({ ...base, ...units, ...years([stay(1, '2026-11-06', '2026-11-08', 'Gast Eins')], ['Whg. 1', 'Whg. 2']) })
     const view = renderApp('/ferienvermietung/kalender?year=2026')
     await waitFor(() => expect(headings()).toHaveLength(14))
-    expect(screen.getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer · Whg. 1')
+    expect(screen.getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck · Whg. 1')
     expect(within(monthRow('November 2026')).getByRole('button', { name: /Gast Eins/ })).toBeInTheDocument()
     await act(() => view.router.navigate('/ferienvermietung/kalender?unitId=71&year=2026'))
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer · Whg. 2'))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck · Whg. 2'))
     expect(screen.queryByRole('button', { name: /Gast Eins/ })).not.toBeInTheDocument()
   })
 
@@ -153,7 +153,7 @@ describe('Calendar by year', () => {
     const user = userEvent.setup()
     await waitFor(() => expect(headings()).toHaveLength(14))
     await user.click(screen.getByRole('combobox', { name: 'Einheit' }))
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Einheit wählen', 'Haus Seeufer · Whg. 2'])
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Einheit wählen', 'Haus Waldeck · Whg. 2'])
   })
 
   it('shows a new booking after saving with one request for the year', async () => {
@@ -165,7 +165,7 @@ describe('Calendar by year', () => {
         yearRequests++
         return {
           body: calendar({
-            units: [{ id: 70, name: 'Haus Seeufer', archived: false, canEdit: true, bookings: saved ? [stay(9, '2026-12-14', '2026-12-16', 'Neuer Gast')] : [] }],
+            units: [{ id: 70, name: 'Haus Waldeck', archived: false, canEdit: true, bookings: saved ? [stay(9, '2026-12-14', '2026-12-16', 'Neuer Gast')] : [] }],
           }),
         }
       },
@@ -180,7 +180,7 @@ describe('Calendar by year', () => {
     expect(yearRequests).toBe(1)
     await user.click(screen.getByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck'))
     await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
     expect(await within(monthRow('Dezember 2026')).findByRole('button', { name: 'Neuer Gast, Geplant' })).toBeInTheDocument()
     expect(yearRequests).toBe(2)

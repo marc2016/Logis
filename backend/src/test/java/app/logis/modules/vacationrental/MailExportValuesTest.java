@@ -56,7 +56,7 @@ class MailExportValuesTest extends VacationRentalTest {
     void setUp() throws Exception {
         mailUser = greenMail.setUser("anna@example.org", "anna", "geheim");
         anna = actor();
-        unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         mvc.perform(put("/api/mail/mailbox").with(csrf()).session(anna.session()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("host", "localhost", "port", greenMail.getImap().getPort(),
                         "username", "anna", "password", "geheim", "folder", "INBOX", "useTls", false,

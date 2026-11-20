@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { CalendarLink } from './api'
-import { calendar, seeufer } from './fixtures'
+import { calendar, waldeck } from './fixtures'
 
 const TOKEN = 'A'.repeat(43)
 
@@ -15,7 +15,7 @@ function setup() {
     'GET /api/auth/me': authenticated(),
     'GET /api/modules': vacationRentalActive,
     'GET /api/categories': { body: categories },
-    'GET /api/vacationrental/units': { body: [seeufer] },
+    'GET /api/vacationrental/units': { body: [waldeck] },
     'GET /api/vacationrental/occupancy/calendar?propertyId=7&year=2026': { body: calendar() },
     'GET /api/vacationrental/calendar-links?unitId=70': () => ({ body: links }),
     'POST /api/vacationrental/calendar-links': (init) => {

@@ -27,7 +27,7 @@ class OwnerUseTest extends VacationRentalTest {
     @Test
     void recordOwnerUseByHandAndItBlocksThePeriod() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = id(book(anna, ownerUse(unit, "2027-06-09", "2027-06-14"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.kind").value("OWNER"))
@@ -60,7 +60,7 @@ class OwnerUseTest extends VacationRentalTest {
     @Test
     void ownerUseIsNotSettled() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var id = id(book(anna, ownerUse(unit, "2026-11-10", "2026-11-12")).andExpect(status().isCreated()));
         var statement = id(postJson("/api/vacationrental/statements", Map.of("unitId", unit, "provider", "Nord",
                 "periodFrom", "2026-11-01", "periodTo", "2026-11-30", "statementDate", "2026-11-30"), anna.session())
@@ -74,7 +74,7 @@ class OwnerUseTest extends VacationRentalTest {
     @Test
     void overviewShowsOwnerNightsOnTheirOwn() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         booking(anna, unit, "2027-06-01", "2027-06-05");                          // 4 nights
         book(anna, ownerUse(unit, "2027-06-09", "2027-06-14")).andExpect(status().isCreated());   // 5 nights
         getWith("/api/vacationrental/occupancy/overview?unitId=" + unit + "&year=2027", anna.session())
@@ -87,7 +87,7 @@ class OwnerUseTest extends VacationRentalTest {
     @Test
     void feedTitlesOwnerUses() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var arrival = LocalDate.now().plusDays(10);
         book(anna, ownerUse(unit, arrival.toString(), arrival.plusDays(5).toString())).andExpect(status().isCreated());
         for (var withGuests : new boolean[] {false, true}) {

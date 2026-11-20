@@ -28,7 +28,7 @@ class OccupancyTest extends VacationRentalTest {
     void mixedMonth() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         share(anna, "property", property, dieter, "VIEWER");
         var unit = unitIds(property).getFirst();
         var settledStay = booking(anna, unit, "2026-11-10", "2026-11-19");      // 9 nights
@@ -54,7 +54,7 @@ class OccupancyTest extends VacationRentalTest {
     @Test
     void moneyCountsOnTheStatementDate() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var stay = booking(anna, unit, "2026-03-28", "2026-04-04");
         settle(anna, statement(anna, unit, "2026-04-05"), stay, "700.00");
         var cancelled = booking(anna, unit, "2026-05-10", "2026-05-12");
@@ -106,7 +106,7 @@ class OccupancyTest extends VacationRentalTest {
     @Test
     void calendarYearIncludesTheNeighbouringMonths() throws Exception {
         var anna = actor();
-        var property = singleUnitProperty(anna, "Haus Seeufer");
+        var property = singleUnitProperty(anna, "Haus Waldeck");
         var unit = unitIds(property).getFirst();
         var newYear = booking(anna, unit, "2026-12-30", "2027-01-02");
         var earlyDecember = booking(anna, unit, "2025-12-01", "2025-12-03");
@@ -138,20 +138,20 @@ class OccupancyTest extends VacationRentalTest {
     void allVisibleUnitsAcrossProperties() throws Exception {
         var anna = actor();
         var dieter = actor();
-        var seeufer = singleUnitProperty(anna, "Zz Haus Seeufer");
-        var seeuferUnit = unitIds(seeufer).getFirst();
+        var waldeck = singleUnitProperty(anna, "Zz Haus Waldeck");
+        var waldeckUnit = unitIds(waldeck).getFirst();
         var flats = twoUnitProperty(anna);
-        var stay = booking(anna, seeuferUnit, "2026-11-10", "2026-11-19");
-        settle(anna, statement(anna, seeuferUnit, "2026-11-30"), stay, "540.00");
+        var stay = booking(anna, waldeckUnit, "2026-11-10", "2026-11-19");
+        settle(anna, statement(anna, waldeckUnit, "2026-11-30"), stay, "540.00");
         booking(anna, flats[1], "2026-07-01", "2026-07-08");
-        share(anna, "property", seeufer, dieter, "VIEWER");
+        share(anna, "property", waldeck, dieter, "VIEWER");
         // Someone else's unit never shows up.
         singleUnitProperty(actor(), "Fremdes Haus");
 
         var all = unitsOverview(anna, 2026);
         assertThat(all).hasSize(3);
-        assertThat(all.get(2).get("unitId").asLong()).isEqualTo(seeuferUnit);
-        assertThat(all.get(2).get("propertyName").asText()).isEqualTo("Zz Haus Seeufer");
+        assertThat(all.get(2).get("unitId").asLong()).isEqualTo(waldeckUnit);
+        assertThat(all.get(2).get("propertyName").asText()).isEqualTo("Zz Haus Waldeck");
         assertThat(all.get(0).get("unitName").asText()).isEqualTo("Whg. 1");
         assertThat(all.get(1).get("unitName").asText()).isEqualTo("Whg. 2");
 
@@ -167,7 +167,7 @@ class OccupancyTest extends VacationRentalTest {
 
         var shared = unitsOverview(dieter, 2026);
         assertThat(shared).hasSize(1);
-        assertThat(shared.get(0).get("unitId").asLong()).isEqualTo(seeuferUnit);
+        assertThat(shared.get(0).get("unitId").asLong()).isEqualTo(waldeckUnit);
     }
 
     @Test

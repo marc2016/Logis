@@ -1,10 +1,10 @@
 import type { Booking, Calendar, RentalUnit, Statement } from './api'
 
-export const seeufer: RentalUnit = {
+export const waldeck: RentalUnit = {
   id: 70,
-  name: 'Haus Seeufer',
+  name: 'Haus Waldeck',
   propertyId: 7,
-  propertyName: 'Haus Seeufer',
+  propertyName: 'Haus Waldeck',
   propertyMultiUnit: false,
   archived: false,
   myRole: 'OWNER',
@@ -14,7 +14,7 @@ export function booking(overrides: Partial<Booking> = {}): Booking {
   return {
     id: 500,
     kind: 'GUEST',
-    unit: { id: 70, name: 'Haus Seeufer', propertyId: 7, propertyName: 'Haus Seeufer', propertyMultiUnit: false },
+    unit: { id: 70, name: 'Haus Waldeck', propertyId: 7, propertyName: 'Haus Waldeck', propertyMultiUnit: false },
     arrival: '2026-11-06',
     departure: '2026-11-08',
     nights: 2,
@@ -24,7 +24,7 @@ export function booking(overrides: Partial<Booking> = {}): Booking {
     expectedRent: '248.58',
     status: 'PLANNED',
     statementId: null,
-    guest: { name: 'Max Gast', street: 'Seeweg 1', postalCode: '48529', city: 'Nordhorn', country: 'Deutschland', phone: '0123', email: 'gast@example.org' },
+    guest: { name: 'Max Gast', street: 'Seeweg 1', postalCode: '34567', city: 'Talstadt', country: 'Deutschland', phone: '0123', email: 'gast@example.org' },
     guestDeleted: false,
     canEdit: true,
     version: 0,

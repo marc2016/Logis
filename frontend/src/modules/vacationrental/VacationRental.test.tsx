@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
 import type { Overview } from './api'
-import { booking, bookingPage, seeufer, statement } from './fixtures'
+import { booking, bookingPage, waldeck, statement } from './fixtures'
 
 const base = {
   'GET /api/auth/me': authenticated(),
   'GET /api/modules': vacationRentalActive,
   'GET /api/categories': { body: categories },
-  'GET /api/vacationrental/units': { body: [seeufer] },
+  'GET /api/vacationrental/units': { body: [waldeck] },
 }
 
 function pdf(name = 'Bestätigung.pdf') {
@@ -81,7 +81,7 @@ describe('Owner use', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck'))
     expect(within(dialog).getByRole('radio', { name: 'Gastbuchung' })).toHaveAttribute('aria-checked', 'true')
     await user.click(within(dialog).getByRole('radio', { name: 'Eigenbelegung' }))
     expect(within(dialog).queryByLabelText('Erwachsene')).not.toBeInTheDocument()
@@ -139,7 +139,7 @@ describe('Agencies on bookings', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck'))
     expect(within(dialog).queryByText('Kanal')).not.toBeInTheDocument()
     await user.click(within(dialog).getByRole('combobox', { name: /Vermittler/ }))
     await user.type(await screen.findByPlaceholderText('Vermittler suchen oder anlegen'), 'Ferienbüro Nord')
@@ -188,7 +188,7 @@ describe('Booking dialog', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck'))
     await user.type(within(dialog).getByLabelText('Buchungsnummer'), '250905')
     await user.upload(within(dialog).getByLabelText('Dokument auswählen'), pdf())
     expect(within(dialog).getByText('Bestätigung.pdf')).toBeInTheDocument()
@@ -212,7 +212,7 @@ describe('Booking dialog', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Buchung' }))
     const dialog = await screen.findByRole('dialog')
-    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Seeufer'))
+    await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Einheit' })).toHaveTextContent('Haus Waldeck'))
     await user.upload(within(dialog).getByLabelText('Dokument auswählen'), pdf('kaputt.pdf'))
     await user.click(within(dialog).getByRole('button', { name: 'Speichern' }))
 
@@ -230,7 +230,7 @@ describe('Booking dialog', () => {
     })
     mockApi({
       ...base,
-      'GET /api/vacationrental/units': { body: [{ ...seeufer, myRole: 'VIEWER' }] },
+      'GET /api/vacationrental/units': { body: [{ ...waldeck, myRole: 'VIEWER' }] },
       'GET /api/vacationrental/bookings': { body: bookingPage([viewerBooking]) },
       'GET /api/vacationrental/bookings/500': { body: viewerBooking },
     })

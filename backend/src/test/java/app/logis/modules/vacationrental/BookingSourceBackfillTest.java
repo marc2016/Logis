@@ -41,7 +41,7 @@ class BookingSourceBackfillTest extends VacationRentalTest {
     @Test
     void existingBookingGetsItsSourcesOnce() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var body = stay(unit, "2026-11-06", "2026-11-08");
         body.put("externalRef", "250905");
         body.put("adults", 4);
@@ -74,7 +74,7 @@ class BookingSourceBackfillTest extends VacationRentalTest {
     @Test
     void blockNoticesAndCancellationsAddNoLocations() throws Exception {
         var anna = actor();
-        var unit = unitIds(singleUnitProperty(anna, "Haus Seeufer")).getFirst();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
         var body = stay(unit, "2027-05-15", "2027-05-18");
         body.put("externalRef", "3e98f765kl");
         var booking = ((Number) com.jayway.jsonpath.JsonPath.read(book(anna, body).andExpect(status().isCreated())
