@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -37,6 +38,14 @@ class Statement {
 
     @Column(name = "statement_date", nullable = false)
     private LocalDate statementDate;
+
+    /** The provider's invoice number; set by the mail import or by hand. */
+    @Column(name = "invoice_number", length = 64)
+    private String invoiceNumber;
+
+    /** The payout the provider's document states, to compare with the sum of the lines. */
+    @Column(name = "stated_payout", precision = 12, scale = 2)
+    private BigDecimal statedPayout;
 
     @Version
     @Column(nullable = false)
@@ -77,12 +86,23 @@ class Statement {
         return statementDate;
     }
 
+    String getInvoiceNumber() {
+        return invoiceNumber;
+    }
+
+    BigDecimal getStatedPayout() {
+        return statedPayout;
+    }
+
     long getVersion() {
         return version;
     }
 
-    void apply(String provider, LocalDate periodFrom, LocalDate periodTo, LocalDate statementDate) {
+    void apply(String provider, LocalDate periodFrom, LocalDate periodTo, LocalDate statementDate,
+            String invoiceNumber, BigDecimal statedPayout) {
         this.provider = provider;
+        this.invoiceNumber = invoiceNumber;
+        this.statedPayout = statedPayout;
         this.periodFrom = periodFrom;
         this.periodTo = periodTo;
         this.statementDate = statementDate;

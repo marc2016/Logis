@@ -2,10 +2,10 @@
 
 ## 1. Statements: data and documents
 
-- [ ] 1.1 Add the migration `V<yyyyMMdd>.<HHmm>__vacationrental_statement_import.sql` with `invoice_number`, `stated_payout` and the table `statement_open_lines` (design D7). Verify: the backend starts against a database with existing statements and they are unchanged.
-- [ ] 1.2 Add invoice number and stated payout to `Statement`, the service input and the controller views, and return open-line count and the review reasons with list and detail (design D8). Verify with `StatementTest` cases: entered by hand; existing statement without both; payout differs → reason; equal → no reason.
-- [ ] 1.3 Add open lines: entity, repository, listing for editors and count only for viewers, „Zuordnen“ (new line or added to the line of the same statement; refused for bookings on another statement, of another unit and owner uses) and „Verwerfen“; deleting a statement deletes them. Verify with `StatementTest` cases for each of these.
-- [ ] 1.4 Add `StatementDocumentOwner` (EDITOR for read and write) and delete the documents with the statement (design D10). Verify with tests: editor reads the document, viewer gets 404, deleted with the statement.
+- [x] 1.1 Add the migration `V<yyyyMMdd>.<HHmm>__vacationrental_statement_import.sql` with `invoice_number`, `stated_payout` and the table `statement_open_lines` (design D7). Verify: the backend starts against a database with existing statements and they are unchanged.
+- [x] 1.2 Add invoice number and stated payout to `Statement`, the service input and the controller views, and return open-line count and the review reasons with list and detail (design D8). Verify with `StatementTest` cases: entered by hand; existing statement without both; payout differs → reason; equal → no reason.
+- [x] 1.3 Add open lines: entity, repository, listing for editors and count only for viewers, „Zuordnen“ (new line or added to the line of the same statement; refused for bookings on another statement, of another unit and owner uses) and „Verwerfen“; deleting a statement deletes them. Verify with `StatementTest` cases for each of these.
+- [x] 1.4 Add `StatementDocumentOwner` (EDITOR for read and write) and delete the documents with the statement (design D10). Verify with tests: editor reads the document, viewer gets 404, deleted with the statement.
 
 ## 2. Reading mails and PDFs
 

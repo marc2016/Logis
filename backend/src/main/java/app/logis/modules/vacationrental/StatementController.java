@@ -33,10 +33,24 @@ class StatementController {
     }
 
     record StatementRequest(Long unitId, String provider, LocalDate periodFrom, LocalDate periodTo,
-            LocalDate statementDate, Long version) {
+            LocalDate statementDate, String invoiceNumber, BigDecimal statedPayout, Long version) {
 
         StatementService.StatementInput input() {
-            return new StatementService.StatementInput(unitId, provider, periodFrom, periodTo, statementDate);
+            return new StatementService.StatementInput(unitId, provider, periodFrom, periodTo, statementDate,
+                    invoiceNumber, statedPayout);
+        }
+    }
+
+    record AssignOpenLineRequest(Long bookingId) {
+    }
+
+    record OpenLineView(Long id, String guestName, LocalDate arrival, LocalDate departure,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal gross,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal commission, String note) {
+
+        static OpenLineView of(StatementOpenLine o) {
+            return new OpenLineView(o.getId(), o.getGuestName(), o.getArrival(), o.getDeparture(), o.getGross(),
+                    o.getCommission(), o.getNote());
         }
     }
 
@@ -53,7 +67,10 @@ class StatementController {
     record StatementView(Long id, BookingController.UnitRef unit, String provider, LocalDate periodFrom,
             LocalDate periodTo, LocalDate statementDate, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal payout,
             int lineCount, boolean canEdit,
-            long version, List<LineView> lines) {
+            long version, List<LineView> lines, String invoiceNumber,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal statedPayout,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal payoutDifference, int openLineCount,
+            List<OpenLineView> openLines, boolean toReview) {
 
         static StatementView of(StatementService.StatementDetails d) {
             var s = d.statement();
@@ -67,7 +84,9 @@ class StatementController {
                             .map(l -> new LineView(BookingController.BookingView.of(l.booking()),
                                     l.line().getGross(), l.line().getCommission(), l.line().getCleaning(),
                                     l.line().net()))
-                            .toList());
+                            .toList(),
+                    s.getInvoiceNumber(), s.getStatedPayout(), d.payoutDifference(), d.openLineCount(),
+                    d.openLines().stream().map(OpenLineView::of).toList(), d.toReview());
         }
     }
 
@@ -110,6 +129,18 @@ class StatementController {
             @AuthenticationPrincipal LogisPrincipal me) {
         return StatementView.of(service.putLine(me.userId(), id, bookingId,
                 new StatementService.LineInput(body.gross(), body.commission(), body.cleaning())));
+    }
+
+    @PostMapping("/{id}/open-lines/{openLineId}/assign")
+    StatementView assignOpenLine(@PathVariable Long id, @PathVariable Long openLineId,
+            @RequestBody AssignOpenLineRequest body, @AuthenticationPrincipal LogisPrincipal me) {
+        return StatementView.of(service.assignOpenLine(me.userId(), id, openLineId, body.bookingId()));
+    }
+
+    @DeleteMapping("/{id}/open-lines/{openLineId}")
+    StatementView discardOpenLine(@PathVariable Long id, @PathVariable Long openLineId,
+            @AuthenticationPrincipal LogisPrincipal me) {
+        return StatementView.of(service.discardOpenLine(me.userId(), id, openLineId));
     }
 
     @DeleteMapping("/{id}/lines/{bookingId}")
