@@ -79,7 +79,7 @@ A missing row in `notification_settings` means the default (off, or on if mandat
 - The core counts the mails of a run whose result needs attention and sends one `core.mailAttention` at the end of the run.
 - `core.mailFetchFailed` is sent at the end of a `POLL` run that failed while `Mailbox.lastError` was empty before; no new column is needed.
 
-The set of results that "need attention" lives in the frontend today (`ATTENTION_RESULTS` in `inboxFilter.ts`). It moves to the backend: `MailHandler` gains `attentionResults()` (default empty), the core adds its own `NOT_RECOGNISED` and `FAILED`, and the inbox API exposes the set so the quick filter „Offen“ and the notification cannot drift apart.
+The set of results that "need attention" lives in the frontend today (`ATTENTION_RESULTS` in `inboxFilter.ts`). It moves to the backend: `MailHandler` gains `attentionResults()` (default empty), the core adds its own `NOT_RECOGNISED` and `FAILED`, and the inbox API marks each mail with `needsAttention`, so the quick filter „Offen“ and the notification cannot drift apart.
 
 *Alternative:* let `BookingMailHandler` send directly from `handle`. Rejected: it would notify for every reprocessed and every older mail, e.g. 40 notifications for one backfill.
 
