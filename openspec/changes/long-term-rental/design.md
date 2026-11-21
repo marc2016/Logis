@@ -45,13 +45,13 @@
 - **Database:** migrations under `db/migration/longtermrental`; the schema and the location are added to `spring.flyway` in `application.yml`.
 - **Frontend:** `modules/longtermrental`, base path `dauervermietung`, with the navigation entries „Mietverhältnisse“ and „Einheiten“.
 
-The module does not depend on `vacationrental`. Small helpers that both need (e.g. the 404/403 mapping) are duplicated, not shared: modules may only use the core.
+The module does not depend on `vacationrental`. Small helpers that both need (e.g. the 404/403 mapping, the unit label and the filter select in the frontend) are duplicated, not shared: modules may only use the core. The 404/403 mapping lives in `TenancyService`, which is the only place that needs it.
 
 ### D2 — Tables
 
 ```
 longtermrental.tenancies
-  id, unit_id -> core.units, kind ('RESIDENTIAL'), start_date, end_date NULL (last day),
+  id, unit_id (a unit of the core, without a foreign key), kind ('RESIDENTIAL'), start_date, end_date NULL (last day),
   deposit_amount NULL, deposit_received_on NULL, tenants_deleted BOOLEAN, version, created_at
   EXCLUDE USING gist (unit_id WITH =, daterange(start_date, end_date, '[]') WITH &&)
 
@@ -66,6 +66,8 @@ longtermrental.rent_items
   id, rent_term_id -> rent_terms ON DELETE CASCADE, kind ('COLD_RENT' | 'UTILITIES_ADVANCE' | 'OTHER'),
   label NULL (only for OTHER), net_amount NUMERIC(12,2), tax_rate NUMERIC(5,2) DEFAULT 0, position
 ```
+
+**No foreign key to `core.units`.** As in vacation rental, module tables do not reference core tables: the core asks the modules through `UnitReferences` before it deletes a property (D5), so a disabled module's rows still protect the units.
 
 **Overlap.** `daterange(start_date, end_date, '[]')` treats the end as the last day. A `NULL` end is an open range, so a running tenancy blocks every later one. The constraint enforces „one tenancy per unit at a time“ in the database. The service checks first, to answer with the German message; the constraint catches races.
 
@@ -109,7 +111,7 @@ Under `/api/longtermrental`:
 - `GET /tenancies?propertyId&unitId&state`: the list;
 - `POST /tenancies`: create with tenants and the first rent term;
 - `GET`, `PUT`, `DELETE /tenancies/{id}`: one tenancy; `PUT` carries dates, deposit and tenants, with optimistic locking through `version`;
-- `POST`, `PUT`, `DELETE /tenancies/{id}/rent-terms[/{termId}]`: the rent history;
+- `POST`, `PUT`, `DELETE /tenancies/{id}/rent-terms[/{termId}]`: the rent history. The API carries a term as `validFrom`, `coldRent`, `utilitiesAdvance` and `others` (label and amount); the service maps them to items. The first term always has the start of the tenancy as its date and moves with it; later terms must be valid after the start;
 - `DELETE /tenancies/{id}/tenant-data`: delete the tenant data, only after the end.
 
 Documents use the generic document endpoints with the owner type `longtermrental.tenancy` (`DocumentOwnerType`: read and write from `EDITOR`).
@@ -126,9 +128,9 @@ Documents use the generic document endpoints with the owner type `longtermrental
 **Tenancy page** `/dauervermietung/mietverhaeltnisse/:id`:
 - a header with tenants, unit, period, current rent and state;
 - sections for the data, the tenants, the rent history (a table with „Miete ändern“), the deposit and the documents;
-- the actions „Beenden“, „Mieterdaten löschen“ (after the end) and „Löschen“.
+- the actions „Bearbeiten“ (dates, deposit and tenants in a dialog), „Beenden“, „Mieterdaten löschen“ (after the end) and „Löschen“.
 
-**„Einheiten“:** cards or rows per unit with the tenant and rent, or „Leerstand seit …“. Each links to the tenancy, or to „Mietverhältnis“ with the unit preselected.
+**„Einheiten“:** a card per unit with the tenant and rent, or „Leerstand seit …“. Each links to the tenancy, or to „Mietverhältnis“ with the unit preselected (`/dauervermietung/mietverhaeltnisse?neu=<unitId>` opens the dialog).
 
 Dates use `DateField`, amounts use the existing money input helpers. All UI text is German.
 
@@ -142,5 +144,5 @@ Dates use `DateField`, amounts use the existing money input helpers. All UI text
 ## Migration Plan
 
 - Only new tables in a new schema; no existing data is touched.
-- Deployments get the module enabled by default, as modules without an explicit setting are. The README names the setting to switch it off.
+- Deployments get the module enabled by default, as modules without an explicit setting are. `compose.yml` passes `LOGIS_MODULES_LONGTERMRENTAL_ENABLED` through, and the README names the setting to switch it off.
 - Rollback: disable the module; its tables stay unused.
