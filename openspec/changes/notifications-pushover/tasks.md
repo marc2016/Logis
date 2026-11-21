@@ -2,20 +2,20 @@
 
 ## 1. Notification core
 
-- [ ] 1.1 Add the migration `V<yyyyMMdd>.<HHmm>__core_notifications.sql` with `core.notification_settings`, `core.pushover_settings` and `core.pushover_user_keys` (design D3); verify with a `NotificationsMigrationTest` that it applies on a database with existing users and leaves their rows unchanged
-- [ ] 1.2 Create `core.notifications` with the public types `NotificationType`, `Notification`, `Notifications` and the internal `NotificationChannel` SPI and registry (D1, D2); verify that the Spring Modulith structure test passes and a unit test rejects two types with the same key
-- [ ] 1.3 Implement sending after commit in the background with per-channel failure isolation and filtering to active users (D4); verify with `NotificationsTest` covering: nothing sent on rollback, one failing channel does not stop the other, disabled user skipped, log line without the text
-- [ ] 1.4 Implement the settings store with defaults and mandatory channels, and `GET /api/notifications`, `PUT /api/notifications/{type}/{channel}` (D10); verify with `NotificationSettingsTest` covering own switches only, HTTP 400 for an unknown type and for switching off a mandatory channel, kept rows for an unregistered type
-- [ ] 1.5 Implement the e-mail channel on `MailSender` (long form, usable only with a configured server and an address, link appended when a public address is set); verify with a test against GreenMail that subject, text and link arrive and that no connection is tried without a server
+- [x] 1.1 Add the migration `V<yyyyMMdd>.<HHmm>__core_notifications.sql` with `core.notification_settings`, `core.pushover_settings` and `core.pushover_user_keys` (design D3); verify with a `NotificationsMigrationTest` that it applies on a database with existing users and leaves their rows unchanged
+- [x] 1.2 Create `core.notifications` with the public types `NotificationType`, `Notification`, `Notifications` and the internal `NotificationChannel` SPI and registry (D1, D2); verify that the Spring Modulith structure test passes and a unit test rejects two types with the same key
+- [x] 1.3 Implement sending after commit in the background with per-channel failure isolation and filtering to active users (D4); verify with `NotificationsTest` covering: nothing sent on rollback, one failing channel does not stop the other, disabled user skipped, log line without the text
+- [x] 1.4 Implement the settings store with defaults and mandatory channels, and `GET /api/notifications`, `PUT /api/notifications/{type}/{channel}` (D10); verify with `NotificationSettingsTest` covering own switches only, HTTP 400 for an unknown type and for switching off a mandatory channel, kept rows for an unregistered type
+- [x] 1.5 Implement the e-mail channel on `MailSender` (long form, usable only with a configured server and an address, link appended when a public address is set); verify with a test against GreenMail that subject, text and link arrive and that no connection is tried without a server
 
 ## 2. Recipients
 
-- [ ] 2.1 Add `SharingService.usersWithRole(type, objectId, minimum)` including roles inherited from the parent type, and expose it for units (D8); verify with additions to `SharingChildTypeTest` for a property owner, a unit-only editor and a viewer
+- [x] 2.1 Add `SharingService.usersWithRole(type, objectId, minimum)` including roles inherited from the parent type, and expose it for units (D8); verify with additions to `SharingChildTypeTest` for a property owner, a unit-only editor and a viewer
 
 ## 3. Sign-in warning on the layer
 
 - [ ] 3.1 Register the type `core.signIn` with `mail` mandatory and send the warning through `Notifications`, keeping subject and mail text (D5); verify that `SignInAlertsTest` and `sign-in-alerts.spec.ts` pass unchanged
-- [ ] 3.2 Add the short form (browser, operating system, location, no client address); verify with a test that a user without an address gets the Pushover notification through a fake channel and that the text contains no part of the address
+- [x] 3.2 Add the short form (browser, operating system, location, no client address); verify with a test that a user without an address gets the Pushover notification through a fake channel and that the text contains no part of the address
 
 ## 4. Pushover channel
 
@@ -27,17 +27,17 @@
 
 ## 5. Mail inbox events
 
-- [ ] 5.1 Publish `MailImported` only for mails of a regular poll received within two days, and move the attention results to the backend (`MailHandler.attentionResults()`, exposed by the inbox API, used by the quick filter „Offen“) (D6); verify with `MailInboxTest` that older fetches and reprocessing publish nothing, and that `Mail.test.tsx` still passes for „Offen“
-- [ ] 5.2 Register `core.mailAttention` and send one notification per poll with the count, senders and subjects only in the long form; verify with a test for one and for three mails and for a poll with only handled mails
-- [ ] 5.3 Register `core.mailFetchFailed` and send it on the change from a successful to a failed regular poll; verify with a test for repeated failures, recovery and a manual fetch, and that the text holds no server error text
+- [x] 5.1 Publish `MailImported` only for mails of a regular poll received within two days, and move the attention results to the backend (`MailHandler.attentionResults()`, exposed by the inbox API, used by the quick filter „Offen“) (D6); verify with `MailInboxTest` that older fetches and reprocessing publish nothing, and that `Mail.test.tsx` still passes for „Offen“
+- [x] 5.2 Register `core.mailAttention` and send one notification per poll with the count, senders and subjects only in the long form; verify with a test for one and for three mails and for a poll with only handled mails
+- [x] 5.3 Register `core.mailFetchFailed` and send it on the change from a successful to a failed regular poll; verify with a test for repeated failures, recovery and a manual fetch, and that the text holds no server error text
 
 ## 6. Vacation rental events
 
-- [ ] 6.1 Register `vacationrental.bookingReview` and `vacationrental.changeReview`, listen to `MailImported` and send to users with at least `EDITOR` on the unit (D6); verify with `BookingNotificationsTest` covering new booking, proposed cancellation, viewer excluded, admin without a role excluded
-- [ ] 6.2 Build both forms for the review notifications with invented booking values; verify with a test that guest name, amount and booking number appear in the long text and in neither title nor short text
-- [ ] 6.3 Add the migration `V<yyyyMMdd>.<HHmm>__vacationrental_notification_digests.sql` and the digest job with the 18:00 schedule and the start-up catch-up (D9); verify with the test clock: sent once, not twice after a restart, sent after a start at 19:10, not sent the next morning
-- [ ] 6.4 Register `vacationrental.arrivals` and `vacationrental.departures` and build one digest per user; verify with a test covering two units, a user with one unit, cancelled bookings, bookings „zu prüfen“ and owner uses left out, unit names only in the short text
-- [ ] 6.5 Verify with additions to `ModulesDisabledTest` that with `vacationrental` disabled its types are not offered, nothing is sent and stored switches survive
+- [x] 6.1 Register `vacationrental.bookingReview` and `vacationrental.changeReview`, listen to `MailImported` and send to users with at least `EDITOR` on the unit (D6); verify with `BookingNotificationsTest` covering new booking, proposed cancellation, viewer excluded, admin without a role excluded
+- [x] 6.2 Build both forms for the review notifications with invented booking values; verify with a test that guest name, amount and booking number appear in the long text and in neither title nor short text
+- [x] 6.3 Add the migration `V<yyyyMMdd>.<HHmm>__vacationrental_notification_digests.sql` and the digest job with the 18:00 schedule and the start-up catch-up (D9); verify with the test clock: sent once, not twice after a restart, sent after a start at 19:10, not sent the next morning
+- [x] 6.4 Register `vacationrental.arrivals` and `vacationrental.departures` and build one digest per user; verify with a test covering two units, a user with one unit, cancelled bookings, bookings „zu prüfen“ and owner uses left out, unit names only in the short text
+- [x] 6.5 Verify with additions to `ModulesDisabledTest` that with `vacationrental` disabled its types are not offered, nothing is sent and stored switches survive
 
 ## 7. Frontend
 

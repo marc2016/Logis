@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Public API for modules: effective roles on units (the higher of the property role and the unit role).
@@ -37,6 +38,14 @@ public class UnitAccess {
     /** All units on which the user has at least the given effective role, with that role. */
     public Map<Long, ShareRole> units(Long userId, ShareRole minimum) {
         return sharing.rolesFor(Unit.SHARE_TYPE, userId, minimum);
+    }
+
+    /**
+     * The users with at least the given effective role on the unit. Without an acting user: only to address
+     * notifications about the unit, never to answer a request.
+     */
+    public Set<Long> usersOn(Long unitId, ShareRole minimum) {
+        return sharing.usersWithRole(Unit.SHARE_TYPE, unitId, minimum).keySet();
     }
 
     /**

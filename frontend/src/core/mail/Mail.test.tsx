@@ -49,6 +49,10 @@ function inboxItem(overrides: Partial<InboxItem> = {}): InboxItem {
     linkId: null,
     retryable: true,
     ...overrides,
+    // As the server reports it: what is left to do for the user.
+    needsAttention:
+      overrides.needsAttention ??
+      ['NOT_RECOGNISED', 'FAILED', 'UNASSIGNED_UNIT', 'NOT_MATCHED', 'PERIOD_TAKEN'].includes(overrides.result ?? 'UNASSIGNED_UNIT'),
   }
 }
 

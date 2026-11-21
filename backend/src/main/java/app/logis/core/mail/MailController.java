@@ -57,13 +57,15 @@ class MailController {
 
     record InboxItem(Long id, Instant receivedAt, String sender, String subject, String handler, String kind,
             String source, String reference, String subjectName, String parsedBy, String result, String resultDetail,
-            String linkType, Long linkId, boolean retryable) {
+            String linkType, Long linkId, boolean retryable, boolean needsAttention) {
 
-        static InboxItem of(StoredMail m) {
-            return new InboxItem(m.getId(), m.getReceivedAt(), m.getSender(), m.getSubject(), m.getHandler(),
-                    m.getKind(), m.getSource(), m.getReference(), m.getSubjectName(), m.getParsedBy(), m.getResult(),
-                    m.getResultDetail(), m.getLinkType(), m.getLinkId(), m.retryable());
-        }
+    }
+
+    /** {@code needsAttention}: the mail leaves something to do; the quick filter „Offen“ shows exactly these. */
+    private InboxItem item(StoredMail m) {
+        return new InboxItem(m.getId(), m.getReceivedAt(), m.getSender(), m.getSubject(), m.getHandler(),
+                m.getKind(), m.getSource(), m.getReference(), m.getSubjectName(), m.getParsedBy(), m.getResult(),
+                m.getResultDetail(), m.getLinkType(), m.getLinkId(), m.retryable(), mails.needsAttention(m));
     }
 
     record MailText(Long id, String subject, String text) {
@@ -134,7 +136,7 @@ class MailController {
 
     @GetMapping("/inbox")
     List<InboxItem> inbox(@AuthenticationPrincipal LogisPrincipal me) {
-        return mails.inbox(me.userId()).stream().map(InboxItem::of).toList();
+        return mails.inbox(me.userId()).stream().map(this::item).toList();
     }
 
     @GetMapping("/inbox/{id}/text")
@@ -145,12 +147,12 @@ class MailController {
 
     @PostMapping("/inbox/{id}/retry")
     InboxItem retry(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return InboxItem.of(mails.retry(me.userId(), id));
+        return item(mails.retry(me.userId(), id));
     }
 
     @PostMapping("/inbox/{id}/ignore")
     InboxItem ignore(@PathVariable Long id, @AuthenticationPrincipal LogisPrincipal me) {
-        return InboxItem.of(mails.ignore(me.userId(), id));
+        return item(mails.ignore(me.userId(), id));
     }
 
     @DeleteMapping("/inbox/{id}")

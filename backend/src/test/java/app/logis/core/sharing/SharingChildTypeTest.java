@@ -93,6 +93,34 @@ class SharingChildTypeTest extends IntegrationTest {
         assertThat(sharing.accessibleIds(PART, dieter.id(), ShareRole.EDITOR)).containsExactly(part1);
     }
 
+    /** Who is told about an object: property owner, unit-only editor and viewer (design D8 of notifications-pushover). */
+    @Test
+    void usersWithRoleIncludeRolesInheritedFromTheParent() throws Exception {
+        var owner = createUser(Role.USER, true);
+        var carla = createUser(Role.USER, true);
+        var bert = createUser(Role.USER, true);
+        var stranger = createUser(Role.USER, true);
+        var accountId = account(owner);
+        var part1 = accountId * 1000 + 1;
+        var part2 = accountId * 1000 + 2;
+        sharing.invite(PART, part1, owner.id(), carla.id(), ShareRole.EDITOR);
+        sharing.invite("account", accountId, owner.id(), bert.id(), ShareRole.VIEWER);
+
+        assertThat(sharing.usersWithRole(PART, part1, ShareRole.VIEWER))
+                .containsOnly(Map.entry(owner.id(), ShareRole.OWNER), Map.entry(carla.id(), ShareRole.EDITOR),
+                        Map.entry(bert.id(), ShareRole.VIEWER))
+                .doesNotContainKey(stranger.id());
+        assertThat(sharing.usersWithRole(PART, part1, ShareRole.EDITOR)).containsOnlyKeys(owner.id(), carla.id());
+        // The unit-only editor has no role on the other part.
+        assertThat(sharing.usersWithRole(PART, part2, ShareRole.VIEWER)).containsOnlyKeys(owner.id(), bert.id());
+        assertThat(sharing.usersWithRole("account", accountId, ShareRole.OWNER)).containsOnlyKeys(owner.id());
+        // The higher of both roles counts.
+        sharing.invite(PART, part1, owner.id(), bert.id(), ShareRole.EDITOR);
+        assertThat(sharing.usersWithRole(PART, part1, ShareRole.EDITOR)).containsKey(bert.id());
+        // An object without a parent has nobody.
+        assertThat(sharing.usersWithRole(PART, 5L, ShareRole.VIEWER)).isEmpty();
+    }
+
     @Test
     void childRoleDoesNotSpread() throws Exception {
         var owner = createUser(Role.USER, true);

@@ -1,5 +1,13 @@
 package app.logis.core.mail;
 
+import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.HashSet;
+import java.time.Duration;
+import org.springframework.context.ApplicationEventPublisher;
+import app.logis.core.notifications.Notifications;
+import app.logis.core.notifications.NotificationType;
+import app.logis.core.notifications.Notification;
 import app.logis.core.web.ApiException;
 import app.logis.shared.SecretCipher;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,9 +50,26 @@ class MailService {
     private final ObjectMapper json;
     private final Clock clock;
     private final Map<Long, FetchRun> runs = new ConcurrentHashMap<>();
+    private final Notifications notifications;
+    private final ApplicationEventPublisher events;
+    private final Set<String> attentionResults;
+
+    /** Only mails received this recently count as new: a first poll from an old cut-off date stays quiet. */
+    static final Duration FRESH = Duration.ofDays(2);
+    static final NotificationType ATTENTION = NotificationType.of("core.mailAttention",
+            "E-Mails brauchen Aufmerksamkeit", "Posteingang");
+    static final NotificationType FETCH_FAILED = NotificationType.of("core.mailFetchFailed",
+            "Postfach-Abruf fehlgeschlagen", "Posteingang");
+    static final String INBOX_PATH = "/posteingang";
 
     MailService(MailboxRepository mailboxes, StoredMailRepository mails, ImapClient imap, List<MailHandler> handlers,
-            SecretCipher cipher, ObjectMapper json, Clock clock) {
+            SecretCipher cipher, ObjectMapper json, Clock clock, Notifications notifications,
+            ApplicationEventPublisher events) {
+        this.notifications = notifications;
+        this.events = events;
+        var attention = new HashSet<>(Set.of(StoredMail.NOT_RECOGNISED, StoredMail.FAILED));
+        handlers.forEach(handler -> attention.addAll(handler.attentionResults()));
+        this.attentionResults = Set.copyOf(attention);
         this.mailboxes = mailboxes;
         this.mails = mails;
         this.imap = imap;
@@ -52,6 +77,11 @@ class MailService {
         this.cipher = cipher;
         this.json = json;
         this.clock = clock;
+    }
+
+    /** Whether the mail leaves something for the user to do: what the quick filter „Offen“ shows. */
+    boolean needsAttention(StoredMail mail) {
+        return attentionResults.contains(mail.getResult());
     }
 
     boolean aiEnabled() {
@@ -70,7 +100,7 @@ class MailService {
     void pollIfIdle(Long ownerId) {
         var run = beginPoll(ownerId, false);
         if (run != null) {
-            run(run);
+            run(run.automatic());
         }
     }
 
@@ -137,9 +167,11 @@ class MailService {
     void run(FetchRun run) {
         var owner = run.ownerUserId();
         String error = null;
+        var failedBefore = false;
         try {
             var mailbox = mailboxes.findById(owner)
                     .orElseThrow(() -> new IllegalStateException("Mailbox of user " + owner + " is gone"));
+            failedBefore = mailbox.getLastError() != null;
             imap.fetchSince(config(mailbox), run.from(), id -> mails.existsByOwnerUserIdAndMessageId(owner, id),
                     new ImapClient.Listener() {
                         public void onTotal(int total) {
@@ -147,7 +179,7 @@ class MailService {
                         }
 
                         public void onMail(ImapClient.FetchedMail mail) {
-                            run.checked(process(owner, mail));
+                            run.checked(process(run, mail));
                         }
 
                         public void onSkipped() {
@@ -168,12 +200,68 @@ class MailService {
             fresh.polled(clock.instant(), error);
             mailboxes.save(fresh);
         }
+        notifyAfter(run, error != null && !failedBefore);
     }
 
-    /** Stores and handles a fetched mail; false if its Message-ID is known already. */
+    /** One notification per poll for the mails that need attention, and one when the regular poll starts failing. */
+    private void notifyAfter(FetchRun run, boolean startedFailing) {
+        if (run.kind() != FetchRun.Kind.POLL) {
+            return;
+        }
+        var owner = List.of(run.ownerUserId());
+        var open = run.attention();
+        if (!open.isEmpty()) {
+            var one = open.size() == 1;
+            var title = one ? "1 E-Mail braucht Aufmerksamkeit" : open.size() + " E-Mails brauchen Aufmerksamkeit";
+            var shortText = one ? "Im Posteingang wartet eine E-Mail, die nicht automatisch verarbeitet wurde."
+                    : "Im Posteingang warten " + open.size() + " E-Mails, die nicht automatisch verarbeitet wurden.";
+            var longText = shortText + "\n\n" + open.stream().map(line -> "– " + line)
+                    .collect(Collectors.joining("\n")) + "\n";
+            notifications.send(ATTENTION.key(), owner,
+                    new Notification(title, shortText, longText, INBOX_PATH + "?ergebnis=offen"));
+        }
+        // Only the scheduler's poll: a fetch the user starts shows its error on the page.
+        if (startedFailing && run.isAutomatic()) {
+            var text = "Logis konnte dein Postfach nicht abrufen. Bis der Abruf wieder klappt, werden keine neuen "
+                    + "E-Mails verarbeitet. Bitte prüfe die Einstellungen des Postfachs im Posteingang.";
+            notifications.send(FETCH_FAILED.key(), owner,
+                    new Notification("Postfach-Abruf fehlgeschlagen", text, text + "\n", INBOX_PATH));
+        }
+    }
+
+    /** Stores and handles a fetched mail outside a fetch; false if its Message-ID is known already. */
     boolean process(Long ownerId, ImapClient.FetchedMail fetched) {
-        if (mails.existsByOwnerUserIdAndMessageId(ownerId, fetched.messageId())) {
+        return store(ownerId, fetched) != null;
+    }
+
+    /** As {@link #process(Long, ImapClient.FetchedMail)}, and tells the rest of Logis about new mails of a poll. */
+    private boolean process(FetchRun run, ImapClient.FetchedMail fetched) {
+        var stored = store(run.ownerUserId(), fetched);
+        if (stored == null) {
             return false;
+        }
+        var fresh = stored.getReceivedAt() != null && !stored.getReceivedAt().isBefore(clock.instant().minus(FRESH));
+        if (run.kind() == FetchRun.Kind.POLL && fresh) {
+            if (needsAttention(stored)) {
+                run.needsAttention((stored.getSender() == null ? "Unbekannter Absender" : stored.getSender()) + ": "
+                        + (stored.getSubject() == null || stored.getSubject().isBlank() ? "(ohne Betreff)"
+                        : stored.getSubject()));
+            }
+            try {
+                events.publishEvent(new MailImported(stored.getOwnerUserId(), stored.getId(), stored.getHandler(),
+                        stored.getResult(), stored.getLinkType(), stored.getLinkId()));
+            } catch (RuntimeException e) {
+                // A listener must never stop the fetch.
+                log.warn("Listener for imported mail {} failed", stored.getId(), e);
+            }
+        }
+        return true;
+    }
+
+    /** The stored and handled mail, or null if its Message-ID is known already. */
+    private StoredMail store(Long ownerId, ImapClient.FetchedMail fetched) {
+        if (mails.existsByOwnerUserIdAndMessageId(ownerId, fetched.messageId())) {
+            return null;
         }
         StoredMail stored;
         try {
@@ -181,10 +269,10 @@ class MailService {
                     clock.instant()));
         } catch (DataIntegrityViolationException e) {
             // Stored meanwhile by someone else: the unique Message-ID keeps it a single mail.
-            return false;
+            return null;
         }
         handle(stored);
-        return true;
+        return stored;
     }
 
     /** Offers the stored mail to the handlers in order; the first result wins. */

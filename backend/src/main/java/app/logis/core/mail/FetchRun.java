@@ -21,6 +21,10 @@ final class FetchRun {
     private volatile State state = State.RUNNING;
     private volatile String error;
     private volatile Instant finishedAt;
+    /** Started by the scheduler, not by the user. */
+    private volatile boolean automatic;
+    /** Mails of this run that need attention, as "sender: subject"; for the notification at its end. */
+    private final java.util.List<String> attention = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     FetchRun(Long ownerUserId, Kind kind, LocalDate from, Instant startedAt) {
         this.ownerUserId = ownerUserId;
@@ -44,6 +48,23 @@ final class FetchRun {
         this.error = error;
         this.finishedAt = at;
         this.state = error == null ? State.DONE : State.FAILED;
+    }
+
+    FetchRun automatic() {
+        this.automatic = true;
+        return this;
+    }
+
+    boolean isAutomatic() {
+        return automatic;
+    }
+
+    void needsAttention(String line) {
+        attention.add(line);
+    }
+
+    java.util.List<String> attention() {
+        return java.util.List.copyOf(attention);
     }
 
     boolean running() {

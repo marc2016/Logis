@@ -50,4 +50,16 @@ interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDate departure);
 
     boolean existsByUnitIdIn(Collection<Long> unitIds);
+
+    /** Stays that begin on the day and count for the arrival digest: no owner use, not cancelled, confirmed. */
+    @Query("select b from Booking b where b.arrival = :day and not b.cancelled "
+            + "and b.kind = app.logis.modules.vacationrental.BookingKind.GUEST "
+            + "and b.reviewState <> app.logis.modules.vacationrental.ReviewState.NEW order by b.unitId")
+    List<Booking> findArrivalsOn(LocalDate day);
+
+    /** As {@link #findArrivalsOn}, for stays that end on the day. */
+    @Query("select b from Booking b where b.departure = :day and not b.cancelled "
+            + "and b.kind = app.logis.modules.vacationrental.BookingKind.GUEST "
+            + "and b.reviewState <> app.logis.modules.vacationrental.ReviewState.NEW order by b.unitId")
+    List<Booking> findDeparturesOn(LocalDate day);
 }

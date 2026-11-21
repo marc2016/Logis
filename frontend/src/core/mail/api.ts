@@ -50,6 +50,8 @@ export interface InboxItem {
   linkType: string | null
   linkId: number | null
   retryable: boolean
+  /** The mail leaves something to do; the server decides, so the filter „Offen“ and notifications agree. */
+  needsAttention: boolean
 }
 
 /** Results the core itself reports; modules add their own labels. */
@@ -58,9 +60,6 @@ export const coreResultLabel: Record<string, string> = {
   IGNORED: 'Ignoriert',
   FAILED: 'Fehler',
 }
-
-/** Results that need the user's attention. */
-export const ATTENTION_RESULTS = new Set(['NOT_RECOGNISED', 'FAILED', 'UNASSIGNED_UNIT', 'NOT_MATCHED', 'PERIOD_TAKEN'])
 
 export const mailKeys = {
   all: ['mail'] as const,

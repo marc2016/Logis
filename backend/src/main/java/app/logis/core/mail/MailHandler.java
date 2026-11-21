@@ -38,6 +38,14 @@ public interface MailHandler {
         return java.util.Map.of();
     }
 
+    /**
+     * Result codes of this handler that leave something for the user to do, e.g. a mail waiting for a unit. Mails
+     * with these results are what the inbox shows as „Offen“ and what users are notified about.
+     */
+    default Set<String> attentionResults() {
+        return Set.of();
+    }
+
     /** German labels of the kinds this handler reports, as the inbox shows them; for the admin export. */
     default java.util.Map<String, String> kindLabels() {
         return java.util.Map.of();
