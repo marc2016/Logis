@@ -222,8 +222,25 @@ class MailInboxTest extends IntegrationTest {
     }
 
     @Test
+    void cutOffDayStartsAtMidnightInGermanyNotInUtc() throws Exception {
+        // 00:20 in Germany on 21 November is still 20 November in UTC, the server's clock.
+        clock.advance(java.time.Duration.between(clock.instant(), Instant.parse("2026-11-20T23:20:00Z")));
+        var body = new HashMap<String, Object>(Map.of("host", "localhost", "port", greenMail.getImap().getPort(),
+                "username", "anna", "folder", "INBOX", "useTls", false, "cutoffDate", "2026-11-21", "enabled", true));
+        mvc.perform(put("/api/mail/mailbox").with(csrf()).session(session)
+                .contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isOk());
+        deliver("Kurz nach Mitternacht", "2026-11-20T23:10:00Z");
+        deliver("Vor Mitternacht", "2026-11-20T22:50:00Z");
+        mails.pollNow(userId);
+        assertThat(inbox(session)).extracting(m -> m.get("subject")).containsExactly("Kurz nach Mitternacht");
+        // Today in Germany is not in the future, although the server's day is still the day before.
+        postJson("/api/mail/mailbox/fetch-older", Map.of("from", "2026-11-21"), session).andExpect(status().isAccepted());
+    }
+
+    @Test
     void olderMailsCannotBeFetchedFromTheFuture() throws Exception {
-        postJson("/api/mail/mailbox/fetch-older", Map.of("from", LocalDate.now(clock).plusDays(1).toString()), session)
+        var today = LocalDate.ofInstant(clock.instant(), java.time.ZoneId.of("Europe/Berlin"));
+        postJson("/api/mail/mailbox/fetch-older", Map.of("from", today.plusDays(1).toString()), session)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Das Datum darf nicht in der Zukunft liegen."));
     }
