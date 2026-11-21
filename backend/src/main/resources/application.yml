@@ -18,11 +18,12 @@ spring:
       ddl-auto: validate
   flyway:
     # One schema per area; migrations of all modules always run (including disabled ones).
-    schemas: core,vacationrental
+    schemas: core,vacationrental,longtermrental
     default-schema: core
     locations:
       - classpath:db/migration/core
       - classpath:db/migration/vacationrental
+      - classpath:db/migration/longtermrental
 
 server:
   port: 8080

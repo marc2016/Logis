@@ -8,6 +8,7 @@ spring:
     locations:
       - classpath:db/migration/core
       - classpath:db/migration/vacationrental
+      - classpath:db/migration/longtermrental
       - classpath:db/testmigration
 
 management:
