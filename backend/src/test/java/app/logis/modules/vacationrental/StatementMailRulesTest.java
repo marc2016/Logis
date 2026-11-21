@@ -23,6 +23,7 @@ class StatementMailRulesTest {
         var message = new MimeMessage(SESSION);
         message.setFrom(new InternetAddress(from));
         message.setSubject(subject, "UTF-8");
+        message.setSentDate(java.util.Date.from(java.time.Instant.parse("2027-04-04T08:00:00Z")));
         var body = new MimeBodyPart();
         body.setText(html, "UTF-8", "html");
         var multipart = new MimeMultipart("mixed", body);

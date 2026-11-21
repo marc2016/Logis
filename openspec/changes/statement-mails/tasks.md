@@ -17,9 +17,9 @@
 
 ## 3. Import
 
-- [ ] 3.1 Add `StatementMailImport` and call it first in `BookingMailHandler` (design D1); add result `STATEMENT_CREATED` and kind `STATEMENT` with labels in backend and frontend. Verify: `MailLabelsTest` passes.
-- [ ] 3.2 Create the statement with PDF document, lines and open lines (design D6). Verify with `MailImportTest` cases on invented data, one per scenario of „Fewo & Meer statement PDF“: match; booking of the previous month; extension merged; extension not taken over; no booking; booking already settled; owner use.
-- [ ] 3.3 Cover the mail scenarios of „Statement mails“ in `MailImportTest`: unknown property → `UNASSIGNED_UNIT` and created after assigning; notice without property with one mapped unit; notice without a clear unit and the default mapping (design D9); invoice number already recorded → `ATTACHED`; no PDF and unreadable PDF → „PDF nicht gelesen“; stored „Nicht erkannt“ mail after „Erneut verarbeiten“; AI extractor never called.
+- [x] 3.1 Add `StatementMailImport` and call it first in `BookingMailHandler` (design D1); add result `STATEMENT_CREATED` and kind `STATEMENT` with labels in backend and frontend. Verify: `MailLabelsTest` passes.
+- [x] 3.2 Create the statement with PDF document, lines and open lines (design D6). Verify with `StatementMailImportTest` cases on invented data, one per scenario of „Fewo & Meer statement PDF“: match; booking of the previous month; extension merged; extension not taken over; no booking; booking already settled; owner use.
+- [x] 3.3 Cover the mail scenarios of „Statement mails“ in `StatementMailImportTest`: unknown property → `UNASSIGNED_UNIT` and created after assigning; notice without property with one mapped unit; notice without a clear unit and the default mapping (design D9); invoice number already recorded → `ATTACHED`; no PDF and unreadable PDF → „PDF nicht gelesen“; stored „Nicht erkannt“ mail after „Erneut verarbeiten“; AI extractor never called.
 
 ## 4. Frontend
 

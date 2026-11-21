@@ -244,6 +244,7 @@ export const mailKindLabel: Record<string, string> = {
   OWNER_BLOCK: 'Eigentümerblockung',
   TICKET_RECEIPT: 'Eingangsbestätigung',
   EXTENSION: 'Verlängerung',
+  STATEMENT: 'Abrechnung',
 }
 
 // Kept equal to RESULT_LABELS in the backend's BookingMailHandler (checked by MailLabelsTest).
@@ -256,6 +257,7 @@ export const mailResultLabel: Record<string, string> = {
   NOT_MATCHED: 'Nicht zugeordnet',
   PERIOD_TAKEN: 'Zeitraum belegt',
   DISCARDED: 'Verworfen',
+  STATEMENT_CREATED: 'Abrechnung angelegt',
 }
 
 /** Display name of a unit: the property alone for single-unit properties. */
