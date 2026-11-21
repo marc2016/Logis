@@ -52,7 +52,7 @@
 - [x] 8.2 Add `e2e/tests/notifications.spec.ts`: admin stores the token, user stores a key and sends a test, switches on both channels for „Neue Buchung zu prüfen“, a booking mail with invented values arrives, the stand-in holds a message without the guest name and the mail holds it; verify the test passes on desktop and phone
 - [x] 8.3 Add rows for `notifications` and `pushover` to `e2e/COVERAGE.md` and extend the rows of `sign-in-alerts`, `bookings` and `mail-inbox`; verify every new capability has a row
 - [x] 8.4 Describe the Pushover set-up, the outbound connection to `api.pushover.net` and the role of `LOGIS_PUBLIC_URL` for links in the README; verify the described steps against the running app
-- [ ] 8.5 Run `cd backend && ./mvnw test`, `cd frontend && npm test && npm run lint && npm run build` and the e2e suite; verify all pass, and check that no test file, spec or commit holds values from real mails or bookings
+- [x] 8.5 Run `cd backend && ./mvnw test`, `cd frontend && npm test && npm run lint && npm run build` and the e2e suite; verify all pass, and check that no test file, spec or commit holds values from real mails or bookings
 
 ## Workflow follow-up
 

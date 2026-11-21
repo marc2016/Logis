@@ -80,13 +80,15 @@ export function PushoverPage() {
                     id="pushover-token"
                     value={token}
                     onChange={(e) => setToken(e.target.value.trim())}
-                    placeholder={settings.configured ? 'gespeichert – neues Token eintragen zum Ersetzen' : ''}
+                    placeholder={settings.configured ? 'gespeichert' : ''}
                     autoComplete="off"
                     spellCheck={false}
                     className="max-w-md font-mono"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Beim Speichern prüft Logis das Token bei Pushover.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Beim Speichern prüft Logis das Token bei Pushover.{settings.configured && ' Ein neues Token ersetzt das gespeicherte.'}
+                  </p>
                 </div>
                 <FormError message={error} />
                 <div className="flex flex-wrap items-center gap-2">

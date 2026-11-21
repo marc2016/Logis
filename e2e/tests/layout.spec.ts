@@ -113,7 +113,8 @@ test('notification settings fit on phone and tablet screens', async ({ page, api
   // With Pushover set up the account page shows the key form and both columns of switches.
   const admin = await adminPage(browser, baseURL!)
   await call(admin.context().request, 'PUT', '/api/admin/pushover', { token: APP_TOKEN })
-  const problems = [...(await check(admin, '/einstellungen/pushover', 'Pushover'))]
+  // The page itself: an admin's navigation is longer than the window and scrolls, which the check does not follow.
+  const problems = [...(await check(admin, '/einstellungen/pushover', 'Pushover', 'main'))]
   await admin.context().close()
   await call(api, 'PUT', '/api/account/pushover', { userKey: userKey() })
 
