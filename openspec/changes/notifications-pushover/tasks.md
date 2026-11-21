@@ -19,11 +19,11 @@
 
 ## 4. Pushover channel
 
-- [ ] 4.1 Confirm the request and response shapes of `messages.json` and `users/validate.json` against the Pushover API documentation, in particular how an invalid token and an invalid user key are reported; record the result in design D7 and, if a token cannot be checked alone, stop and adjust the spec requirement „Check the token on save“ with the user
-- [ ] 4.2 Implement `PushoverClient` with the HTTP implementation, timeouts, shortening with „…“ and `logis.pushover.base-url` (D7); verify with a test against a local stub server covering success, invalid token, invalid user, 429 and 5xx
-- [ ] 4.3 Implement the admin settings service and `GET|PUT|DELETE /api/admin/pushover` with the encrypted token and the check on save; verify with `PushoverSettingsTest` covering HTTP 403 for ordinary users, token never returned, both error messages, previous token kept after a rejected save
-- [ ] 4.4 Implement the user key service and `GET|PUT|DELETE /api/account/pushover` plus `POST /api/account/pushover/test`; verify with `PushoverKeyTest` covering unknown key rejected, key never returned, own key only, test notification text and its failure message
-- [ ] 4.5 Implement the Pushover channel (short form, usable only with token and valid key, `invalid_since` set when Pushover rejects the key); verify with a test that exactly token, key, title, short text and link are posted and that a revoked key stops later sends
+- [x] 4.1 Confirm the request and response shapes of `messages.json` and `users/validate.json` against the Pushover API documentation, in particular how an invalid token and an invalid user key are reported; record the result in design D7 and, if a token cannot be checked alone, stop and adjust the spec requirement „Check the token on save“ with the user
+- [x] 4.2 Implement `PushoverClient` with the HTTP implementation, timeouts, shortening with „…“ and `logis.pushover.base-url` (D7); verify with a test against a local stub server covering success, invalid token, invalid user, 429 and 5xx
+- [x] 4.3 Implement the admin settings service and `GET|PUT|DELETE /api/admin/pushover` with the encrypted token and the check on save; verify with `PushoverSettingsTest` covering HTTP 403 for ordinary users, token never returned, both error messages, previous token kept after a rejected save
+- [x] 4.4 Implement the user key service and `GET|PUT|DELETE /api/account/pushover` plus `POST /api/account/pushover/test`; verify with `PushoverKeyTest` covering unknown key rejected, key never returned, own key only, test notification text and its failure message
+- [x] 4.5 Implement the Pushover channel (short form, usable only with token and valid key, `invalid_since` set when Pushover rejects the key); verify with a test that exactly token, key, title, short text and link are posted and that a revoked key stops later sends
 
 ## 5. Mail inbox events
 

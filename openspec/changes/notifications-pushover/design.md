@@ -11,7 +11,6 @@ See proposal.md for motivation. What exists today and shapes the approach:
 - `MailService.handle` is used for freshly fetched mails, for older mails (`FetchRun.Kind.OLDER`) and for processing a stored mail again. `MailHandler.handle` cannot tell these apart.
 - `core.user_preferences` returns every value to the browser and is meant for interface choices.
 - `logis.auth.public-url` (`LOGIS_PUBLIC_URL`) is the only place the public address is known; it is optional.
-- This container could not reach `pushover.net`, so the API details in D7 come from memory of the Pushover documentation and are confirmed in task 4.1 before the client is written.
 
 ## Goals / Non-Goals
 
@@ -58,7 +57,7 @@ Callers pass the candidate recipients as user IDs. The core does not know domain
 ```sql
 core.notification_settings (user_id, event_type, channel, enabled, updated_at,
                             PRIMARY KEY (user_id, event_type, channel))
-core.pushover_settings     (id = 1, app_token_enc, updated_at, version)
+core.pushover_settings     (id = 1, app_token_enc, updated_at)
 core.pushover_user_keys    (user_id PRIMARY KEY, user_key_enc, invalid_since, updated_at)
 ```
 
@@ -86,14 +85,17 @@ The set of results that "need attention" lives in the frontend today (`ATTENTION
 
 ### D7 — Pushover client
 
-A `PushoverClient` interface with one HTTP implementation (Spring `RestClient`, 5 s connect and 10 s read timeout) against `logis.pushover.base-url`, default `https://api.pushover.net`:
+Confirmed against the Pushover API documentation (`pushover.net/api`, sections „Response Format“, „Limitations“, „Being Friendly to our API“ and „User/Group Validation“) during implementation.
 
-- `POST /1/messages.json` with `token`, `user`, `title`, `message`, optionally `url` and `url_title` („In Logis öffnen“). Title is cut to 250 and message to 1024 characters with „…“.
-- `POST /1/users/validate.json` with `token` and `user` to check a user's key on save.
-- Checking the application token alone (admin page): call `validate.json` with the token and a syntactically valid dummy user key and read which field the error names; a response that names `token` as invalid means a bad token, one that only names `user` means the token was accepted.
-- A 4xx answer that names the user key as invalid sets `invalid_since`; the channel is then not usable for that user until a new key is saved. 429 and 5xx are logged and dropped.
+A `PushoverClient` interface with one HTTP implementation (JDK `HttpClient`, 5 s connect and 10 s request timeout) against `logis.pushover.base-url`, default `https://api.pushover.net`:
 
-No Pushover SDK is added; two form posts do not justify a dependency. The interface lets backend tests use a fake, and the configurable base address lets the e2e stack point at a stand-in.
+- `POST /1/messages.json` with `token`, `user`, `title`, `message`, optionally `url` and `url_title` („In Logis öffnen“). Title is cut to 250 and message to 1024 characters with „…“; a link longer than 512 characters is left out.
+- `POST /1/users/validate.json` with `token` and `user` to check a user's key on save. Status 1 means valid with at least one active device.
+- Checking the application token alone (admin page): `GET /1/apps/limits.json?token=…`, the documented call that needs only the token. A 4xx means the token is not accepted; 429 means it is known but over its monthly limit and is accepted.
+- Success is HTTP 200 with `"status":1`. A 4xx names the invalid parameter (`"user":"invalid"`, `"token":"invalid"`) and must not be repeated. A response that names the user key sets `invalid_since`; the channel is then not usable for that user until a new key is saved. 429 (monthly limit), other 4xx and 5xx are logged and dropped.
+- As the documentation asks, at most two requests run at a time, and nothing is retried automatically.
+
+No Pushover SDK is added; two form posts and one GET do not justify a dependency. The interface lets backend tests use a fake, and the configurable base address lets the e2e stack point at a stand-in.
 
 ### D8 — Recipient lookup for units
 
@@ -116,7 +118,7 @@ A `@Scheduled(cron = "0 0 18 * * *", zone = "Europe/Berlin")` job and an `Applic
 
 ## Risks / Trade-offs
 
-- [Pushover's answers for an invalid token or key differ from D7] → Task 4.1 confirms the request and response shapes against the Pushover documentation before the client is written; if a token cannot be checked alone, the admin page asks for a user key to send a test with, and the spec requirement „Check the token on save“ is adjusted before implementation continues.
+- [Pushover's answers differ in detail from the documentation] → The client treats every 4xx as a rejection and only reads which parameter is named; an unexpected shape ends as a logged failure, never as a stored key marked invalid.
 - [A noisy mailbox raises a notification every five minutes] → One notification per poll with a count, only for mails of the last two days, and off by default.
 - [Guest data leaks into a short text by mistake] → Each event type has a test that builds a notification from a booking with marker values and asserts that none of them appear in title or short text.
 - [A lost notification goes unnoticed] → Accepted for now; everything a notification points to stays visible in the app. A history is a possible later change.
