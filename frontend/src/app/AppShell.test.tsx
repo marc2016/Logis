@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import { authenticated, longTermRentalActive, mockApi, normalUser, renderApp, vacationRentalActive } from '@/test/renderApp'
 
 describe('App shell', () => {
@@ -87,6 +87,17 @@ describe('Routing', () => {
     renderApp('/')
     expect(await screen.findByText(/Bitte hinterlege eine E-Mail-Adresse unter/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Mein Konto' })).toHaveAttribute('href', '/konto')
+  })
+
+  it('offers the Pushover settings to admins only', async () => {
+    mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': { body: [] } })
+    renderApp('/')
+    expect(await screen.findByRole('link', { name: 'Pushover' })).toHaveAttribute('href', '/einstellungen/pushover')
+    cleanup()
+    mockApi({ 'GET /api/auth/me': authenticated(normalUser), 'GET /api/modules': { body: [] } })
+    renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Übersicht' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Pushover' })).not.toBeInTheDocument()
   })
 
   it('shows no notice when the address exists', async () => {

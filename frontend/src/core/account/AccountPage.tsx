@@ -22,6 +22,8 @@ import { useSession } from '@/core/auth/session'
 import { DevicesCard } from './DevicesCard'
 import { EmailCard } from './EmailCard'
 import { PasskeysCard } from './PasskeysCard'
+import { NotificationsCard } from '@/core/notifications/NotificationsCard'
+import { PushoverCard } from '@/core/notifications/PushoverCard'
 
 function ChangePasswordCard() {
   const [current, setCurrent] = useState('')
@@ -145,6 +147,8 @@ export function AccountPage() {
         <RecoveryCodesCard />
         {session?.passkeys && <PasskeysCard />}
         <DevicesCard />
+        <PushoverCard />
+        <NotificationsCard />
       </div>
     </>
   )

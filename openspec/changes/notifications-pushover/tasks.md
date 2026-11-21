@@ -41,9 +41,9 @@
 
 ## 7. Frontend
 
-- [ ] 7.1 Add the API client and the card „Benachrichtigungen“ on `/konto` with grouped rows, one switch per channel, disabled switches with hints and mandatory switches; verify with `NotificationsCard.test.tsx` against a mocked API
-- [ ] 7.2 Add the card for the own Pushover key with save, remove, „Testnachricht senden“, the invalid-key notice and „Pushover ist noch nicht eingerichtet“; verify with `PushoverCard.test.tsx`
-- [ ] 7.3 Add the admin page `/einstellungen/pushover` with the sidebar entry „Pushover“ and the note about what is sent to Pushover; verify with `PushoverPage.test.tsx` and the sidebar assertion in `AppShell.test.tsx`
+- [x] 7.1 Add the API client and the card „Benachrichtigungen“ on `/konto` with grouped rows, one switch per channel, disabled switches with hints and mandatory switches; verify with `NotificationsCard.test.tsx` against a mocked API
+- [x] 7.2 Add the card for the own Pushover key with save, remove, „Testnachricht senden“, the invalid-key notice and „Pushover ist noch nicht eingerichtet“; verify with `PushoverCard.test.tsx`
+- [x] 7.3 Add the admin page `/einstellungen/pushover` with the sidebar entry „Pushover“ and the note about what is sent to Pushover; verify with `PushoverPage.test.tsx` and the sidebar assertion in `AppShell.test.tsx`
 - [ ] 7.4 Check both pages at phone and tablet widths by adding them to `layout.spec.ts`; verify the layout check passes at 390, 820 and 1024 px
 
 ## 8. End to end and documentation

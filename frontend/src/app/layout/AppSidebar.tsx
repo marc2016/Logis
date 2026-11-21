@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import {
+import { BellRingIcon,
   ArrowLeftRightIcon,
   BuildingIcon,
   ChevronsUpDownIcon,
@@ -181,6 +181,7 @@ export function AppSidebar({ modules }: { modules: LogisModule[] }) {
               { label: 'Benutzer', to: '/einstellungen/benutzer', icon: UsersIcon },
               { label: 'Kategorien', to: '/einstellungen/kategorien', icon: TagsIcon },
               { label: 'E-Mail-Versand', to: '/einstellungen/e-mail-versand', icon: SendIcon },
+              { label: 'Pushover', to: '/einstellungen/pushover', icon: BellRingIcon },
               { label: 'Mail-Export', to: '/einstellungen/mail-export', icon: MailOpenIcon },
             ]}
           />
