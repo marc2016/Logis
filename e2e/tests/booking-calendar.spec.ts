@@ -95,9 +95,10 @@ test('the calendar shows weekdays and today, scrolled into view', async ({ page,
     expect(cell.x + cell.width).toBeLessThanOrEqual(frame.x + frame.width)
   }).toPass()
   expect(await page.evaluate(() => window.scrollY)).toBe(0)
-  const now = new Date()
-  const weekday = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][now.getDay()]
-  await expect(today).toHaveText(`${now.getDate()}${weekday}`)
+  // Today as the browser sees it: its time zone can be a day ahead of the test runner's around midnight.
+  const now = await page.evaluate(() => ({ day: new Date().getDate(), weekday: new Date().getDay() }))
+  const weekday = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][now.weekday]
+  await expect(today).toHaveText(`${now.day}${weekday}`)
   await expect(today).toHaveAttribute('aria-label', /, heute$/)
   await expect(today).toHaveAttribute('aria-current', 'date')
 })

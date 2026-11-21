@@ -24,6 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 class MailService {
 
+    /**
+     * Days such as the cut-off date are the user's days: the browser sends them in local time, while the server clock
+     * runs in UTC. Around midnight the two differ by a day, so day boundaries are taken in this zone.
+     */
+    static final java.time.ZoneId ZONE = java.time.ZoneId.of("Europe/Berlin");
+
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
     static final String NOT_FOUND = "Mail nicht gefunden";
     static final String ALREADY_RUNNING = "Es läuft bereits ein Abruf.";
@@ -85,7 +91,7 @@ class MailService {
         }
         var since = mailbox.getCutoffDate();
         if (mailbox.getLastPollAt() != null) {
-            var last = LocalDate.ofInstant(mailbox.getLastPollAt(), clock.getZone()).minusDays(1);
+            var last = LocalDate.ofInstant(mailbox.getLastPollAt(), ZONE).minusDays(1);
             if (last.isAfter(since)) {
                 since = last;
             }
@@ -102,7 +108,7 @@ class MailService {
         if (from == null) {
             throw ApiException.badRequest("Bitte ein Datum angeben.");
         }
-        if (from.isAfter(LocalDate.now(clock))) {
+        if (from.isAfter(LocalDate.ofInstant(clock.instant(), ZONE))) {
             throw ApiException.badRequest("Das Datum darf nicht in der Zukunft liegen.");
         }
         if (mailboxes.findById(ownerId).isEmpty()) {

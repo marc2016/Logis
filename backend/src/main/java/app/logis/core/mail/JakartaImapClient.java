@@ -42,7 +42,8 @@ class JakartaImapClient implements ImapClient {
 
     @Override
     public void fetchSince(Config config, LocalDate since, Predicate<String> known, Listener listener) {
-        var sinceInstant = since.atStartOfDay(clock.getZone()).toInstant();
+        // The day starts in the user's zone; the IMAP search is by date only, so the exact start is checked per mail.
+        var sinceInstant = since.atStartOfDay(MailService.ZONE).toInstant();
         try (var store = connect(config)) {
             var folder = store.getFolder(config.folder());
             folder.open(Folder.READ_ONLY);
