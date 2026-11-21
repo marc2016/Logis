@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
-import { authenticated, mockApi, normalUser, renderApp, vacationRentalActive } from '@/test/renderApp'
+import { authenticated, longTermRentalActive, mockApi, normalUser, renderApp, vacationRentalActive } from '@/test/renderApp'
 
 describe('App shell', () => {
   it('shows an active module as its own group', async () => {
@@ -13,11 +13,22 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: /Auswertung/ })).toHaveAttribute('href', '/ferienvermietung/auswertung')
   })
 
+  it('shows long-term rental only while that module is active', async () => {
+    mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': longTermRentalActive })
+    renderApp('/')
+    expect(await screen.findByText('Dauervermietung')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Mietverhältnisse/ })).toHaveAttribute('href', '/dauervermietung/mietverhaeltnisse')
+    expect(screen.getByRole('link', { name: /Einheiten/ })).toHaveAttribute('href', '/dauervermietung/einheiten')
+    expect(screen.queryByText('Ferienvermietung')).not.toBeInTheDocument()
+  })
+
   it('hides a disabled module', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': { body: [] } })
     renderApp('/')
     expect(await screen.findByRole('link', { name: /Übersicht/ })).toBeInTheDocument()
     expect(screen.queryByText('Ferienvermietung')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dauervermietung')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Mietverhältnisse/ })).not.toBeInTheDocument()
   })
 
   it('shows "Benutzer" only to admins', async () => {
@@ -52,6 +63,12 @@ describe('Routing', () => {
   it('shows "Seite nicht gefunden" for a disabled module', async () => {
     mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': { body: [] } })
     renderApp('/ferienvermietung/buchungen')
+    expect(await screen.findByRole('heading', { name: 'Seite nicht gefunden' })).toBeInTheDocument()
+  })
+
+  it('shows "Seite nicht gefunden" for the pages of disabled long-term rental', async () => {
+    mockApi({ 'GET /api/auth/me': authenticated(), 'GET /api/modules': vacationRentalActive })
+    renderApp('/dauervermietung/mietverhaeltnisse')
     expect(await screen.findByRole('heading', { name: 'Seite nicht gefunden' })).toBeInTheDocument()
   })
 

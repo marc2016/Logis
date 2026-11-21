@@ -36,6 +36,8 @@ export function authenticated(user = adminUser) {
 
 export const vacationRentalActive = { body: [{ id: 'vacationrental', label: 'Ferienvermietung', order: 100 }] }
 
+export const longTermRentalActive = { body: [{ id: 'longtermrental', label: 'Dauervermietung', order: 200 }] }
+
 export function renderApp(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
