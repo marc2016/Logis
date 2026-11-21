@@ -5,6 +5,7 @@ import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -34,6 +35,19 @@ public final class MailAttachments {
     }
 
     private MailAttachments() {
+    }
+
+    /** RFC 2231 names are decoded by Jakarta Mail; many mailers send RFC 2047 encoded words instead. */
+    private static String fileName(Part part) throws MessagingException {
+        var name = part.getFileName();
+        if (name == null || !name.contains("=?")) {
+            return name;
+        }
+        try {
+            return MimeUtility.decodeText(name);
+        } catch (java.io.UnsupportedEncodingException e) {
+            return name;
+        }
     }
 
     /** All attachments in order of appearance; empty for an unreadable mail. */
@@ -68,7 +82,7 @@ public final class MailAttachments {
             return;
         }
         try (var in = part.getInputStream()) {
-            found.add(new Attachment(part.getFileName(), in.readAllBytes()));
+            found.add(new Attachment(fileName(part), in.readAllBytes()));
         }
     }
 }

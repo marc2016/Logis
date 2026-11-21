@@ -82,4 +82,17 @@ class MailAttachmentsTest {
         assertThat(MailAttachments.of(raw)).hasSize(1);
         assertThat(MailAttachments.firstPdf(raw)).isEmpty();
     }
+
+    @Test
+    void fileNamesWithUmlauts() throws Exception {
+        // RFC 2047 encoded word, as many mailers send it.
+        var encoded = file("x.pdf", "application/pdf", PDF);
+        encoded.setHeader("Content-Disposition", "attachment; filename=\"=?UTF-8?Q?Abrechnung_M=C3=A4rz.pdf?=\"");
+        assertThat(MailAttachments.of(bytes(mail(encoded))).getFirst().fileName()).isEqualTo("Abrechnung März.pdf");
+
+        // RFC 2231, as standard mailers send it.
+        var rfc2231 = file("x.pdf", "application/pdf", PDF);
+        rfc2231.setHeader("Content-Disposition", "attachment; filename*=UTF-8''Abrechnung%20M%C3%A4rz.pdf");
+        assertThat(MailAttachments.of(bytes(mail(rfc2231))).getFirst().fileName()).isEqualTo("Abrechnung März.pdf");
+    }
 }

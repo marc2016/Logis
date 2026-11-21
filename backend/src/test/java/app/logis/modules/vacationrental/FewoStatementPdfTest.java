@@ -127,6 +127,18 @@ class FewoStatementPdfTest {
         }
     }
 
+    @Test
+    void endToEndFixtureIsRead() throws Exception {
+        // e2e/fixtures/statement-fewo.pdf was built with StatementPdfs from invented rows; e2e expects these values.
+        var pdf = java.nio.file.Files.readAllBytes(java.nio.file.Path.of("../e2e/fixtures/statement-fewo.pdf"));
+        var read = FewoStatementPdf.read(pdf).orElseThrow();
+        assertThat(read.object()).isEqualTo("Haus Düne - Beispielort");
+        assertThat(read.invoiceNumber()).isEqualTo("E2E-2027-03");
+        assertThat(read.rows()).extracting(FewoStatementPdf.Row::tenant).containsExactly("Erika Musterfrau",
+                "Max Mustermann");
+        assertThat(read.balance()).isEqualByComparingTo("919.30");
+    }
+
     /** The text PDFBox gives for a one-row statement, to change single lines. */
     private static String sampleText() {
         return """

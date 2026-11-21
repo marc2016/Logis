@@ -111,6 +111,36 @@ Fewo & Meer e.K.
 `
 }
 
+/**
+ * A statement mail of „Fewo & Meer“ with a PDF attached; the PDF is a file in `e2e/fixtures`, built from invented
+ * rows by the backend's test helper `StatementPdfs`.
+ */
+export function fewoStatement(opts: { to: string; month: string; object: string; pdf: Buffer; fileName: string }) {
+  const boundary = `statement-${Date.now()}`
+  const base64 = opts.pdf.toString('base64').replace(/.{76}/g, '$&\n')
+  return `From: "FEWO & MEER e.K." <info@fewoscout.com>
+To: ${opts.to}
+Subject: =?UTF-8?B?${Buffer.from(`Ihre Abrechnung für ${opts.month} - ${opts.object}`).toString('base64')}?=
+Date: ${new Date().toUTCString().replace('GMT', '+0000')}
+Message-ID: <${boundary}@fewoscout.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="${boundary}"
+
+--${boundary}
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body><p>Sehr geehrte(r) Test GbR,</p><p>anbei erhalten Sie die Abrechnung ${opts.month} für Ihr Objekt.</p></body></html>
+--${boundary}
+Content-Type: application/pdf
+Content-Disposition: attachment; filename*=UTF-8''${encodeURIComponent(opts.fileName)}
+Content-Transfer-Encoding: base64
+
+${base64}
+--${boundary}--
+`
+}
+
 /** Sets up the user's mailbox on the test mail server; `address` is the mailbox user, the cut-off date defaults to today. */
 export async function connectMailbox(api: APIRequestContext, address: string, cutoffDate?: string) {
   const today = cutoffDate ?? new Date().toISOString().slice(0, 10)

@@ -30,7 +30,7 @@
 
 ## 5. End-to-end
 
-- [ ] 5.1 Add `e2e/tests/statement-mail.spec.ts`: a statement mail with a helper-built PDF from `e2e/fixtures/` arrives, the statement shows its lines and one open line as „zu prüfen“, the open line is assigned, the mark is gone, the PDF opens. Add the row to `e2e/COVERAGE.md`. Verify: the test passes on desktop and phone.
+- [x] 5.1 Add `e2e/tests/statement-mail.spec.ts`: a statement mail with a helper-built PDF from `e2e/fixtures/` arrives, the statement shows its lines and one open line as „zu prüfen“, the open line is assigned, the mark is gone, the PDF opens. Add the row to `e2e/COVERAGE.md`. Verify: the test passes on desktop and phone.
 
 ## 6. Verification
 
