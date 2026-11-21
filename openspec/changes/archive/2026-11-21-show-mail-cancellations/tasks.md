@@ -16,7 +16,7 @@
 
 ## 3. End-to-end
 
-- [ ] 3.1 Add a test to `e2e/tests/booking-proposal.spec.ts`: an imported, unconfirmed booking gets a cancellation mail; the list shows „Stornierung gemeldet“; the page shows the notice; „Stornierung übernehmen“ cancels it. Add the journey to the `bookings` row of `e2e/COVERAGE.md`. Verify: the spec passes against a stack with the new images.
+- [x] 3.1 Add a test to `e2e/tests/booking-proposal.spec.ts`: an imported, unconfirmed booking gets a cancellation mail; the list shows „Stornierung gemeldet“; the page shows the notice; „Stornierung übernehmen“ cancels it. Add the journey to the `bookings` row of `e2e/COVERAGE.md`. Verify: the spec passes against a stack with the new images.
 
 ## 4. Verification
 
