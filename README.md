@@ -20,7 +20,7 @@ Internet --TLS--> Reverse proxy (existing)
 |---|---|
 | Backend | Java 21, Spring Boot 3.5, Spring Modulith, Spring Security, JPA, Flyway |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui, TanStack Query, React Router |
-| Database | PostgreSQL 17, one schema per module (`core`, `vacationrental`, …) |
+| Database | PostgreSQL 17, one schema per module (`core`, `vacationrental`, `longtermrental`, …) |
 | Operations | Docker Compose: `frontend`, `backend`, `db`, `backup` |
 
 ## Prerequisites
@@ -66,7 +66,7 @@ GitHub Actions runs all tests on every push and publishes the images `ghcr.io/ma
 | `LOGIS_PUBLIC_URL` | Address users open Logis under, e.g. `https://logis.example.org`. Enables passkeys, which are bound to this domain (see Users). Empty: no passkeys. |
 | `LOGIS_ENCRYPTION_KEY` | Key for the TOTP secrets, 32 bytes in Base64. **Back it up separately from the backups!** |
 | `LOGIS_ADMIN_USERNAME`, `LOGIS_ADMIN_PASSWORD` | Initial admin, used only at the very first start. At least 12 characters. |
-| `LOGIS_MODULES_<MODULE>_ENABLED` | Switch a module on or off, e.g. `LOGIS_MODULES_VACATIONRENTAL_ENABLED=false` |
+| `LOGIS_MODULES_<MODULE>_ENABLED` | Switch a module on or off: `LOGIS_MODULES_VACATIONRENTAL_ENABLED` (vacation rental) and `LOGIS_MODULES_LONGTERMRENTAL_ENABLED` (long-term rental), both on by default. A module that is off keeps its data. |
 | `LOGIS_AI_ENABLED`, `LOGIS_ANTHROPIC_API_KEY`, `LOGIS_AI_MODEL` | Optional AI fallback of the mail import (see Vacation rental > Mail import). Off by default; model default `claude-opus-5-5`. |
 | `BACKUP_TIME`, `BACKUP_RETENTION_DAYS` | Time of the daily backup and retention in days |
 
@@ -168,7 +168,7 @@ Tiles show only what the user may see. A tile set to a unit or account the user 
   The effective role on a unit is the higher of the property role and the unit role. Whoever only has a share on a unit sees the property's name and address and that unit, but no other units and nothing attributed to the property as a whole.
 - **Attributed transactions:** A transaction can be attributed to a property or a unit (field *Objekt* in the transaction dialog). This needs *Bearbeiten* on the account and on the property or unit. People who see the property or unit but not the account can read these transactions without account name, balance or note; changing them still requires rights on the account. Transfers cannot be attributed.
 - **Finances on the property:** The property page shows *Finanzen*: income, expenses and result per month and year, and every item of the year. *+ Kosten* records a cost (e.g. a repair) directly on the property or one of its units, with category, recipient, note and receipts (PDF or image, at most 10 MB each). No account is needed. Settled vacation rental statements appear automatically: the gross amount as income, commission and cleaning as expenses, all on the statement date. Transactions attributed to the property are listed separately and do not count in the result; linking them to costs comes with the bank import. Recording costs needs *Bearbeiten* on the property or unit. Costs on the property as a whole are visible only to people with a role on the property.
-- **Deleting** a property is only possible while no transactions, costs or bookings refer to it; otherwise archive it.
+- **Deleting** a property is only possible while no transactions, costs, bookings or tenancies refer to it; otherwise archive it.
 
 ## Vacation rental
 
@@ -190,6 +190,17 @@ Logis can read the booking mails of the rental agencies (confirmations, short-no
 - **AI fallback (optional):** With `LOGIS_AI_ENABLED=true` and `LOGIS_ANTHROPIC_API_KEY`, mails no rule recognises are read by Claude (`LOGIS_AI_MODEL`). **The mail text, including guest data, is then sent to Anthropic.** Without AI, such mails stay in the inbox as *Nicht erkannt*.
 - **Privacy:** The inbox is visible only to its owner. Deleting a mail there removes its content and guest data; the copy attached to a booking stays until you delete that document.
 - **Network:** The backend reaches the IMAP server (and the Claude API) through the compose network `egress`, which only allows outbound connections; database and backup have no access to the outside.
+
+## Long-term rental
+
+The module *Dauervermietung* records tenancies of units with the usage *Dauermiete*. Rights come from the unit: *Lesen* on the property or unit shows the tenancies, *Bearbeiten* records and changes them. Switch the module off with `LOGIS_MODULES_LONGTERMRENTAL_ENABLED=false`; its data stays.
+
+- **Tenancies** (*Mietverhältnisse*): unit, start, an optional end (the last day), one or more tenants and the rent. A unit has one tenancy at a time; the next one can start the day after the previous one ended. The list shows running and future tenancies and can be filtered by property, unit and state (*laufend*, *künftig*, *beendet*). *Beenden* enters the end date.
+- **Rent history** (*Mietverlauf*): the rent consists of cold rent, the advance payment for utilities and further items such as a parking space. *Miete ändern* adds a rent valid from a later date and keeps the earlier ones; the tenancy shows the rent valid today. Rent adjustments are entered by hand; payments and utility statements are not part of the module yet.
+- **Deposit** (*Kaution*): the agreed amount and the day it was received; without that day it shows as *offen*.
+- **Documents** such as the rental contract can be attached to a tenancy (PDF or image, at most 10 MB each).
+- **Units** (*Einheiten*): every unit in long-term rental with its tenant and rent, or *Leerstand* with the day since when it has been vacant.
+- **Tenant data:** Name, address, phone and email are stored. Only people with *Bearbeiten* see the contact data and the documents; *Lesen* shows the tenant names, the rent and the deposit. Tenant data is never deleted automatically: after a tenancy has ended, *Mieterdaten löschen* removes names and contact data for good and keeps the period and the rent. Documents stay and have to be deleted one by one.
 
 ## Backup and restore
 
@@ -307,7 +318,7 @@ npx playwright test                 # npx playwright test --project=phone for on
 
 ### Creating a new module
 
-1. Backend: Create the package `app.logis.modules.<id>` with a `package-info.java` (`@ApplicationModule(id = "<id>")`). Every component gets `@ConditionalOnLogisModule("<id>")`. The module provides a `ModuleDescriptor` bean, its migrations live under `db/migration/<id>`, and the schema is added to `spring.flyway.schemas`.
+1. Backend: Create the package `app.logis.modules.<id>` with a `package-info.java` (`@ApplicationModule(id = "<id>")`). Every component gets `@ConditionalOnLogisModule("<id>")`. The module provides a `ModuleDescriptor` bean, its migrations live under `db/migration/<id>`, and the schema and the migration location are added to `spring.flyway` in `application.yml` (the location also in `application-test.yml`). To make the on/off setting reach the container, pass `LOGIS_MODULES_<ID>_ENABLED` through in `compose.yml`.
 2. Frontend: `src/modules/<id>/index.ts` exports a `LogisModule` and is registered in `src/app/registry.ts`.
 3. `ModularityTest` ensures that the module only uses the public API of the core.
 

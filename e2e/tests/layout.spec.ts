@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { call } from '../support/api'
-import { account, booking, holidayHome, owner } from '../support/data'
+import { account, booking, holidayHome, inDays, longTermUnit, owner, tenancy } from '../support/data'
 import { expect, test } from '../support/fixtures'
 import { layoutProblems } from '../support/layout'
 import { connectMailbox, deliver, fetchMails, fewoConfirmation, type InboxMail } from '../support/mail'
@@ -106,4 +106,28 @@ test('a booking imported from a mail fits on phone and tablet screens', async ({
   const bookingId = inbox.find((m) => m.id === mail.id)!.linkId!
 
   expect(await check(page, `/ferienvermietung/buchungen/${bookingId}`, 'Max Mustermann')).toEqual([])
+})
+
+test('long-term rental fits on phone and tablet screens', async ({ page, api }) => {
+  const rented = await longTermUnit(api)
+  const vacant = await longTermUnit(api)
+  const running = await tenancy(api, rented.unitId, inDays(-400), 'Erika Musterfrau')
+  await call(api, 'POST', `/api/longtermrental/tenancies/${running.id}/rent-terms`, { validFrom: inDays(-30), coldRent: '680.00', utilitiesAdvance: '160.00', others: [{ label: 'Stellplatz', amount: '40.00' }] })
+  await tenancy(api, vacant.unitId, inDays(-400), 'Max Mustermann', inDays(-20))
+  await tenancy(api, vacant.unitId, inDays(30), 'Max Mustermann')
+
+  const problems = [
+    ...(await check(page, '/dauervermietung/mietverhaeltnisse?state=all', 'Mietverhältnisse')),
+    ...(await check(page, '/dauervermietung/einheiten', 'Einheiten')),
+    ...(await check(page, `/dauervermietung/mietverhaeltnisse/${running.id}`, 'Erika Musterfrau')),
+  ]
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(`/dauervermietung/mietverhaeltnisse?neu=${rented.unitId}`)
+    const dialog = page.getByRole('dialog', { name: 'Mietverhältnis anlegen' })
+    await expect(dialog.getByRole('textbox', { name: 'Beginn' })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Weiterer Posten' }).click()
+    for (const p of await layoutProblems(page, '[role=dialog]')) problems.push(`tenancy dialog at ${width} px: ${p}`)
+  }
+  expect(problems).toEqual([])
 })

@@ -13,6 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ModuleDataRetainedTest {
 
+    /** A unit of its own per run: tenancies of one unit must not overlap. */
+    private static final long UNIT = -System.nanoTime();
+
     @Test
     void dataSurvivesDisablingAndReenabling() {
         var label = "erhalten-" + System.nanoTime();
@@ -21,12 +24,14 @@ class ModuleDataRetainedTest {
             ctx.getBean(JdbcTemplate.class).update("INSERT INTO vacationrental.bookings "
                     + "(unit_id, arrival, departure, adults, external_ref) VALUES (-1, DATE '2026-11-06', "
                     + "DATE '2026-11-08', 2, ?)", label);
+            ctx.getBean(JdbcTemplate.class).update("INSERT INTO longtermrental.tenancies (unit_id, start_date) "
+                    + "VALUES (?, DATE '2026-11-06')", UNIT);
         }
         try (var ctx = start(false)) {
             assertThat(ctx.getBeansOfType(ModuleDescriptor.class)).isEmpty();
         }
         try (var ctx = start(true)) {
-            assertThat(ctx.getBeansOfType(ModuleDescriptor.class)).hasSize(1);
+            assertThat(ctx.getBeansOfType(ModuleDescriptor.class)).hasSize(2);
             var count = ctx.getBean(JdbcTemplate.class)
                     .queryForObject("SELECT count(*) FROM vacationrental.test_record WHERE label = ?", Integer.class, label);
             assertThat(count).isEqualTo(1);
@@ -34,6 +39,10 @@ class ModuleDataRetainedTest {
                     .queryForObject("SELECT count(*) FROM vacationrental.bookings WHERE external_ref = ?",
                             Integer.class, label);
             assertThat(bookings).isEqualTo(1);
+            var tenancies = ctx.getBean(JdbcTemplate.class)
+                    .queryForObject("SELECT count(*) FROM longtermrental.tenancies WHERE unit_id = ?", Integer.class,
+                            UNIT);
+            assertThat(tenancies).isEqualTo(1);
         }
     }
 
@@ -41,6 +50,7 @@ class ModuleDataRetainedTest {
         var args = new ArrayList<>(TestPostgres.args());
         args.add("--server.port=0");
         args.add("--logis.modules.vacationrental.enabled=" + enabled);
+        args.add("--logis.modules.longtermrental.enabled=" + enabled);
         return new SpringApplicationBuilder(LogisApplication.class).profiles("test").run(args.toArray(String[]::new));
     }
 }

@@ -12,7 +12,7 @@ class ModularityTest {
     @Test
     void detectsExpectedModules() {
         assertThat(modules.stream().map(m -> m.getIdentifier().toString()))
-                .containsExactlyInAnyOrder("core", "shared", "vacationrental");
+                .containsExactlyInAnyOrder("core", "shared", "vacationrental", "longtermrental");
     }
 
     @Test

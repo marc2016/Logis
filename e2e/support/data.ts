@@ -65,3 +65,29 @@ export async function share(api: APIRequestContext, type: 'property' | 'unit' | 
 export async function statement(api: APIRequestContext, unitId: number, provider: string, periodFrom: string, periodTo: string) {
   return call<{ id: number }>(api, 'POST', '/api/vacationrental/statements', { unitId, provider, periodFrom, periodTo, statementDate: periodTo })
 }
+
+/** A single-unit property in long-term rental owned by the signed-in user. */
+export async function longTermUnit(api: APIRequestContext, prefix = 'Haus'): Promise<RentalUnit> {
+  const name = unique(`${prefix} `)
+  const entity = await owner(api)
+  const property = await call<{ id: number; units: { id: number }[] }>(api, 'POST', '/api/properties', {
+    legalEntityId: entity.id,
+    name,
+    city: 'Talstadt',
+    multiUnit: false,
+    firstUnit: { usage: 'LONG_TERM_RENTAL' },
+  })
+  return { propertyId: property.id, unitId: property.units[0].id, name }
+}
+
+/** A tenancy of a long-term unit with one tenant and a rent of 650,00 € plus 150,00 € advance payment. */
+export async function tenancy(api: APIRequestContext, unitId: number, startDate: string, tenant: string, endDate: string | null = null) {
+  return call<{ id: number }>(api, 'POST', '/api/longtermrental/tenancies', {
+    unitId,
+    startDate,
+    endDate,
+    tenants: [{ name: tenant, street: 'Musterweg 1', postalCode: '00000', city: 'Talstadt', phone: '+49 000 0000', email: 'mieter@example.org' }],
+    rent: { coldRent: '650.00', utilitiesAdvance: '150.00', others: [{ label: 'Stellplatz', amount: '40.00' }] },
+    depositAmount: '1950.00',
+  })
+}

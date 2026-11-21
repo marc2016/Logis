@@ -14,13 +14,15 @@ class ModulesEnabledTest extends IntegrationTest {
     void listContainsActiveModule() throws Exception {
         mvc.perform(get("/api/modules").with(user("u").roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == 'vacationrental')].label").value("Ferienvermietung"));
+                .andExpect(jsonPath("$[?(@.id == 'vacationrental')].label").value("Ferienvermietung"))
+                .andExpect(jsonPath("$[?(@.id == 'longtermrental')].label").value("Dauervermietung"));
     }
 
     @Test
     void activeModuleEndpointIsReachable() throws Exception {
         var session = login(createUser(app.logis.core.users.Role.USER, true));
         getWith("/api/vacationrental/bookings", session).andExpect(status().isOk());
+        getWith("/api/longtermrental/tenancies", session).andExpect(status().isOk());
     }
 
     @Test
