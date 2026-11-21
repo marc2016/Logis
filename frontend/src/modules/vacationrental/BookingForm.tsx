@@ -55,7 +55,12 @@ interface Props {
   onFieldFocus?: (field: string) => void
   /** Whether the form holds edits that are not saved yet (design D4 of booking-review-queue). */
   onDirtyChange?: (dirty: boolean) => void
+  /** Only dates, persons and rent, plus every field that differs from its document (spec bookings, „Compact view“). */
+  compact?: boolean
 }
+
+/** The fields of the compact view (design D4 of booking-compact-view). */
+const COMPACT_FIELDS = new Set(['arrival', 'departure', 'adults', 'children', 'expectedRent'])
 
 function addDays(iso: string, days: number) {
   const d = new Date(`${iso}T00:00:00Z`)
@@ -117,7 +122,7 @@ function Field({ field, label, htmlFor, className, children, location, active, o
 }
 
 /** The booking's fields; used by the booking page and the dialog for a new booking. */
-export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved, onCancel, locations = {}, activeField, onFieldFocus, onDirtyChange }: Props) {
+export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved, onCancel, locations = {}, activeField, onFieldFocus, onDirtyChange, compact = false }: Props) {
   const { data: units = [] } = useRentalUnits()
   const isNew = booking === null
   const canEdit = isNew || booking.canEdit
@@ -209,6 +214,9 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
   }
 
   const at = (field: string) => ({ location: locations[field], active: activeField === field, onShow: onFieldFocus })
+  // In the compact view a field is shown if it belongs to it or differs from its document; its value is kept either way.
+  const shown = (field: string) => !compact || COMPACT_FIELDS.has(field) || locations[field]?.differs === true
+  const guestFieldsShown = ['guestName', 'guestStreet', 'guestPostalCode', 'guestCity', 'guestCountry', 'guestPhone', 'guestEmail'].some(shown)
 
   const g = (field: keyof Guest) => ({
     value: guest[field] ?? '',
@@ -221,7 +229,7 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
     <form onSubmit={submit} onFocus={focused} className="space-y-4" aria-label={isNew ? 'Buchung erfassen' : 'Buchung'}>
       <fieldset disabled={!canEdit} className="space-y-4">
         <legend className="sr-only">Aufenthalt</legend>
-        {isNew && (
+        {isNew && !compact && (
           <ToggleGroup type="single" variant="outline" value={kind} onValueChange={(v) => v && setKind(v as BookingKind)} aria-label="Art der Buchung">
             {(['GUEST', 'OWNER'] as const).map((k) => (
               <ToggleGroupItem key={k} value={k}>
@@ -230,6 +238,7 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
             ))}
           </ToggleGroup>
         )}
+        {shown('propertyName') && (
         <Field {...at('propertyName')} field="propertyName" label="Einheit" htmlFor="bk-unit">
           <Select value={unitId} onValueChange={setUnitId} disabled={!canEdit || booking?.status === 'SETTLED'}>
             <SelectTrigger id="bk-unit" className="w-full">
@@ -245,6 +254,7 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
           </Select>
           {isNew && selectable.length === 0 && <p className="text-sm text-muted-foreground">Keine Ferienwohnung mit Bearbeitungsrecht vorhanden.</p>}
         </Field>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field {...at('arrival')} field="arrival" label="Anreise" htmlFor="bk-arrival">
             <DateField id="bk-arrival" label="Anreise" value={arrival} onChange={setArrival} required />
@@ -252,12 +262,16 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
           <Field {...at('departure')} field="departure" label="Abreise" htmlFor="bk-departure">
             <DateField id="bk-departure" label="Abreise" value={departure} onChange={setDeparture} required />
           </Field>
-          <Field {...at('externalRef')} field="externalRef" label="Buchungsnummer" htmlFor="bk-ref">
-            <Input id="bk-ref" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
-          </Field>
-          <Field {...at('agency')} field="agency" label="Vermittler" htmlFor="bk-agency">
-            <AgencyPicker id="bk-agency" value={agency} onChange={setAgency} disabled={!canEdit} onError={setError} />
-          </Field>
+          {shown('externalRef') && (
+            <Field {...at('externalRef')} field="externalRef" label="Buchungsnummer" htmlFor="bk-ref">
+              <Input id="bk-ref" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
+            </Field>
+          )}
+          {shown('agency') && (
+            <Field {...at('agency')} field="agency" label="Vermittler" htmlFor="bk-agency">
+              <AgencyPicker id="bk-agency" value={agency} onChange={setAgency} disabled={!canEdit} onError={setError} />
+            </Field>
+          )}
           {!owner && (
             <>
               <Field {...at('adults')} field="adults" label="Erwachsene" htmlFor="bk-adults">
@@ -266,9 +280,11 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
               <Field {...at('children')} field="children" label="Kinder" htmlFor="bk-children">
                 <Input id="bk-children" type="number" min={0} max={99} value={children} onChange={(e) => setChildren(e.target.value)} />
               </Field>
-              <Field {...at('pets')} field="pets" label="Haustiere" htmlFor="bk-pets">
-                <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
-              </Field>
+              {shown('pets') && (
+                <Field {...at('pets')} field="pets" label="Haustiere" htmlFor="bk-pets">
+                  <Input id="bk-pets" type="number" min={0} max={20} value={pets} onChange={(e) => setPets(e.target.value)} />
+                </Field>
+              )}
               <Field {...at('expectedRent')} field="expectedRent" label="Mietpreis (€)" htmlFor="bk-rent">
                 <Input id="bk-rent" inputMode="decimal" placeholder="0,00" value={rent} onChange={(e) => setRent(e.target.value)} />
               </Field>
@@ -277,42 +293,56 @@ export function BookingForm({ booking, defaultUnitId, defaultPropertyId, onSaved
         </div>
       </fieldset>
 
-      {!owner && (
+      {!owner && guestFieldsShown && (
         <>
           <Separator />
           <section className="space-y-3" aria-label="Gast">
             <h3 className="text-sm font-medium">Gast</h3>
             {booking?.guestDeleted && !guest.name ? <p className="text-sm text-muted-foreground">Gastdaten gelöscht</p> : null}
-            <Field {...at('guestName')} field="guestName" label="Name" htmlFor="bk-guest-name">
-              <Input id="bk-guest-name" {...g('name')} />
-            </Field>
+            {shown('guestName') && (
+              <Field {...at('guestName')} field="guestName" label="Name" htmlFor="bk-guest-name">
+                <Input id="bk-guest-name" {...g('name')} />
+              </Field>
+            )}
             {canEdit && (
               <div className="grid gap-4 sm:grid-cols-2">
+                {shown('guestStreet') && (
                 <Field {...at('guestStreet')} field="guestStreet" label="Straße" htmlFor="bk-guest-street" className="sm:col-span-2">
                   <Input id="bk-guest-street" {...g('street')} />
                 </Field>
+                )}
+                {shown('guestPostalCode') && (
                 <Field {...at('guestPostalCode')} field="guestPostalCode" label="PLZ" htmlFor="bk-guest-postal">
                   <Input id="bk-guest-postal" {...g('postalCode')} />
                 </Field>
+                )}
+                {shown('guestCity') && (
                 <Field {...at('guestCity')} field="guestCity" label="Ort" htmlFor="bk-guest-city">
                   <Input id="bk-guest-city" {...g('city')} />
                 </Field>
+                )}
+                {shown('guestCountry') && (
                 <Field {...at('guestCountry')} field="guestCountry" label="Land" htmlFor="bk-guest-country">
                   <Input id="bk-guest-country" {...g('country')} />
                 </Field>
+                )}
+                {shown('guestPhone') && (
                 <Field {...at('guestPhone')} field="guestPhone" label="Telefon" htmlFor="bk-guest-phone">
                   <Input id="bk-guest-phone" type="tel" {...g('phone')} />
                 </Field>
+                )}
+                {shown('guestEmail') && (
                 <Field {...at('guestEmail')} field="guestEmail" label="E-Mail" htmlFor="bk-guest-email" className="sm:col-span-2">
                   <Input id="bk-guest-email" type="email" {...g('email')} />
                 </Field>
+                )}
               </div>
             )}
           </section>
         </>
       )}
 
-      {canEdit && (
+      {canEdit && !compact && (
         <>
           <Separator />
           <section className="space-y-2" aria-label="Dokumente">

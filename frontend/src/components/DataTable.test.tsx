@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render as renderPlain, screen, waitFor, within, type RenderOptions } from '@testing-library/react'
+import type { ReactElement, ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { mockApi } from '@/test/renderApp'
 import userEvent from '@testing-library/user-event'
 import { createColumnHelper } from '@tanstack/react-table'
 import { DataTable } from './DataTable'
@@ -19,8 +22,31 @@ const columns = [
 ]
 const rows: Row[] = [{ id: 1, name: 'Anna', city: 'Talstadt' }]
 
+/** The settings API with a store the tests can look into. */
+function preferencesApi(initial: Record<string, unknown> = {}) {
+  const stored: Record<string, unknown> = { ...initial }
+  mockApi({
+    'GET /api/preferences': () => ({ body: { ...stored } }),
+    'PUT /api/preferences/core.tableColumns.t2': (init) => {
+      stored['core.tableColumns.t2'] = JSON.parse(String(init?.body))
+      return { status: 204 }
+    },
+  })
+  return stored
+}
+
+/** Each render gets its own client, as after a reload; the settings come from the mocked API. */
+function render(ui: ReactElement, options?: RenderOptions) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  return renderPlain(ui, { wrapper, ...options })
+}
+
 describe('DataTable', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.localStorage.clear()
+  })
 
   it('reports sorting to the caller and toggles the direction', async () => {
     const onSortChange = vi.fn()
@@ -36,25 +62,50 @@ describe('DataTable', () => {
     expect(screen.queryByRole('button', { name: /Ort/ })).not.toBeInTheDocument()
   })
 
-  it('hides a column and remembers it', async () => {
+  it('hides a column and remembers it as a setting of the user', async () => {
+    const stored = preferencesApi()
     const user = userEvent.setup()
     const { unmount } = render(<DataTable tableId="t2" columns={columns} data={rows} getRowId={(r) => String(r.id)} />)
     await user.click(screen.getByRole('button', { name: 'Spalten' }))
     await user.click(await screen.findByRole('menuitemcheckbox', { name: 'Ort' }))
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('columnheader', { name: 'Ort' })).not.toBeInTheDocument()
+    await waitFor(() => expect(stored['core.tableColumns.t2']).toEqual(['city']))
     unmount()
+    // Another device: nothing in this browser, the setting comes from the server.
     render(<DataTable tableId="t2" columns={columns} data={rows} getRowId={(r) => String(r.id)} />)
-    expect(screen.queryByRole('columnheader', { name: 'Ort' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('columnheader', { name: 'Ort' })).not.toBeInTheDocument())
     expect(within(screen.getByRole('table')).getByText('Anna')).toBeInTheDocument()
   })
 
-  it('renders when storage is unavailable', () => {
+  it('takes over a choice stored in this browser once and forgets it there', async () => {
+    window.localStorage.setItem('logis.table.t2.hidden', JSON.stringify(['city']))
+    const stored = preferencesApi()
+    render(<DataTable tableId="t2" columns={columns} data={rows} getRowId={(r) => String(r.id)} />)
+    expect(screen.queryByRole('columnheader', { name: 'Ort' })).not.toBeInTheDocument()
+    await waitFor(() => expect(stored['core.tableColumns.t2']).toEqual(['city']))
+    expect(window.localStorage.getItem('logis.table.t2.hidden')).toBeNull()
+  })
+
+  it('keeps the setting from another device over an old browser choice', async () => {
+    window.localStorage.setItem('logis.table.t2.hidden', JSON.stringify(['city']))
+    const stored = preferencesApi({ 'core.tableColumns.t2': [] })
+    render(<DataTable tableId="t2" columns={columns} data={rows} getRowId={(r) => String(r.id)} />)
+    await waitFor(() => expect(window.localStorage.getItem('logis.table.t2.hidden')).toBeNull())
+    expect(screen.getByRole('columnheader', { name: 'Ort' })).toBeInTheDocument()
+    expect(stored['core.tableColumns.t2']).toEqual([])
+  })
+
+  it('renders when storage and settings are unavailable', () => {
+    mockApi({})
     vi.stubGlobal('localStorage', {
       getItem: () => {
         throw new Error('blocked')
       },
       setItem: () => {
+        throw new Error('blocked')
+      },
+      removeItem: () => {
         throw new Error('blocked')
       },
     })

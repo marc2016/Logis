@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, Columns3Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { usePreference, usePreferences } from '@/core/preferences/usePreference'
 import { Pagination } from '@/core/ledger/transactions/Pagination'
 import { cn } from '@/lib/utils'
 import { PageCheckbox, RowCheckbox } from './selection'
@@ -51,32 +52,33 @@ interface Props<T> {
   selectable?: (row: T) => boolean
 }
 
-function storageKey(tableId: string) {
+/** Where the hidden columns were remembered per browser before they became a user setting. */
+function legacyKey(tableId: string) {
   return `logis.table.${tableId}.hidden`
 }
 
-function loadHidden(tableId: string): VisibilityState {
+/** The hidden columns stored in this browser before, or null. */
+function readLegacy(tableId: string): string[] | null {
   try {
-    const raw = window.localStorage.getItem(storageKey(tableId))
-    const hidden: unknown = raw ? JSON.parse(raw) : []
-    return Array.isArray(hidden) ? Object.fromEntries(hidden.map((id) => [String(id), false])) : {}
+    const raw = window.localStorage.getItem(legacyKey(tableId))
+    const hidden: unknown = raw ? JSON.parse(raw) : null
+    return Array.isArray(hidden) ? hidden.map(String) : null
   } catch {
-    return {}
+    return null
   }
 }
 
-function saveHidden(tableId: string, visibility: VisibilityState) {
+function removeLegacy(tableId: string) {
   try {
-    const hidden = Object.entries(visibility).filter(([, visible]) => !visible).map(([id]) => id)
-    window.localStorage.setItem(storageKey(tableId), JSON.stringify(hidden))
+    window.localStorage.removeItem(legacyKey(tableId))
   } catch {
-    // Storage unavailable (private mode, blocked): the choice just isn't remembered.
+    // Storage unavailable: nothing to remove.
   }
 }
 
 /**
- * Table on TanStack Table with the shadcn table: sorting and paging happen on the server, column visibility
- * is remembered per browser.
+ * Table on TanStack Table with the shadcn table: sorting and paging happen on the server, the hidden columns are a
+ * setting of the user (spec user-preferences, „Remembered list columns“).
  */
 export function DataTable<T>({
   tableId,
@@ -97,7 +99,19 @@ export function DataTable<T>({
   selection,
   selectable,
 }: Props<T>) {
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => loadHidden(tableId))
+  const key = `core.tableColumns.${tableId}`
+  // Until the settings have loaded, a choice from this browser avoids columns jumping (design D3).
+  const [legacy] = useState(() => readLegacy(tableId))
+  const [hidden, setHidden, loaded] = usePreference<string[]>(key, legacy ?? [])
+  const { data: preferences } = usePreferences()
+  useEffect(() => {
+    if (!loaded || legacy === null) return
+    // Taken over once, unless the user already has the setting from another device; then the browser forgets it.
+    if (!(preferences && key in preferences)) setHidden(legacy)
+    removeLegacy(tableId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded])
+  const columnVisibility: VisibilityState = Object.fromEntries(hidden.map((id) => [id, false]))
   const table = useReactTable({
     data,
     columns,
@@ -107,11 +121,8 @@ export function DataTable<T>({
     manualPagination: true,
     state: { columnVisibility },
     onColumnVisibilityChange: (updater) => {
-      setColumnVisibility((old) => {
-        const next = typeof updater === 'function' ? updater(old) : updater
-        saveHidden(tableId, next)
-        return next
-      })
+      const next = typeof updater === 'function' ? updater(columnVisibility) : updater
+      setHidden(Object.entries(next).filter(([, visible]) => !visible).map(([id]) => id))
     },
   })
   const selectableIds = selection ? data.filter((row) => !selectable || selectable(row)).map(getRowId) : []

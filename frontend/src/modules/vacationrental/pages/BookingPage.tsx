@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { usePreference } from '@/core/preferences/usePreference'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Money } from '@/components/Money'
@@ -104,6 +106,8 @@ export function BookingPage() {
   const filters = queueParams(params)
   const queue = useReviewQueue(filters, reviewing)
   const [dirty, setDirty] = useState(false)
+  // „Kompakt“ or „Alle Angaben“, remembered for the user on every device (spec bookings, „Compact view“).
+  const [view, setView] = usePreference<'full' | 'compact'>('vacationrental.bookingView', 'full')
   const [leaveTo, setLeaveTo] = useState<string | null>(null)
   const [shown, setShown] = useState(id)
   if (id !== shown) {
@@ -193,7 +197,23 @@ export function BookingPage() {
 
   const form = (
     <div className="space-y-6">
+      {booking.canEdit && (
+        <div className="flex justify-end">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={view}
+            onValueChange={(v) => v && setView(v as 'full' | 'compact')}
+            aria-label="Ansicht"
+          >
+            <ToggleGroupItem value="compact">Kompakt</ToggleGroupItem>
+            <ToggleGroupItem value="full">Alle Angaben</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      )}
       <BookingForm
+        compact={booking.canEdit && view === 'compact'}
         // A new version (saved, confirmed, change applied) resets the form to the stored values.
         key={`${booking.id}:${booking.version}:${booking.reviewState}`}
         booking={booking}
