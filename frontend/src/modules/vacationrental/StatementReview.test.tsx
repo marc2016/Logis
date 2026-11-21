@@ -14,7 +14,7 @@ const base = {
 }
 
 const settled = booking({ id: 601, arrival: '2027-03-05', departure: '2027-03-12', expectedRent: '760.00', status: 'SETTLED', statementId: 900 })
-const openLine = { id: 41, guestName: 'Erika Musterfrau', arrival: '2027-03-20', departure: '2027-03-22', gross: '290.00', commission: '35.70', note: null }
+const openLine = { id: 41, guestName: 'Erika Musterfrau', arrival: '2027-03-20', departure: '2027-03-22', gross: '300.00', commission: '37.49', note: null }
 
 /** An imported statement with one line, one open line and a stated payout. */
 function imported(overrides: Partial<Statement> = {}): Statement {

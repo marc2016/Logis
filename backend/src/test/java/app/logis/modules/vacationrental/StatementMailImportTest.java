@@ -173,7 +173,7 @@ class StatementMailImportTest extends VacationRentalTest {
                 Row.of("Max Mustermann", "2027-03-15", "2027-03-18", "300.00", "90.00", "45.00"),
                 Row.of("Otto Beispiel", "2027-02-26", "2027-03-03", "1250.50", "90.00", "187.58"),
                 Row.of("Max Mustermann", "2027-03-14", "2027-03-15", "80.00", "0.00", "12.00").asExtension(),
-                Row.of("Nina Neu", "2027-03-20", "2027-03-22", "200.00", "90.00", "30.00"),
+                Row.of("Nina Neu", "2027-03-20", "2027-03-22", "210.00", "90.00", "31.50"),
                 Row.of("Paul Probe", "2027-03-24", "2027-03-26", "180.00", "90.00", "27.00"),
                 Row.of("Rita Rand", "2027-03-27", "2027-03-29", "150.00", "90.00", "22.50")));
         deliver(fewoMail("März 2027", pdf));
@@ -222,7 +222,7 @@ class StatementMailImportTest extends VacationRentalTest {
                 .andExpect(jsonPath("$.toReview").value(true));
         // The stated balance covers all rows, the payout only the settled ones.
         getWith("/api/vacationrental/statements/" + statement, anna.session())
-                .andExpect(jsonPath("$.statedPayout").value("2889.84"))
+                .andExpect(jsonPath("$.statedPayout").value("2898.05"))
                 .andExpect(jsonPath("$.payout").value("2184.45"));
         // The other statement is unchanged.
         getWith("/api/vacationrental/statements/" + february, anna.session())

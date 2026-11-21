@@ -223,7 +223,7 @@ class StatementsTest extends VacationRentalTest {
         var id = statement(anna, unit, "Nord", "2027-03-01", "2027-03-31");
         var erika = openLine(anna, id, "Erika Musterfrau", "2027-03-05", "2027-03-12", "400.00", "60.00");
         var extension = openLine(anna, id, "Max Mustermann", "2027-03-14", "2027-03-15", "90.00", "15.00");
-        var other = openLine(anna, id, "Otto Beispiel", "2027-03-20", "2027-03-22", "200.00", "30.00");
+        var other = openLine(anna, id, "Otto Beispiel", "2027-03-20", "2027-03-22", "210.00", "31.50");
 
         getWith("/api/vacationrental/statements/" + id, anna.session())
                 .andExpect(jsonPath("$.openLineCount").value(3))

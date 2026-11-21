@@ -45,7 +45,7 @@ test('a statement mail becomes a statement with its PDF, and its open line is as
   await assign.getByRole('button', { name: 'Zuordnen' }).click()
 
   // Now the payout equals the balance of the PDF and nothing is left to review.
-  await expect(page.getByTestId('payout')).toHaveText('919,30 €')
+  await expect(page.getByTestId('payout')).toHaveText('927,51 €')
   await expect(page.getByRole('status', { name: 'Zu prüfen' })).toBeHidden()
   await expect(open).toBeHidden()
 

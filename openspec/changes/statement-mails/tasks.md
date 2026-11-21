@@ -34,9 +34,9 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `cd backend && ./mvnw test` and `cd frontend && npm test && npm run lint && npm run build`. All must be green.
-- [ ] 6.2 Run the full end-to-end suite against a stack with the new images. It must be green.
-- [ ] 6.3 Search the diff for every tenant name, amount, invoice number, tax number, address, phone number and mail address of the real sample PDF and of the real export. None may occur, also not inside the committed fixture PDF (check its extracted text).
+- [x] 6.1 Run `cd backend && ./mvnw test` and `cd frontend && npm test && npm run lint && npm run build`. All must be green.
+- [x] 6.2 Run the full end-to-end suite against a stack with the new images. It must be green.
+- [x] 6.3 Search the diff for every tenant name, amount, invoice number, tax number, address, phone number and mail address of the real sample PDF and of the real export. None may occur, also not inside the committed fixture PDF (check its extracted text).
 
 ## Workflow follow-up
 

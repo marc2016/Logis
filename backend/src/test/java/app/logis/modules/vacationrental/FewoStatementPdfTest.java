@@ -136,7 +136,7 @@ class FewoStatementPdfTest {
         assertThat(read.invoiceNumber()).isEqualTo("E2E-2027-03");
         assertThat(read.rows()).extracting(FewoStatementPdf.Row::tenant).containsExactly("Erika Musterfrau",
                 "Max Mustermann");
-        assertThat(read.balance()).isEqualByComparingTo("919.30");
+        assertThat(read.balance()).isEqualByComparingTo("927.51");
     }
 
     /** The text PDFBox gives for a one-row statement, to change single lines. */
