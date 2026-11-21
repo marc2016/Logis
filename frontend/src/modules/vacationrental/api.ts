@@ -145,6 +145,17 @@ export interface StatementLine {
   net: string
 }
 
+/** A row of the provider's document that is on no booking yet; only editors get them. */
+export interface StatementOpenLine {
+  id: number
+  guestName: string
+  arrival: string
+  departure: string
+  gross: string
+  commission: string
+  note: string | null
+}
+
 export interface Statement {
   id: number
   unit: UnitRef
@@ -157,6 +168,14 @@ export interface Statement {
   canEdit: boolean
   version: number
   lines: StatementLine[]
+  invoiceNumber: string | null
+  /** The payout the provider's document states. */
+  statedPayout: string | null
+  /** Stated payout minus payout, null without a stated payout. */
+  payoutDifference: string | null
+  openLineCount: number
+  openLines: StatementOpenLine[]
+  toReview: boolean
 }
 
 export interface CalendarBooking {

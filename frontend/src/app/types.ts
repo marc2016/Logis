@@ -60,6 +60,7 @@ export interface MailInboxItem {
   result: string
   source: string | null
   subjectName: string | null
+  linkType: string | null
   linkId: number | null
   reference: string | null
 }

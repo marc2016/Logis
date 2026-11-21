@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { categories } from '@/core/ledger/fixtures'
-import { booking, waldeck } from '@/modules/vacationrental/fixtures'
+import { booking, statement, waldeck } from '@/modules/vacationrental/fixtures'
 import type { FetchStatus, InboxItem, MailboxSettings } from './api'
 
 const base = {
@@ -495,5 +495,37 @@ describe('Extension notices', () => {
     const row = await screen.findByRole('row', { name: /Verlängerungsbuchung/ })
     expect(within(row).getByText('Änderung vorgeschlagen')).toBeInTheDocument()
     expect(within(row).getByText('Verlängerung')).toBeInTheDocument()
+  })
+
+  it('shows a statement mail and opens the statement it created', async () => {
+    mockApi({
+      ...base,
+      'GET /api/mail/mailbox': { body: mailbox },
+      'GET /api/mail/inbox': {
+        body: [
+          inboxItem({
+            subject: 'Ihre Abrechnung für März 2027 - Haus Waldeck - Talstadt',
+            kind: 'STATEMENT',
+            result: 'STATEMENT_CREATED',
+            resultDetail: null,
+            reference: 'R-2027-03',
+            linkType: 'vacationrental.statement',
+            linkId: 900,
+            retryable: false,
+          }),
+        ],
+      },
+      'GET /api/mail/inbox/31/text': { body: { id: 31, subject: 'x', text: 'anbei erhalten Sie die Abrechnung' } },
+      'GET /api/vacationrental/statements/900': { body: statement() },
+      'GET /api/documents': { body: [] },
+    })
+    const { router } = renderApp('/posteingang')
+    const user = userEvent.setup()
+    const row = await screen.findByRole('row', { name: /Ihre Abrechnung/ })
+    expect(within(row).getByText('Abrechnung angelegt')).toBeInTheDocument()
+    expect(within(row).getByText('Abrechnung')).toBeInTheDocument()
+    await user.click(row)
+    await user.click(await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Zur Abrechnung' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/ferienvermietung/abrechnungen/900'))
   })
 })

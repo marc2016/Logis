@@ -9,9 +9,12 @@ import type { MailInboxItem } from '@/app/types'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { unitLabel, useRentalUnits } from './api'
-import { bookingPath } from './BookingPage.paths'
+import { bookingPath, statementPath } from './BookingPage.paths'
 
-/** Inbox actions for booking mails: assign the agency's property name to a unit, open the booking. */
+/** Link type of mails that created or found a statement (spec booking-mails, „Statement mails“). */
+const STATEMENT_LINK = 'vacationrental.statement'
+
+/** Inbox actions for booking mails: assign the agency's property name to a unit, open the booking or statement. */
 export function BookingMailActions({ item, onDone }: { item: MailInboxItem; onDone: () => void }) {
   const navigate = useNavigate()
   const { data: units = [] } = useRentalUnits()
@@ -55,9 +58,15 @@ export function BookingMailActions({ item, onDone }: { item: MailInboxItem; onDo
       )}
       {item.linkId && (
         <div>
-          <Button type="button" size="sm" onClick={() => navigate(bookingPath(item.linkId!), { state: { back: '/posteingang' } })}>
-            Zur Buchung
-          </Button>
+          {item.linkType === STATEMENT_LINK ? (
+            <Button type="button" size="sm" onClick={() => navigate(statementPath(item.linkId!), { state: { back: '/posteingang' } })}>
+              Zur Abrechnung
+            </Button>
+          ) : (
+            <Button type="button" size="sm" onClick={() => navigate(bookingPath(item.linkId!), { state: { back: '/posteingang' } })}>
+              Zur Buchung
+            </Button>
+          )}
         </div>
       )}
     </>

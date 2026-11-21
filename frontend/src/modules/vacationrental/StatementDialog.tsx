@@ -11,6 +11,7 @@ import { FormError } from '@/components/FormError'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { todayIso } from '@/core/ledger/transactions/format'
+import { parseAmount, toInputValue } from '@/lib/money'
 import { unitLabel, useInvalidateRental, useProviders, useRentalUnits, type Statement } from './api'
 
 interface Props {
@@ -38,6 +39,8 @@ export function StatementDialog({ statement, defaultUnitId, onSaved, onClose }: 
   const [periodFrom, setPeriodFrom] = useState(statement?.periodFrom ?? from)
   const [periodTo, setPeriodTo] = useState(statement?.periodTo ?? to)
   const [statementDate, setStatementDate] = useState(statement?.statementDate ?? todayIso())
+  const [invoiceNumber, setInvoiceNumber] = useState(statement?.invoiceNumber ?? '')
+  const [statedPayout, setStatedPayout] = useState(statement?.statedPayout ? toInputValue(statement.statedPayout) : '')
   const [error, setError] = useState<string | null>(null)
   const { data: providers = [] } = useProviders(unitId ? Number(unitId) : null)
   const invalidate = useInvalidateRental()
@@ -47,8 +50,17 @@ export function StatementDialog({ statement, defaultUnitId, onSaved, onClose }: 
   if (isNew && !provider && providers[0]) setProvider(providers[0])
 
   const save = useMutation({
-    mutationFn: () => {
-      const body = { unitId: Number(unitId), provider, periodFrom, periodTo, statementDate, version: statement?.version }
+    mutationFn: (stated: string | null) => {
+      const body = {
+        unitId: Number(unitId),
+        provider,
+        periodFrom,
+        periodTo,
+        statementDate,
+        invoiceNumber: invoiceNumber.trim() || null,
+        statedPayout: stated,
+        version: statement?.version,
+      }
       return isNew
         ? api<Statement>('/api/vacationrental/statements', { json: body })
         : api<Statement>(`/api/vacationrental/statements/${statement.id}`, { method: 'PUT', json: body })
@@ -64,7 +76,15 @@ export function StatementDialog({ statement, defaultUnitId, onSaved, onClose }: 
   function submit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    save.mutate()
+    let stated: string | null = null
+    if (statedPayout.trim()) {
+      stated = parseAmount(statedPayout)
+      if (stated === null) {
+        setError('Bitte einen gültigen Betrag für den Saldo eingeben, z. B. 1.200,00.')
+        return
+      }
+    }
+    save.mutate(stated)
   }
 
   return (
@@ -110,6 +130,16 @@ export function StatementDialog({ statement, defaultUnitId, onSaved, onClose }: 
             <div className="space-y-2">
               <Label htmlFor="st-date">Abrechnungsdatum</Label>
               <DateField id="st-date" label="Abrechnungsdatum" value={statementDate} onChange={setStatementDate} required />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="st-invoice">Rechnungsnummer</Label>
+              <Input id="st-invoice" maxLength={64} value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="st-stated">Saldo laut Abrechnung (€)</Label>
+              <Input id="st-stated" inputMode="decimal" placeholder="optional" value={statedPayout} onChange={(e) => setStatedPayout(e.target.value)} />
             </div>
           </div>
           <FormError message={error} />

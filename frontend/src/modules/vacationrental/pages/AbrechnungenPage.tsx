@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { PlusIcon } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Money } from '@/components/Money'
@@ -14,6 +15,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { IdSelect } from '../RentalFilters'
 import { StatementDialog } from '../StatementDialog'
+import { reviewReasons } from '../statementReview'
 import { backTo, statementPath } from '../BookingPage.paths'
 import { unitLabel, useInvalidateRental, useRentalUnits, useStatements } from '../api'
 
@@ -117,7 +119,14 @@ export function AbrechnungenPage() {
                   )}
                   <TableCell>{formatDate(s.statementDate)}</TableCell>
                   <TableCell>{unitLabel(s.unit)}</TableCell>
-                  <TableCell>{s.provider}</TableCell>
+                  <TableCell>
+                    {s.provider}
+                    {s.toReview && (
+                      <Badge variant="outline" className="ml-2 border-amber-400 text-amber-700 dark:text-amber-400" title={reviewReasons(s).join(', ')}>
+                        zu prüfen
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {formatDate(s.periodFrom)} – {formatDate(s.periodTo)}
                   </TableCell>

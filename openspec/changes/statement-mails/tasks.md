@@ -23,10 +23,10 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Statement list: mark „zu prüfen“; statement dialog and page header: invoice number and stated payout. Verify with frontend tests.
-- [ ] 4.2 Statement page: review reasons, „Offene Zeilen“ with „Zuordnen“ (booking picker without settled bookings and owner uses) and „Verwerfen“, viewer sees the count only, hint „weicht vom Mietpreis ab“ on lines. Verify with frontend tests for each.
-- [ ] 4.3 Statement page: „Dokumente“ with `DocumentList` for editors. Verify with a frontend test.
-- [ ] 4.4 Inbox: labels „Abrechnung angelegt“ and „Abrechnung“, link to the statement for the statement link type, unit assignment for a mail without property name. Verify with inbox tests.
+- [x] 4.1 Statement list: mark „zu prüfen“; statement dialog and page header: invoice number and stated payout. Verify with frontend tests.
+- [x] 4.2 Statement page: review reasons, „Offene Zeilen“ with „Zuordnen“ (booking picker without settled bookings and owner uses) and „Verwerfen“, viewer sees the count only, hint „weicht vom Mietpreis ab“ on lines. Verify with frontend tests for each.
+- [x] 4.3 Statement page: „Dokumente“ with `DocumentList` for editors. Verify with a frontend test.
+- [x] 4.4 Inbox: labels „Abrechnung angelegt“ and „Abrechnung“, link to the statement for the statement link type, unit assignment for a mail without property name. Verify with inbox tests.
 
 ## 5. End-to-end
 

@@ -53,6 +53,12 @@ export function statement(overrides: Partial<Statement> = {}): Statement {
     canEdit: true,
     version: 0,
     lines: [],
+    invoiceNumber: null,
+    statedPayout: null,
+    payoutDifference: null,
+    openLineCount: 0,
+    openLines: [],
+    toReview: false,
     ...overrides,
   }
 }

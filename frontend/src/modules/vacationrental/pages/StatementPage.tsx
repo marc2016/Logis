@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
-import { ArrowLeftIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftIcon, LinkIcon, PencilIcon, PlusIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DocumentList } from '@/components/DocumentList'
 import { Money } from '@/components/Money'
 import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
@@ -15,17 +16,25 @@ import { formatDate } from '@/core/ledger/transactions/format'
 import { StatementDialog } from '../StatementDialog'
 import { StatementLineDialog } from '../StatementLineDialog'
 import { AddBookingsDialog } from '../AddBookingsDialog'
+import { OpenLineDialog } from '../OpenLineDialog'
+import { openLinesText, rentDifference, reviewReasons } from '../statementReview'
+import { formatEUR } from '@/lib/money'
 import { assignLine } from '../statementAssign'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { PageCheckbox, RowCheckbox } from '@/components/selection'
 import { useBulk } from '@/components/useBulk'
 import { useSelection } from '@/components/useSelection'
 import { backLabel, backTo, bookingPath, type BackState } from '../BookingPage.paths'
-import { statusLabel, unitLabel, useInvalidateRental, useStatement, type StatementLine } from '../api'
+import { statusLabel, unitLabel, useInvalidateRental, useStatement, type StatementLine, type StatementOpenLine } from '../api'
 
 const LIST = '/ferienvermietung/abrechnungen'
 
-type DialogState = { kind: 'statement' } | { kind: 'line'; line: StatementLine | null } | { kind: 'bookings' } | null
+type DialogState =
+  | { kind: 'statement' }
+  | { kind: 'line'; line: StatementLine | null }
+  | { kind: 'bookings' }
+  | { kind: 'open'; line: StatementOpenLine }
+  | null
 
 /** A statement as its own page: header with the key figures, its booking lines and the payout. */
 export function StatementPage() {
@@ -102,6 +111,20 @@ export function StatementPage() {
                 Auszahlung <Money amount={selected.payout} />
               </dd>
             </div>
+            {selected.invoiceNumber && (
+              <div>
+                <dt className="sr-only">Rechnungsnummer</dt>
+                <dd className="text-muted-foreground">Re-Nr. {selected.invoiceNumber}</dd>
+              </div>
+            )}
+            {selected.statedPayout !== null && (
+              <div>
+                <dt className="sr-only">Saldo laut Abrechnung</dt>
+                <dd className="text-muted-foreground">
+                  Saldo laut Abrechnung <Money amount={selected.statedPayout} colored={false} />
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
         {selected.canEdit && (
@@ -118,7 +141,7 @@ export function StatementPage() {
               Bearbeiten
             </Button>
             <ConfirmButton
-              question="Abrechnung löschen? Die Buchungen werden wieder geplant."
+              question="Abrechnung löschen? Die Buchungen werden wieder geplant, die Dokumente gelöscht."
               disabled={remove.isPending}
               onConfirm={() => remove.mutate({ url: `/api/vacationrental/statements/${selected.id}`, done: 'Abrechnung gelöscht.', leave: true })}
             >
@@ -128,6 +151,19 @@ export function StatementPage() {
           </div>
         )}
       </header>
+      {selected.toReview && (
+        <div role="status" aria-label="Zu prüfen" className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-medium">Zu prüfen</p>
+            <ul className="list-disc pl-4">
+              {reviewReasons(selected).map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -180,6 +216,11 @@ export function StatementPage() {
                   <TableCell>{l.booking.guest?.name ?? '–'}</TableCell>
                   <TableCell className="text-right">
                     <Money amount={l.gross} colored={false} />
+                    {rentDifference(l.gross, l.booking) && (
+                      <span className="block text-xs text-amber-700 dark:text-amber-400">
+                        weicht vom Mietpreis ab ({formatEUR(rentDifference(l.gross, l.booking)!)})
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Money amount={l.commission} colored={false} />
@@ -224,6 +265,78 @@ export function StatementPage() {
         </Table>
       </div>
 
+      {selected.openLineCount > 0 && (
+        <section aria-labelledby="open-lines" className="space-y-2">
+          <h2 id="open-lines" className="text-lg font-semibold">
+            Offene Zeilen
+          </h2>
+          {!selected.canEdit ? (
+            <p className="text-sm text-muted-foreground">{openLinesText(selected.openLineCount)} der Abrechnung sind noch keiner Buchung zugeordnet.</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">Zeilen der Abrechnung ohne passende Buchung. Sie zählen erst nach dem Zuordnen zur Auszahlung.</p>
+              <div className="rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Aufenthalt</TableHead>
+                      <TableHead>Mieter</TableHead>
+                      <TableHead className="text-right">Brutto</TableHead>
+                      <TableHead className="text-right">Provision</TableHead>
+                      <TableHead>Hinweis</TableHead>
+                      <TableHead className="w-40" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selected.openLines.map((o) => (
+                      <TableRow key={o.id}>
+                        <TableCell>
+                          {formatDate(o.arrival)} – {formatDate(o.departure)}
+                        </TableCell>
+                        <TableCell>{o.guestName}</TableCell>
+                        <TableCell className="text-right">
+                          <Money amount={o.gross} colored={false} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Money amount={o.commission} colored={false} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{o.note ?? ''}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" aria-label={`${o.guestName} zuordnen`} onClick={() => setDialog({ kind: 'open', line: o })}>
+                            <LinkIcon />
+                            Zuordnen
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`${o.guestName} verwerfen`}
+                            disabled={remove.isPending}
+                            onClick={() =>
+                              remove.mutate({ url: `/api/vacationrental/statements/${selected.id}/open-lines/${o.id}`, done: 'Zeile verworfen.' })
+                            }
+                          >
+                            Verwerfen
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {selected.canEdit && (
+        <section aria-labelledby="statement-documents" className="space-y-2">
+          <h2 id="statement-documents" className="text-lg font-semibold">
+            Dokumente
+          </h2>
+          <DocumentList ownerType="vacationrental.statement" ownerId={selected.id} canEdit />
+        </section>
+      )}
+
       <BulkActionBar selection={lineSelection} busy={bulk.busy}>
         <Button
           size="sm"
@@ -252,6 +365,7 @@ export function StatementPage() {
         />
       )}
       {dialog?.kind === 'statement' && <StatementDialog statement={selected} onSaved={() => setDialog(null)} onClose={() => setDialog(null)} />}
+      {dialog?.kind === 'open' && <OpenLineDialog statement={selected} line={dialog.line} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'line' && <StatementLineDialog statement={selected} line={dialog.line} onClose={() => setDialog(null)} />}
     </div>
   )
