@@ -130,7 +130,11 @@ class MailNotificationsTest extends IntegrationTest {
     }
 
     private void deliver(String subject, Instant receivedAt) throws Exception {
-        var eml = ("From: sender@example.org\r\nSubject: " + subject + "\r\nMessage-ID: <" + subject.hashCode() + "."
+        deliver("sender@example.org", subject, receivedAt);
+    }
+
+    private void deliver(String from, String subject, Instant receivedAt) throws Exception {
+        var eml = ("From: " + from + "\r\nSubject: " + subject + "\r\nMessage-ID: <" + subject.hashCode() + "."
                 + System.nanoTime() + "@example.org>\r\n\r\nHallo").getBytes(StandardCharsets.UTF_8);
         greenMail.getManagers().getImapHostManager().getInbox(mailUser).appendMessage(
                 new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(eml)), new Flags(),
@@ -234,5 +238,27 @@ class MailNotificationsTest extends IntegrationTest {
 
         getWith("/api/mail/mailbox", session).andExpect(jsonPath("$.lastError").exists());
         recording.await(userId, 0);
+    }
+
+    /** A notification mail that lands in the mailbox Logis fetches must not cause the next notification. */
+    @Test
+    void mailsLogisSentItselfDoNotCount() throws Exception {
+        jdbc.update("DELETE FROM core.smtp_settings");
+        jdbc.update("INSERT INTO core.smtp_settings (id, host, port, security, from_address, updated_at) "
+                + "VALUES (1, 'localhost', 25, 'NONE', 'logis@example.org', now())");
+        try {
+            deliver("Logis@example.org", "1 E-Mail braucht Aufmerksamkeit", null);
+            mails.pollNow(userId);
+            recording.await(userId, 0);
+
+            deliver("Logis@example.org", "Neue Buchung zu prüfen", null);
+            deliver("Unbekannt eins", null);
+            mails.pollNow(userId);
+            assertThat(recording.await(userId, 1).get(0).title()).isEqualTo("1 E-Mail braucht Aufmerksamkeit");
+            assertThat(longRecording.await(userId, 1).get(0).text()).doesNotContain("logis@example.org")
+                    .doesNotContain("Logis@example.org");
+        } finally {
+            jdbc.update("DELETE FROM core.smtp_settings");
+        }
     }
 }

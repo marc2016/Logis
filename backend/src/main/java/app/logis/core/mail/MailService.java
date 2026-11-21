@@ -53,6 +53,7 @@ class MailService {
     private final Notifications notifications;
     private final ApplicationEventPublisher events;
     private final Set<String> attentionResults;
+    private final SmtpSettingsRepository outgoing;
 
     /** Only mails received this recently count as new: a first poll from an old cut-off date stays quiet. */
     static final Duration FRESH = Duration.ofDays(2);
@@ -64,7 +65,8 @@ class MailService {
 
     MailService(MailboxRepository mailboxes, StoredMailRepository mails, ImapClient imap, List<MailHandler> handlers,
             SecretCipher cipher, ObjectMapper json, Clock clock, Notifications notifications,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events, SmtpSettingsRepository outgoing) {
+        this.outgoing = outgoing;
         this.notifications = notifications;
         this.events = events;
         var attention = new HashSet<>(Set.of(StoredMail.NOT_RECOGNISED, StoredMail.FAILED));
@@ -242,7 +244,7 @@ class MailService {
         }
         var fresh = stored.getReceivedAt() != null && !stored.getReceivedAt().isBefore(clock.instant().minus(FRESH));
         if (run.kind() == FetchRun.Kind.POLL && fresh) {
-            if (needsAttention(stored)) {
+            if (needsAttention(stored) && !sentByLogis(stored)) {
                 run.needsAttention((stored.getSender() == null ? "Unbekannter Absender" : stored.getSender()) + ": "
                         + (stored.getSubject() == null || stored.getSubject().isBlank() ? "(ohne Betreff)"
                         : stored.getSubject()));
@@ -256,6 +258,15 @@ class MailService {
             }
         }
         return true;
+    }
+
+    /**
+     * Whether Logis sent the mail itself, e.g. a notification to an address whose mailbox it also fetches. Such a
+     * mail must not cause a notification, or each one would cause the next.
+     */
+    private boolean sentByLogis(StoredMail mail) {
+        return mail.getSender() != null && outgoing.current()
+                .filter(settings -> settings.getFromAddress().equalsIgnoreCase(mail.getSender())).isPresent();
     }
 
     /** The stored and handled mail, or null if its Message-ID is known already. */

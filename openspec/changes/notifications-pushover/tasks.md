@@ -14,7 +14,7 @@
 
 ## 3. Sign-in warning on the layer
 
-- [ ] 3.1 Register the type `core.signIn` with `mail` mandatory and send the warning through `Notifications`, keeping subject and mail text (D5); verify that `SignInAlertsTest` and `sign-in-alerts.spec.ts` pass unchanged
+- [x] 3.1 Register the type `core.signIn` with `mail` mandatory and send the warning through `Notifications`, keeping subject and mail text (D5); verify that `SignInAlertsTest` and `sign-in-alerts.spec.ts` pass unchanged
 - [x] 3.2 Add the short form (browser, operating system, location, no client address); verify with a test that a user without an address gets the Pushover notification through a fake channel and that the text contains no part of the address
 
 ## 4. Pushover channel
@@ -44,14 +44,14 @@
 - [x] 7.1 Add the API client and the card „Benachrichtigungen“ on `/konto` with grouped rows, one switch per channel, disabled switches with hints and mandatory switches; verify with `NotificationsCard.test.tsx` against a mocked API
 - [x] 7.2 Add the card for the own Pushover key with save, remove, „Testnachricht senden“, the invalid-key notice and „Pushover ist noch nicht eingerichtet“; verify with `PushoverCard.test.tsx`
 - [x] 7.3 Add the admin page `/einstellungen/pushover` with the sidebar entry „Pushover“ and the note about what is sent to Pushover; verify with `PushoverPage.test.tsx` and the sidebar assertion in `AppShell.test.tsx`
-- [ ] 7.4 Check both pages at phone and tablet widths by adding them to `layout.spec.ts`; verify the layout check passes at 390, 820 and 1024 px
+- [x] 7.4 Check both pages at phone and tablet widths by adding them to `layout.spec.ts`; verify the layout check passes at 390, 820 and 1024 px
 
 ## 8. End to end and documentation
 
-- [ ] 8.1 Add a stand-in for the Pushover API to `e2e/compose.e2e.yml` that accepts both endpoints and lets tests read the received messages, and point the backend at it; verify the stack starts and the stand-in answers
-- [ ] 8.2 Add `e2e/tests/notifications.spec.ts`: admin stores the token, user stores a key and sends a test, switches on both channels for „Neue Buchung zu prüfen“, a booking mail with invented values arrives, the stand-in holds a message without the guest name and the mail holds it; verify the test passes on desktop and phone
-- [ ] 8.3 Add rows for `notifications` and `pushover` to `e2e/COVERAGE.md` and extend the rows of `sign-in-alerts`, `bookings` and `mail-inbox`; verify every new capability has a row
-- [ ] 8.4 Describe the Pushover set-up, the outbound connection to `api.pushover.net` and the role of `LOGIS_PUBLIC_URL` for links in the README; verify the described steps against the running app
+- [x] 8.1 Add a stand-in for the Pushover API to `e2e/compose.e2e.yml` that accepts both endpoints and lets tests read the received messages, and point the backend at it; verify the stack starts and the stand-in answers
+- [x] 8.2 Add `e2e/tests/notifications.spec.ts`: admin stores the token, user stores a key and sends a test, switches on both channels for „Neue Buchung zu prüfen“, a booking mail with invented values arrives, the stand-in holds a message without the guest name and the mail holds it; verify the test passes on desktop and phone
+- [x] 8.3 Add rows for `notifications` and `pushover` to `e2e/COVERAGE.md` and extend the rows of `sign-in-alerts`, `bookings` and `mail-inbox`; verify every new capability has a row
+- [x] 8.4 Describe the Pushover set-up, the outbound connection to `api.pushover.net` and the role of `LOGIS_PUBLIC_URL` for links in the README; verify the described steps against the running app
 - [ ] 8.5 Run `cd backend && ./mvnw test`, `cd frontend && npm test && npm run lint && npm run build` and the e2e suite; verify all pass, and check that no test file, spec or commit holds values from real mails or bookings
 
 ## Workflow follow-up

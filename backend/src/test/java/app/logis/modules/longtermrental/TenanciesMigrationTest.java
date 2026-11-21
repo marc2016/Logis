@@ -26,7 +26,8 @@ class TenanciesMigrationTest {
             // A deployment before this change: the schema did not exist and had no migration location.
             Flyway.configure().dataSource(ds).schemas("core", "vacationrental").defaultSchema("core")
                     .locations("classpath:db/migration/core", "classpath:db/migration/vacationrental")
-                    .load().migrate();
+                    // The last migration before long-term rental; later ones belong to later deployments.
+                    .target("20261121.1000").load().migrate();
             var db = new JdbcTemplate(ds);
             db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref) "
                     + "VALUES (1, DATE '2026-11-06', DATE '2026-11-08', 2, 'R-1')");
@@ -36,7 +37,7 @@ class TenanciesMigrationTest {
                     .defaultSchema("core")
                     .locations("classpath:db/migration/core", "classpath:db/migration/vacationrental",
                             "classpath:db/migration/longtermrental")
-                    .load().migrate();
+                    .target("20261121.1200").load().migrate();
 
             assertThat(result.migrationsExecuted).isEqualTo(1);
             assertThat(tables(db)).isEqualTo(tables);

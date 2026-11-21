@@ -18,7 +18,7 @@ When the regular poll of a mailbox fails after the previous poll succeeded, the 
 - **THEN** the page shows the error and no notification is sent
 
 ### Requirement: Notify about mails that need attention
-When a regular poll stores mails that need attention (the mails the quick filter „Offen“ shows, such as „Nicht erkannt“, „Fehler“ or mails waiting for a unit), the system SHALL raise one notification „E-Mails brauchen Aufmerksamkeit“ per poll for the mailbox owner, naming their number, with a link to the inbox filtered by „Offen“. Older mails the user fetches, mails processed again and mails received more than two days before MUST NOT count. The short text MUST NOT contain senders or subjects.
+When a regular poll stores mails that need attention (the mails the quick filter „Offen“ shows), the system SHALL raise one notification „E-Mails brauchen Aufmerksamkeit“ per poll for the mailbox owner, naming their number, with a link to the inbox filtered by „Offen“. Older mails the user fetches, mails processed again, mails received more than two days before and mails Logis sent itself MUST NOT count. The short text MUST NOT contain senders or subjects.
 
 #### Scenario: Unassigned unit
 - **WHEN** a poll stores a confirmation whose unit is not assigned and Anna switched on Pushover for „E-Mails brauchen Aufmerksamkeit“
@@ -35,3 +35,7 @@ When a regular poll stores mails that need attention (the mails the quick filter
 #### Scenario: Subjects only by mail
 - **WHEN** Anna switched on both channels and a poll stores two mails that are „Nicht erkannt“
 - **THEN** the mail lists sender and subject of both, and the Pushover notification only their number
+
+#### Scenario: Own notification mails
+- **WHEN** Anna's mailbox is the one her notifications are sent to, and a poll stores a notification mail from Logis
+- **THEN** that mail raises no notification

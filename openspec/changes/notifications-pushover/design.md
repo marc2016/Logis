@@ -119,6 +119,7 @@ A `@Scheduled(cron = "0 0 18 * * *", zone = "Europe/Berlin")` job and an `Applic
 ## Risks / Trade-offs
 
 - [Pushover's answers differ in detail from the documentation] → The client treats every 4xx as a rejection and only reads which parameter is named; an unexpected shape ends as a logged failure, never as a stored key marked invalid.
+- [Logis fetches the mailbox its own notification mails go to, so each mail would raise the next] → Mails whose sender is the configured sender address of the outgoing mail server never count as needing attention.
 - [A noisy mailbox raises a notification every five minutes] → One notification per poll with a count, only for mails of the last two days, and off by default.
 - [Guest data leaks into a short text by mistake] → Each event type has a test that builds a notification from a booking with marker values and asserts that none of them appear in title or short text.
 - [A lost notification goes unnoticed] → Accepted for now; everything a notification points to stays visible in the app. A history is a possible later change.
