@@ -20,8 +20,8 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Run `cd backend && ./mvnw test` and `cd frontend && npm test && npm run lint && npm run build`. All must be green.
-- [ ] 4.2 Check that tests, sample mails and specs of this change contain only invented values and nothing from the pasted mails (booking number, guest name, phone numbers, staff names, dates).
+- [x] 4.1 Run `cd backend && ./mvnw test` and `cd frontend && npm test && npm run lint && npm run build`. All must be green.
+- [x] 4.2 Check that tests, sample mails and specs of this change contain only invented values and nothing from the pasted mails (booking number, guest name, phone numbers, staff names, dates).
 
 ## Workflow follow-up
 
