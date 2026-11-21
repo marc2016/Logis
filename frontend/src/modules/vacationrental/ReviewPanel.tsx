@@ -78,6 +78,45 @@ export function ReviewPanel({ booking, onChanged, onShowProposal }: Props) {
     onError: (err) => toast.error(errorMessage(err)),
   })
 
+  if (booking.reviewState === 'NEW' && booking.proposal?.type === 'CANCELLATION') {
+    // The agency cancelled a booking that is not confirmed yet: one decision settles both.
+    return (
+      <Alert>
+        <AlertTitle>Stornierung per E-Mail – bitte prüfen</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>Der Vermittler meldet, dass diese Buchung storniert wurde. Die Buchung ist noch nicht bestätigt.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={action.isPending}
+              onClick={() => action.mutate({ url: `${base}/proposal/apply`, done: 'Buchung storniert.' })}
+            >
+              Stornierung übernehmen
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={action.isPending}
+              onClick={() => action.mutate({ url: `${base}/proposal/discard`, done: 'Stornierung verworfen.' })}
+            >
+              Stornierung verwerfen
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={action.isPending}
+              onClick={() => action.mutate({ url: `${base}/discard`, done: 'Buchung verworfen.', closes: true })}
+            >
+              Buchung verwerfen
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    )
+  }
   if (booking.reviewState === 'NEW') {
     return (
       <Alert>

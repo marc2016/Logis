@@ -168,6 +168,8 @@ export interface CalendarBooking {
   externalRef: string | null
   reviewState: ReviewState
   kind: BookingKind
+  /** A mail reports that this booking was cancelled; the cancellation is not applied yet. */
+  cancellationReported: boolean
 }
 
 export interface CalendarUnit {
@@ -230,6 +232,13 @@ export interface BookingFilter {
   sort?: string
   page?: number
   size?: number
+}
+
+/** Marker of a booking whose cancellation a mail reports (spec bookings, „Cancellation reported by mail“). */
+export const CANCELLATION_REPORTED = 'Stornierung gemeldet'
+
+export function cancellationReported(b: Pick<Booking, 'proposal'>) {
+  return b.proposal?.type === 'CANCELLATION'
 }
 
 // --- Booking mails (labels for the core inbox) ----------------------------------------------------

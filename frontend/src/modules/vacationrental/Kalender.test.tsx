@@ -32,7 +32,7 @@ function years(bookings: CalendarBooking[] = [], units = ['Haus Waldeck']) {
 }
 
 function stay(id: number, arrival: string, departure: string, guestName: string, status: CalendarBooking['status'] = 'PLANNED'): CalendarBooking {
-  return { id, arrival, departure, status, guestName, externalRef: null, reviewState: 'NONE', kind: 'GUEST' }
+  return { id, arrival, departure, status, guestName, externalRef: null, reviewState: 'NONE', kind: 'GUEST', cancellationReported: false }
 }
 
 const headings = () => screen.queryAllByRole('row').map((r) => r.getAttribute('aria-label'))
@@ -67,6 +67,16 @@ describe('Calendar by year', () => {
     expect(within(november).getByRole('button', { name: 'Gast Abgerechnet, Abgerechnet' })).toHaveAttribute('data-status', 'SETTLED')
     expect(screen.queryByText('Gast Storniert')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Spätere Monate|Frühere Monate/ })).not.toBeInTheDocument()
+  })
+
+  it('marks a stay whose cancellation a mail reports', async () => {
+    const reported = { ...stay(8, '2026-11-06', '2026-11-08', 'Gast Gemeldet'), reviewState: 'NEW' as const, cancellationReported: true }
+    mockApi({ ...base, ...years([reported, stay(9, '2026-11-10', '2026-11-12', 'Gast Geplant')]) })
+    renderApp('/ferienvermietung/kalender?year=2026')
+    const november = await screen.findByRole('row', { name: 'November 2026' })
+    const bar = await within(november).findByRole('button', { name: 'Gast Gemeldet, Geplant, zu prüfen, Stornierung gemeldet' })
+    expect(bar).toHaveAttribute('data-cancellation-reported', 'true')
+    expect(within(november).getByRole('button', { name: 'Gast Geplant, Geplant' })).not.toHaveAttribute('data-cancellation-reported')
   })
 
   it('shows an owner use set apart from guest stays', async () => {

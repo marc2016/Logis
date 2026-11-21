@@ -177,6 +177,35 @@ class MailImportTest extends VacationRentalTest {
     }
 
     @Test
+    void cancellationOfAnUnconfirmedBookingIsReportedAndEndsTheReviewWhenApplied() throws Exception {
+        deliver("fewo-last-minute.eml", "2026-11-06T11:15:00Z");
+        imports.pollNow(anna.id());
+        assign("Last-Minute");
+        var created = inboxItem(anna, "Last-Minute");
+        assertThat(created.get("result")).isEqualTo("BOOKING_CREATED");
+        var bookingId = ((Number) created.get("linkId")).longValue();
+
+        deliver("fewo-cancellation-250905.eml", null);
+        imports.pollNow(anna.id());
+        assertThat(inboxItem(anna, "Stornierung 250905").get("result")).isEqualTo("CHANGE_PROPOSED");
+        // The booking is still to review, and the cancellation is reported with its mail among the sources.
+        getWith("/api/vacationrental/bookings/" + bookingId, anna.session())
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.status").value("PLANNED"))
+                .andExpect(jsonPath("$.proposal.type").value("CANCELLATION"))
+                .andExpect(jsonPath("$.sources", hasSize(2)))
+                .andExpect(jsonPath("$.sources[*].label",
+                        org.hamcrest.Matchers.hasItem("Fewo & Meer Stornierung")));
+
+        postJson("/api/vacationrental/bookings/" + bookingId + "/proposal/apply", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.reviewState").value("NONE"));
+        getWith("/api/documents?ownerType=vacationrental.booking&ownerId=" + bookingId, anna.session())
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
     void cancellationWithoutBookingAndOlderMails() throws Exception {
         deliver("fewo-cancellation-2025.eml", "2025-09-01T08:00:00Z");
         imports.fetchOlder(anna.id(), java.time.LocalDate.of(2025, 1, 1));

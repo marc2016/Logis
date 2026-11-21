@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { daysIn, nightsInMonth } from './calendar'
-import { kindLabel, statusLabel, type CalendarBooking } from './api'
+import { CANCELLATION_REPORTED, kindLabel, statusLabel, type CalendarBooking } from './api'
 
 const MAX_DAYS = 31
 const monthShort = new Intl.DateTimeFormat('de-DE', { month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -144,12 +144,18 @@ export function CalendarGrid({ months, year, currentMonth, today, scrollToToday 
                           ? 'bg-primary text-primary-foreground'
                           : 'border-2 border-primary bg-background',
                       b.reviewState !== 'NONE' && 'border-2 border-dashed border-amber-600',
+                      b.cancellationReported && 'line-through',
                     )}
-                    aria-label={owner ? label : `${label}, ${state}${b.reviewState !== 'NONE' ? ', zu prüfen' : ''}`}
+                    aria-label={
+                      owner
+                        ? label
+                        : `${label}, ${state}${b.reviewState !== 'NONE' ? ', zu prüfen' : ''}${b.cancellationReported ? `, ${CANCELLATION_REPORTED}` : ''}`
+                    }
                     data-review={b.reviewState}
+                    data-cancellation-reported={b.cancellationReported ? 'true' : undefined}
                     data-status={b.status}
                     data-kind={b.kind}
-                    title={owner ? label : `${label} (${state})`}
+                    title={owner ? label : `${label} (${b.cancellationReported ? `${state}, ${CANCELLATION_REPORTED}` : state})`}
                   >
                     {label}
                   </button>
