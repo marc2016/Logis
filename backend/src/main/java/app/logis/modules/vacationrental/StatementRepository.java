@@ -19,5 +19,9 @@ interface StatementRepository extends JpaRepository<Statement, Long> {
             + "order by max(s.statementDate) desc")
     List<String> providers(Long unitId);
 
+    @Query("select s from Statement s where s.unitId in :unitIds and lower(s.provider) = lower(:provider) "
+            + "and s.invoiceNumber = :invoiceNumber order by s.id")
+    List<Statement> findByInvoice(Collection<Long> unitIds, String provider, String invoiceNumber);
+
     boolean existsByUnitIdIn(Collection<Long> unitIds);
 }

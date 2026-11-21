@@ -165,7 +165,7 @@ class FewoUndMeerParser implements MailParser {
         return java.util.Set.of("fewoundmeer.de", "fewoscout.com");
     }
 
-    private static boolean fromAgency(MailContent mail) {
+    static boolean fromAgency(MailContent mail) {
         var sender = mail.sender() == null ? "" : mail.sender().toLowerCase(Locale.ROOT);
         // FeWoScout is Fewo & Meer's booking portal; its mails may carry no signature at all.
         // Forwarded mails come from the user: then the agency shows in the forwarded text.

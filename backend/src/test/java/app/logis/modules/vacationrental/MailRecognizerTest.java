@@ -105,7 +105,7 @@ class MailRecognizerTest {
         var handler = new BookingMailHandler(recognizer((s, sub, t) -> {
             calls.incrementAndGet();
             return Optional.empty();
-        }), null, null, null);
+        }), null, null, null, null);
         var handled = handler.handle(1L, MailParsersTest.mail("fewo-ticket-receipt.eml"), new byte[0]).orElseThrow();
         assertThat(handled.result()).isEqualTo("IGNORED");
         assertThat(handled.kind()).isEqualTo("TICKET_RECEIPT");

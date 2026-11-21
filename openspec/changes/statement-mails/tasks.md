@@ -9,11 +9,11 @@
 
 ## 2. Reading mails and PDFs
 
-- [ ] 2.1 Add `MailAttachments` to `core/mail` (design D3). Verify with a unit test on built mails: PDF as attachment, PDF inside a forwarded mail, mail without attachment, a non-PDF named `.pdf`.
-- [ ] 2.2 Add the PDFBox dependency and a test helper that builds a statement PDF of the Fewo & Meer layout from invented rows (design D11). Verify: the helper's PDF opens and its extracted text contains the three parts.
-- [ ] 2.3 Add `FewoStatementPdf` (design D4, D5). Verify with unit tests on helper PDFs: normal rows; name with several words; extension row; „Gesamt“ check fails → not read; missing part → not read; text of another document → not read; page limit.
-- [ ] 2.4 Check the reader against the real sample in the scratch directory, outside the repository: row count, sums and balance must equal the PDF's own totals. Adjust reader and helper until both agree. Verify: a note of the outcome in the apply summary, no file from the sample in `git status`.
-- [ ] 2.5 Add the two recognition rules (design D2). Verify with unit tests on invented mails: both subjects, forwarded, wrong sender, month names including „März“, a subject with a dash in the object name.
+- [x] 2.1 Add `MailAttachments` to `core/mail` (design D3). Verify with a unit test on built mails: PDF as attachment, PDF inside a forwarded mail, mail without attachment, a non-PDF named `.pdf`.
+- [x] 2.2 Add the PDFBox dependency and a test helper that builds a statement PDF of the Fewo & Meer layout from invented rows (design D11). Verify: the helper's PDF opens and its extracted text contains the three parts.
+- [x] 2.3 Add `FewoStatementPdf` (design D4, D5). Verify with unit tests on helper PDFs: normal rows; name with several words; extension row; „Gesamt“ check fails → not read; missing part → not read; text of another document → not read; page limit.
+- [x] 2.4 Check the reader against the real sample in the scratch directory, outside the repository: row count, sums and balance must equal the PDF's own totals. Adjust reader and helper until both agree. Verify: a note of the outcome in the apply summary, no file from the sample in `git status`.
+- [x] 2.5 Add the two recognition rules (design D2). Verify with unit tests on invented mails: both subjects, forwarded, wrong sender, month names including „März“, a subject with a dash in the object name.
 
 ## 3. Import
 

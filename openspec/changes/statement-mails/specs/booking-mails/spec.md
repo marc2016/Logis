@@ -4,7 +4,7 @@
 The system SHALL recognise the statement mails of agencies and create a statement from each one, also when the mail is forwarded:
 
 - a Fewo & Meer mail with the subject „Ihre Abrechnung für `<Monat Jahr>` - `<Objekt>`“: the period is that calendar month, the property is the object named in the subject;
-- an owner statement notice of the Holidu booking system with the subject „Ihre Abrechnung: `<Rechnungsnummer>`“ and the text „Abrechnung für den Zeitraum vom `<Datum>` bis zum `<Datum>`“: period and invoice number are taken from the mail.
+- an owner statement notice of the booking system DS Destination Solutions, sent in the name of the agency, with the subject „Ihre Abrechnung: `<Rechnungsnummer>`“ and the text „Abrechnung für den Zeitraum vom `<Datum>` bis zum `<Datum>`“: period and invoice number are taken from the mail, the agency is the sender named in the mail.
 
 The statement SHALL be created for the unit mapped to the property, with the agency as provider. Its statement date SHALL be the invoice date of a read PDF, otherwise the day the mail was received. A PDF attached to the mail SHALL be stored as a document of the statement. The mail SHALL show as „Abrechnung angelegt“ with the kind „Abrechnung“ and link to the statement. Statement mails MUST be recognised only by the rules and MUST NOT be sent to an AI service, neither the mail nor its PDF.
 
@@ -17,12 +17,12 @@ The statement SHALL be created for the unit mapped to the property, with the age
 - **THEN** the mail waits as „Einheit zuordnen“, and assigning a unit creates the statement
 
 #### Scenario: Notice without a property
-- **WHEN** an owner statement notice of the Holidu system arrives and all property mappings of its agency point to the same unit
+- **WHEN** an owner statement notice of DS Destination Solutions arrives and all property mappings of its agency point to the same unit
 - **THEN** the statement is created for that unit with the period and the invoice number from the mail, without lines, and the PDF is attached
 
 #### Scenario: Notice without a clear unit
 - **WHEN** such a notice arrives and its agency has no property mapping or mappings to several units
-- **THEN** the mail waits as „Einheit zuordnen“; the unit chosen there is used for this and later notices of the agency
+- **THEN** the mail waits as „Einheit zuordnen“ for „Abrechnungen“; the unit chosen there is used for this and later notices of the agency
 
 #### Scenario: Invoice number already recorded
 - **WHEN** a statement mail carries an invoice number that a statement of the same provider already has

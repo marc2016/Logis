@@ -46,6 +46,9 @@ interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findForUnits(Collection<Long> unitIds, LocalDate from, LocalDate to);
 
     /** The stay with exactly this period on the unit; the overlap constraint allows at most one. */
+    /** Bookings of the unit with exactly this period, cancelled ones included. */
+    List<Booking> findByUnitIdAndArrivalAndDeparture(Long unitId, LocalDate arrival, LocalDate departure);
+
     List<Booking> findByUnitIdAndArrivalAndDepartureAndCancelledFalse(Long unitId, LocalDate arrival,
             LocalDate departure);
 

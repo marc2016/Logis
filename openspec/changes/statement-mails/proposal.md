@@ -8,7 +8,7 @@ Agencies send their statements by mail, with all amounts in an attached PDF. Tod
 
 - Statement mails are recognised by rules, never by AI:
   - Fewo & Meer: „Ihre Abrechnung für `<Monat Jahr>` - `<Objekt>`“ with a PDF.
-  - The owner statement notice of the Holidu booking system: „Ihre Abrechnung: `<Rechnungsnummer>`“ with the period in the text.
+  - The owner statement notice of the booking system DS Destination Solutions: „Ihre Abrechnung: `<Rechnungsnummer>`“ with the period in the text.
 - A recognised mail creates a statement for the unit (provider, period, statement date, invoice number) and attaches the PDF to it as a document. The inbox shows „Abrechnung angelegt“ with a link to the statement.
 - The Fewo & Meer PDF is read: one line per tenant with rental period and amounts, and the balance.
   - Gross is rent plus additional services, commission is the commission including VAT, cleaning is 0. The payout then equals the balance of the PDF.
@@ -17,7 +17,7 @@ Agencies send their statements by mail, with all amounts in an attached PDF. Tod
 - A statement shows „zu prüfen“ while it has open lines or its payout differs from the balance stated in the PDF. A line whose gross differs from the booking's expected rent is marked.
 - A mail with an invoice number that is already recorded does not create a second statement.
 - Statements get documents: the imported PDF, and files added by hand.
-- The PDF of the Holidu system is not read yet (no sample). Its statement is created without lines, with the PDF attached.
+- The PDF of DS Destination Solutions is not read yet (no sample). Its statement is created without lines, with the PDF attached.
 - Stored statement mails are picked up with the existing „Erneut verarbeiten“.
 
 Not part of this change: reading other agencies' PDFs, AI extraction of PDFs, keeping attachments in the admin mail export.

@@ -27,13 +27,15 @@ class BookingMailHandler implements MailHandler {
 
     private final MailRecognizer recognizer;
     private final ImportEngine engine;
+    private final StatementMailImport statementImport;
     private final RentalAccess access;
     private final BookingRepository bookings;
 
-    BookingMailHandler(MailRecognizer recognizer, ImportEngine engine, RentalAccess access,
-            BookingRepository bookings) {
+    BookingMailHandler(MailRecognizer recognizer, ImportEngine engine, StatementMailImport statementImport,
+            RentalAccess access, BookingRepository bookings) {
         this.recognizer = recognizer;
         this.engine = engine;
+        this.statementImport = statementImport;
         this.access = access;
         this.bookings = bookings;
     }
@@ -56,6 +58,11 @@ class BookingMailHandler implements MailHandler {
             return Optional.of(new Handled(IGNORED, null, TICKET_RECEIPT, FewoUndMeerParser.AGENCY, receipt.get(),
                     null, null, null, null, MailRecognizer.Source.RULE.name()));
         }
+        // Statement mails: rules only, never the AI (spec booking-mails, „Statement mails“; design D1).
+        var statement = statementImport.handle(ownerUserId, mail, raw);
+        if (statement.isPresent()) {
+            return statement;
+        }
         var recognition = recognizer.recognize(mail);
         var parsed = recognition.parsed();
         if (parsed == null) {
@@ -77,7 +84,8 @@ class BookingMailHandler implements MailHandler {
             "UNASSIGNED_UNIT", "Einheit zuordnen",
             "NOT_MATCHED", "Nicht zugeordnet",
             "PERIOD_TAKEN", "Zeitraum belegt",
-            "DISCARDED", "Verworfen");
+            "DISCARDED", "Verworfen",
+            "STATEMENT_CREATED", "Abrechnung angelegt");
 
     /** Same labels as {@code mailKindLabel} in the frontend's {@code modules/vacationrental/api.ts}. */
     static final java.util.Map<String, String> KIND_LABELS = java.util.Map.of(
@@ -88,7 +96,8 @@ class BookingMailHandler implements MailHandler {
             "BLOCK_NOTICE", "Blockung",
             "OWNER_BLOCK", "Eigentümerblockung",
             "TICKET_RECEIPT", "Eingangsbestätigung",
-            "EXTENSION", "Verlängerung");
+            "EXTENSION", "Verlängerung",
+            "STATEMENT", "Abrechnung");
 
     @Override
     public java.util.Set<String> agencyDomains() {

@@ -23,7 +23,7 @@ See proposal.md for the motivation.
 **Non-Goals:**
 
 - A general PDF table reader. The reader knows the one layout.
-- Reading the PDF of the Holidu system.
+- Reading the PDF of DS Destination Solutions.
 - Changing how net and payout are calculated.
 - A stored review state for statements.
 
@@ -42,7 +42,7 @@ A new component `StatementMailImport` is asked first in `BookingMailHandler.hand
 Both rules work on `businessSubject()`, so forwards are covered.
 
 - Fewo & Meer: sender domain of the agency (the same check `FewoUndMeerParser` uses) and subject `Ihre Abrechnung für <Monat> <Jahr> - <Objekt>`. German month names, the object is the rest of the subject. The period is the calendar month.
-- Holidu system: subject `Ihre Abrechnung: <number>` and a text containing „Eigentümerabrechnung“ and „Zeitraum vom <date> bis zum <date>“. The agency is resolved the way `HoliduDsParser` resolves it for confirmations. This mail has no property name, so `Handled.subjectName` is empty.
+- DS Destination Solutions: subject `Ihre Abrechnung: <number>` and a text containing „Eigentümerabrechnung“ and „Zeitraum vom <date> bis zum <date>“. The sender's domain is not known, the text check is specific enough. The agency is the sender's display name (of the attached original, of an inline „Von:“ line, or of the mail), passed through `HoliduDsParser.agency` like the intermediary of confirmations. This mail has no property name.
 
 ### D3: Attachments come from the raw mail
 
@@ -70,7 +70,7 @@ Gross = last column of the payment table (rent + additional services), commissio
 
 ### D6: Matching rows to bookings
 
-1. Group rows of the same tenant name whose periods touch (one's departure is the other's arrival). Try each group as one row with the combined period and added amounts.
+1. Group rows of the same tenant name whose periods touch (one's departure is the other's arrival), wherever they stand in the PDF: the extension row is not next to its booking's row. The mark „Verlängerungsbuchung“ stands on the line below its row. Try each group as one row with the combined period and added amounts.
 2. If no booking has the combined period, fall back to the rows one by one.
 3. A row matches the guest booking of the unit with exactly its period; a cancelled booking only if no other one has the period. The name is not compared.
 4. A matched booking that is on another statement, and every unmatched row, becomes an open line (note „bereits abgerechnet“ in the first case, „Verlängerungsbuchung“ kept for extension rows).
@@ -96,7 +96,8 @@ Open-line count and `stated_payout` versus payout are computed when a statement 
 ### D9: Unit of a statement mail
 
 - With a property name: the existing `UnitMapping` lookup, including the EDITOR check on the mailbox owner.
-- Without one (Holidu system): a mapping of the agency with the empty property name is the agency's default unit. If there is none and all mappings of the agency point to one unit, that unit is used. Otherwise `UNASSIGNED_UNIT`; the existing assign endpoint then stores the mapping with the empty name, and its reprocessing picks the mail up.
+- Without one (DS Destination Solutions): a mapping of the agency with the property name „Abrechnungen“ is the agency's unit for statements. If there is none and all mappings of the agency point to one unit, that unit is used. Otherwise `UNASSIGNED_UNIT` with `subjectName` „Abrechnungen“; the existing assign endpoint stores that mapping, and its reprocessing picks the mail up. A visible name instead of an empty one keeps the inbox action and the agency page unchanged.
+- The PDF names the object the way booking mails do; the subject sometimes differs. When the PDF is read, its object is the property name.
 
 ### D10: Documents on statements
 

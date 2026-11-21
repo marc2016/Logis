@@ -29,6 +29,15 @@ final class GermanText {
     }
 
     /** "15.05.2027" for messages in the interface. */
+    private static final java.util.List<String> MONTHS = java.util.List.of("januar", "februar", "märz", "april",
+            "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember");
+
+    /** Number of a German month name („März“ → 3), any case; empty if it is none. */
+    static java.util.OptionalInt month(String name) {
+        var index = MONTHS.indexOf(name == null ? "" : name.strip().toLowerCase(java.util.Locale.GERMAN));
+        return index < 0 ? java.util.OptionalInt.empty() : java.util.OptionalInt.of(index + 1);
+    }
+
     static String format(LocalDate date) {
         return date == null ? "?" : DATE.format(date);
     }
