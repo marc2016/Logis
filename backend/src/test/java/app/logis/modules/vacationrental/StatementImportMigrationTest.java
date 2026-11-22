@@ -39,7 +39,8 @@ class StatementImportMigrationTest {
             db.update("INSERT INTO vacationrental.statement_lines (booking_id, statement_id, gross, commission, cleaning) "
                     + "VALUES (?, ?, 410.00, 61.50, 60.00)", booking, statement);
 
-            var result = config.target("latest").load().migrate();
+            // This change only; later migrations belong to later deployments.
+            var result = config.target("20261121.1400").load().migrate();
 
             assertThat(result.migrationsExecuted).isEqualTo(1);
             var row = db.queryForMap("SELECT provider, period_from, statement_date, invoice_number, stated_payout "
