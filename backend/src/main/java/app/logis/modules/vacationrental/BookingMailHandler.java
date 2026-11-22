@@ -104,6 +104,13 @@ class BookingMailHandler implements MailHandler {
         return recognizer.agencyDomains();
     }
 
+    /** The results that leave something to do: assign a unit, find the booking, free the period, look at the error. */
+    @Override
+    public Set<String> attentionResults() {
+        return Set.of(BookingMailResult.UNASSIGNED_UNIT.name(), BookingMailResult.NOT_MATCHED.name(),
+                BookingMailResult.PERIOD_TAKEN.name(), BookingMailResult.FAILED.name());
+    }
+
     @Override
     public java.util.Map<String, String> resultLabels() {
         return RESULT_LABELS;

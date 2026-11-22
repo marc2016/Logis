@@ -1,22 +1,19 @@
 package app.logis.core.auth;
 
 import app.logis.core.geo.GeoLocator;
-import app.logis.core.mail.MailSender;
+import app.logis.core.notifications.Notification;
+import app.logis.core.notifications.NotificationType;
+import app.logis.core.notifications.Notifications;
 import app.logis.core.users.User;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -32,33 +29,39 @@ import java.util.Locale;
 
 /**
  * Watches complete sign-ins: recognises the device by a long-lived cookie, locates the client address, keeps the
- * sign-in history and warns the user by mail about a new device or country (spec sign-in-alerts, design D1–D3).
+ * sign-in history and warns the user about a new device or country (spec sign-in-alerts, design D1–D3). The warning
+ * is the notification „Neue Anmeldung“: always by mail, and by other channels the user switched on (design D5 of
+ * notifications-pushover).
  */
 @Component
 class SignInMonitor {
 
     static final String COOKIE = "LOGIS_DEVICE";
     static final String SUBJECT = "Neue Anmeldung bei Logis";
+    /** Event type of the warning; its mail cannot be switched off. */
+    static final NotificationType TYPE = NotificationType.of("core.signIn", "Neue Anmeldung", "Sicherheit",
+            java.util.Set.of("mail"));
     static final Duration HISTORY = Duration.ofDays(180);
     private static final Duration COOKIE_LIFETIME = Duration.ofDays(365);
     private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm 'Uhr'", Locale.GERMAN);
-    private static final Logger log = LoggerFactory.getLogger(SignInMonitor.class);
 
     private final JdbcTemplate jdbc;
     private final GeoLocator geo;
-    private final MailSender mail;
-    private final TaskExecutor executor;
+    private final Notifications notifications;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
 
-    SignInMonitor(JdbcTemplate jdbc, GeoLocator geo, MailSender mail,
-            @Qualifier("applicationTaskExecutor") TaskExecutor executor, Clock clock) {
+    SignInMonitor(JdbcTemplate jdbc, GeoLocator geo, Notifications notifications, Clock clock) {
         this.jdbc = jdbc;
         this.geo = geo;
-        this.mail = mail;
-        this.executor = executor;
+        this.notifications = notifications;
         this.clock = clock;
+    }
+
+    @Bean
+    static NotificationType signInNotificationType() {
+        return TYPE;
     }
 
     /** What the check found; for tests and logs. */
@@ -89,39 +92,21 @@ class SignInMonitor {
                 family.os(), location == null ? null : location.countryCode(),
                 location == null ? null : truncate(location.city(), 128));
 
-        var warn = !first && (newDevice || newLocation) && user.getEmail() != null;
+        var warn = !first && (newDevice || newLocation);
         if (warn) {
-            var to = user.getEmail();
-            var text = text(now, family, location);
-            afterCommit(() -> send(user.getId(), to, text));
+            // In the background once the sign-in is stored, so the sign-in never waits for or fails with it. Users
+            // without an address get no mail, but still the channels they switched on.
+            notifications.send(TYPE.key(), java.util.List.of(user.getId()),
+                    new Notification(SUBJECT, shortText(family, location), text(now, family, location), null));
         }
         return new Outcome(first, newDevice, newLocation, warn);
     }
 
-    private void send(Long userId, String to, String text) {
-        try {
-            if (mail.configured()) {
-                mail.send(to, SUBJECT, text);
-            }
-        } catch (RuntimeException ex) {
-            // Informational only: the sign-in has succeeded and is recorded.
-            log.warn("Sign-in warning could not be sent for user {}", userId);
-        }
-    }
-
-    /** The mail is sent in the background once the sign-in is stored, so the sign-in never waits for it. */
-    private void afterCommit(Runnable task) {
-        Runnable background = () -> executor.execute(task);
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    background.run();
-                }
-            });
-        } else {
-            background.run();
-        }
+    /** For channels outside the system: device and place, never the client address. */
+    static String shortText(DeviceFamily family, GeoLocator.Location location) {
+        var browser = DeviceFamily.OTHER.equals(family.browser()) ? "Unbekannter Browser" : family.browser();
+        var os = DeviceFamily.OTHER.equals(family.os()) ? "unbekanntes System" : family.os();
+        return "%s auf %s, %s".formatted(browser, os, location == null ? "Ort unbekannt" : location.label());
     }
 
     static String text(Instant at, DeviceFamily family, GeoLocator.Location location) {

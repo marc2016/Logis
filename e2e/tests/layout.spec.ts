@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test'
 import { call } from '../support/api'
 import { account, booking, holidayHome, inDays, longTermUnit, owner, tenancy } from '../support/data'
-import { expect, test } from '../support/fixtures'
+import { adminPage, expect, test } from '../support/fixtures'
 import { layoutProblems } from '../support/layout'
+import { APP_TOKEN, userKey } from '../support/pushover'
 import { connectMailbox, deliver, fetchMails, fewoConfirmation, type InboxMail } from '../support/mail'
 
 /** Phone, tablet and tablet landscape; from 768 px the sidebar is open next to the content. */
@@ -106,6 +107,20 @@ test('a booking imported from a mail fits on phone and tablet screens', async ({
   const bookingId = inbox.find((m) => m.id === mail.id)!.linkId!
 
   expect(await check(page, `/ferienvermietung/buchungen/${bookingId}`, 'Max Mustermann')).toEqual([])
+})
+
+test('notification settings fit on phone and tablet screens', async ({ page, api, browser, baseURL }) => {
+  // With Pushover set up the account page shows the key form and both columns of switches.
+  const admin = await adminPage(browser, baseURL!)
+  await call(admin.context().request, 'PUT', '/api/admin/pushover', { token: APP_TOKEN })
+  // The page itself: an admin's navigation is longer than the window and scrolls, which the check does not follow.
+  const problems = [...(await check(admin, '/einstellungen/pushover', 'Pushover', 'main'))]
+  await admin.context().close()
+  await call(api, 'PUT', '/api/account/pushover', { userKey: userKey() })
+
+  problems.push(...(await check(page, '/konto', 'Mein Konto')))
+  await expect(page.getByRole('checkbox', { name: 'Neue Anmeldung: Pushover' })).toBeEnabled()
+  expect(problems).toEqual([])
 })
 
 test('long-term rental fits on phone and tablet screens', async ({ page, api }) => {

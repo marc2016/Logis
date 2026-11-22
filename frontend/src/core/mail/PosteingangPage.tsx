@@ -16,7 +16,7 @@ import { InboxDialog } from './InboxDialog'
 import { MailboxCard } from './MailboxCard'
 import { InboxFilters, type Option } from './InboxFilters'
 import { DEFAULT_SORT, filterInbox, parseSort, senderOf, sortInbox, type InboxFilter } from './inboxFilter'
-import { ATTENTION_RESULTS, useInbox, useInvalidateAfterMail, useMailbox, type InboxItem } from './api'
+import { useInbox, useInvalidateAfterMail, useMailbox, type InboxItem } from './api'
 import { useMailLabels } from './labels'
 
 /** URL parameter of each filter. */
@@ -49,7 +49,7 @@ function useColumns() {
   column.accessor('kind', { header: 'Art', cell: (c) => labels.kind(c.getValue()), meta: { label: 'Art', sortable: true } }),
   column.accessor('result', {
     header: 'Ergebnis',
-    cell: (c) => <Badge variant={ATTENTION_RESULTS.has(c.getValue()) ? 'default' : 'outline'}>{labels.result(c.getValue())}</Badge>,
+    cell: (c) => <Badge variant={c.row.original.needsAttention ? 'default' : 'outline'}>{labels.result(c.getValue())}</Badge>,
     meta: { label: 'Ergebnis', sortable: true },
   }),
   ]

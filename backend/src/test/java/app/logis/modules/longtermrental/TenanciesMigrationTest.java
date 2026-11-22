@@ -26,6 +26,7 @@ class TenanciesMigrationTest {
             // A deployment before this change: the schema did not exist and had no migration location.
             Flyway.configure().dataSource(ds).schemas("core", "vacationrental").defaultSchema("core")
                     .locations("classpath:db/migration/core", "classpath:db/migration/vacationrental")
+                    // The last migration before long-term rental; later ones belong to later deployments.
                     .target("20261121.1000").load().migrate();
             var db = new JdbcTemplate(ds);
             db.update("INSERT INTO vacationrental.bookings (unit_id, arrival, departure, adults, external_ref) "

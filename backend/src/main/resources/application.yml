@@ -64,6 +64,10 @@ logis:
     username: ${LOGIS_ADMIN_USERNAME:}
     password: ${LOGIS_ADMIN_PASSWORD:}
   encryption-key: ${LOGIS_ENCRYPTION_KEY:}
+  # Notifications through Pushover; the application token and the users' keys are set in the app. The address only
+  # changes for tests, which point it at a stand-in.
+  pushover:
+    base-url: ${LOGIS_PUSHOVER_BASE_URL:https://api.pushover.net}
   # Local GeoIP database (DB-IP Lite) for the location of sign-ins; downloaded monthly, never queried remotely.
   geoip:
     enabled: ${LOGIS_GEOIP_ENABLED:true}

@@ -103,6 +103,31 @@ public class SharingService {
         return rolesFor(type, userId, minimum).keySet();
     }
 
+    /**
+     * The users with at least the given effective role on the object, for child types including roles on the
+     * parent. A lookup of the system itself, without an acting user: only to address notifications, never to
+     * answer a request.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, ShareRole> usersWithRole(String type, Long objectId, ShareRole minimum) {
+        var roles = new HashMap<Long, ShareRole>();
+        var child = childType(type);
+        if (child != null) {
+            var parentId = child.parentOf(objectId);
+            if (parentId.isEmpty()) {
+                return Map.of();
+            }
+            for (var share : shares.findAllForObject(child.parentType(), parentId.get())) {
+                roles.merge(share.getUserId(), share.getRole(), SharingService::max);
+            }
+        }
+        for (var share : shares.findAllForObject(type, objectId)) {
+            roles.merge(share.getUserId(), share.getRole(), SharingService::max);
+        }
+        roles.values().removeIf(role -> !role.atLeast(minimum));
+        return roles;
+    }
+
     /** Whether the user may manage the object's shares: owner of the object, or of the parent for child types. */
     @Transactional(readOnly = true)
     public boolean canManage(String type, Long objectId, Long userId) {

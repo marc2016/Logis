@@ -46,6 +46,11 @@ class RentalAccess {
         return units.units(userId, ShareRole.VIEWER);
     }
 
+    /** The users with at least the role on the unit; only to address notifications about its bookings. */
+    java.util.Set<Long> usersOn(Long unitId, ShareRole minimum) {
+        return units.usersOn(unitId, minimum);
+    }
+
     Map<Long, UnitSummary> summaries(Collection<Long> unitIds) {
         return units.summaries(unitIds);
     }

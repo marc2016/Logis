@@ -63,7 +63,7 @@ GitHub Actions runs all tests on every push and publishes the images `ghcr.io/ma
 |---|---|
 | `LOGIS_BIND`, `LOGIS_PORT` | Address and port of the only published port. Default `127.0.0.1:8080`, i.e. reachable only for a proxy on the same host. |
 | `LOGIS_TRUSTED_PROXIES` | Addresses or networks whose `X-Forwarded-For` counts as the real client IP, comma-separated |
-| `LOGIS_PUBLIC_URL` | Address users open Logis under, e.g. `https://logis.example.org`. Enables passkeys, which are bound to this domain (see Users). Empty: no passkeys. |
+| `LOGIS_PUBLIC_URL` | Address users open Logis under, e.g. `https://logis.example.org`. Enables passkeys, which are bound to this domain (see Users), and is used for links in notifications. Empty: no passkeys and no links. |
 | `LOGIS_ENCRYPTION_KEY` | Key for the TOTP secrets, 32 bytes in Base64. **Back it up separately from the backups!** |
 | `LOGIS_ADMIN_USERNAME`, `LOGIS_ADMIN_PASSWORD` | Initial admin, used only at the very first start. At least 12 characters. |
 | `LOGIS_MODULES_<MODULE>_ENABLED` | Switch a module on or off: `LOGIS_MODULES_VACATIONRENTAL_ENABLED` (vacation rental) and `LOGIS_MODULES_LONGTERMRENTAL_ENABLED` (long-term rental), both on by default. A module that is off keeps its data. |
@@ -121,12 +121,31 @@ http:
 - **Passkeys** (when `LOGIS_PUBLIC_URL` is set): under *Mein Konto* everyone can add passkeys after confirming their password. „Mit Passkey anmelden“ then signs in with Face ID, Touch ID or the device PIN, without password or code. 2FA stays mandatory as the way back. Resetting a user's 2FA also deletes their passkeys.
   - Passkeys are bound to the domain in `LOGIS_PUBLIC_URL`. **Changing the domain later makes all existing passkeys unusable**; users then sign in with password and code and add new ones.
 - **E-mail addresses:** every new user needs an e-mail address, entered by the admin. Users created earlier see a notice until they have one; an admin can add it in the user management. Under *Mein Konto* users change their address themselves: Logis sends a 6-digit code to the new address (valid 30 minutes, 5 attempts), and the old address is told about the change. This needs an outgoing mail server.
-- **Warnings about new sign-ins:** after a complete sign-in from a new device (a browser that never signed in to this account) or from a country the user has not signed in from in the last 180 days, Logis sends „Neue Anmeldung bei Logis“ to the user's address, naming time, browser and system, and location. The very first sign-in sends nothing. A remembered device („Angemeldet bleiben“) that shows up in another country is signed out. Logis keeps a history of sign-ins for 180 days, without IP addresses. This needs an outgoing mail server and the user's e-mail address.
+- **Warnings about new sign-ins:** after a complete sign-in from a new device (a browser that never signed in to this account) or from a country the user has not signed in from in the last 180 days, Logis sends „Neue Anmeldung bei Logis“ to the user's address, naming time, browser and system, and location. The very first sign-in sends nothing. The mail cannot be switched off; the warning can additionally go through Pushover (see Notifications). A remembered device („Angemeldet bleiben“) that shows up in another country is signed out. Logis keeps a history of sign-ins for 180 days, without IP addresses. This needs an outgoing mail server and the user's e-mail address.
 - **Outgoing mail server:** under *Einstellungen > E-Mail-Versand* an admin enters SMTP server, port, encryption (none, STARTTLS, SSL/TLS), username, password and sender. Saving tests the connection; „Testmail senden“ checks delivery. The password is stored encrypted and never shown. Without this configuration Logis sends no mail.
 - **Mail-Export for admins:** under *Einstellungen > Mail-Export* an admin downloads a ZIP of stored mails (one `.eml` per mail plus `index.csv`), filtered by mailbox, period, result and agency, for example to improve the recognition of new agency formats. Only mailboxes whose owners switched on „Admins dürfen meine Mails pseudonymisiert exportieren“ in their mailbox settings are offered.
   - The mails are pseudonymized **on a best-effort basis**: guest names, addresses, phone numbers, e-mail addresses and booking numbers that Logis knows or recognises are replaced, as are addresses, phone numbers and IBANs found by pattern. Names and addresses Logis does not know can remain. Dates and amounts stay. Attachments are removed. Deleted mails are never exported.
   - Every export is logged per mailbox; the owner sees their last export in the mailbox settings. This is the only way an admin gets content from other users' mailboxes.
 - **Angemeldet bleiben:** with this box checked at sign-in, the device stays signed in without password or code: for 30 days after its last use and for 90 days after the sign-in at most. It also survives backend restarts. *Mein Konto > Angemeldete Geräte* lists these devices and signs them out, one at a time or all others at once. On such a device, the admin area asks for a fresh sign-in.
+
+## Notifications
+
+Logis can tell users about events without them opening the app: a booking or a change from a mail that waits for review, arrivals and departures of the next day (one digest daily at 18:00), a mailbox that stopped fetching, mails that need attention, and sign-ins from a new device or country.
+
+Every user chooses under **Mein Konto → Benachrichtigungen** what they are told through which channel. Everything is off until switched on; only the sign-in warning by e-mail is always sent. Notifications about bookings go to users with a role on the unit, never to an admin without one.
+
+| Channel | Set-up | What is sent |
+|---|---|---|
+| E-Mail | Admin: **Einstellungen → E-Mail-Versand**. User: an e-mail address under *Mein Konto*. | The long form with details such as guest, number of guests and expected rent, to the user's own address. |
+| Pushover | Admin: **Einstellungen → Pushover**. User: their own key under *Mein Konto*. | The short form only: title, a short text (property, period, agency; browser and place of a sign-in) and a link. No guest names, contact data, amounts or booking numbers. |
+
+To set up Pushover:
+
+1. Create an application on [pushover.net](https://pushover.net/apps/build) and copy its API token.
+2. As admin, open **Einstellungen → Pushover**, enter the token and save. Logis checks it with Pushover and stores it encrypted.
+3. Every user enters their Pushover user key under **Mein Konto → Pushover**, sends themselves „Testnachricht senden“ and switches on the notifications they want.
+
+Pushover is a service outside Logis. The backend connects to `api.pushover.net` on port 443; allow this if outbound traffic is restricted. Links in notifications use `LOGIS_PUBLIC_URL`; without it notifications carry no link. A notification that cannot be delivered is logged and not sent again.
 
 ## Start page
 
@@ -306,7 +325,7 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 Playwright tests in `e2e/` check the main flows (sign-in with two-factor setup, booking to calendar and statement, mail import, calendar subscription) in a real browser, each on a desktop and a phone screen. They run in the GitHub workflow against the images of the commit; images are only published when they pass.
 
-Locally against the production stack with a test mail server (test settings from `e2e/e2e.env`):
+Locally against the production stack with a test mail server and a stand-in for the Pushover API (test settings from `e2e/e2e.env`):
 
 ```sh
 docker compose --env-file e2e/e2e.env -f compose.yml -f e2e/compose.e2e.yml up -d --build --wait
@@ -314,7 +333,7 @@ cd e2e && npm ci && npx playwright install chromium
 npx playwright test                 # npx playwright test --project=phone for one screen
 ```
 
-`LOGIS_E2E_URL` points to another stack (default `http://localhost:8080`); `LOGIS_E2E_ADMIN_PASSWORD`, `LOGIS_E2E_IMAP_HOST` and `LOGIS_E2E_SMTP_HOST` match its admin and mail server. The suite keeps the admin's TOTP secret in `e2e/.auth/`; delete that folder together with the database.
+`LOGIS_E2E_URL` points to another stack (default `http://localhost:8080`); `LOGIS_E2E_ADMIN_PASSWORD`, `LOGIS_E2E_IMAP_HOST` and `LOGIS_E2E_SMTP_HOST` match its admin and mail server, `LOGIS_E2E_PUSHOVER_URL` the stand-in for Pushover (`e2e/support/pushover-stub.mjs`, default `http://127.0.0.1:3080`). The suite keeps the admin's TOTP secret in `e2e/.auth/`; delete that folder together with the database.
 
 ### Creating a new module
 

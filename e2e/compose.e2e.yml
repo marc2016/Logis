@@ -1,4 +1,6 @@
-# Override for the end-to-end tests: a test mail server next to the stack from compose.yml.
+# Override for the end-to-end tests: a test mail server and a stand-in for the Pushover API next to the stack from
+# compose.yml. The backend reaches the stand-in as "pushover" (see LOGIS_PUSHOVER_BASE_URL in e2e.env); the tests
+# read what it received on 127.0.0.1:3080.
 # The backend reaches it as "greenmail" (IMAP 3143, SMTP 3025, no TLS); the tests deliver mails via SMTP on
 # 127.0.0.1:3025 and read mails Logis sent via IMAP on 127.0.0.1:3143.
 services:
@@ -11,4 +13,12 @@ services:
     ports:
       - "127.0.0.1:3025:3025"
       - "127.0.0.1:3143:3143"
+    networks: [egress]
+  pushover:
+    image: node:22-alpine
+    command: ["node", "/stub/pushover-stub.mjs"]
+    volumes:
+      - ./e2e/support/pushover-stub.mjs:/stub/pushover-stub.mjs:ro
+    ports:
+      - "127.0.0.1:3080:3080"
     networks: [egress]

@@ -7,6 +7,7 @@ import { UsersPage } from '@/core/admin/users/UsersPage'
 import { CategoriesPage } from '@/core/admin/categories/CategoriesPage'
 import { MailExportPage } from '@/core/admin/mail-export/MailExportPage'
 import { SmtpPage } from '@/core/admin/smtp/SmtpPage'
+import { PushoverPage } from '@/core/admin/pushover/PushoverPage'
 import { AccountsPage } from '@/core/ledger/accounts/AccountsPage'
 import { AccountDetailPage } from '@/core/ledger/accounts/AccountDetailPage'
 import { TransactionsPage } from '@/core/ledger/transactions/TransactionsPage'
@@ -56,6 +57,14 @@ export const routes: RouteObject[] = [
             element: (
               <RequireAdmin>
                 <SmtpPage />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: 'einstellungen/pushover',
+            element: (
+              <RequireAdmin>
+                <PushoverPage />
               </RequireAdmin>
             ),
           },

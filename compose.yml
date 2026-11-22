@@ -43,6 +43,7 @@ services:
       LOGIS_PUBLIC_URL: ${LOGIS_PUBLIC_URL:-}
       # Monthly download of the DB-IP Lite GeoIP database for sign-in warnings; false: no locations.
       LOGIS_GEOIP_ENABLED: ${LOGIS_GEOIP_ENABLED:-true}
+      LOGIS_PUSHOVER_BASE_URL: ${LOGIS_PUSHOVER_BASE_URL:-https://api.pushover.net}
     volumes:
       - geoip:/var/lib/logis/geoip
     # egress: outbound only (mail import via IMAP, outgoing mail, GeoIP download, optional AI); no published ports.

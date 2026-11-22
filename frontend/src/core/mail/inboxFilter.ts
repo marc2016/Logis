@@ -1,6 +1,6 @@
 import type { SortState } from '@/components/DataTable'
 import { toIso } from '@/components/dateInput'
-import { ATTENTION_RESULTS, type InboxItem } from './api'
+import type { InboxItem } from './api'
 
 /** Result filter value for all mails that need attention. */
 export const OPEN = 'offen'
@@ -34,7 +34,7 @@ export function parseSort(value: string | null): SortState {
 export function filterInbox(items: InboxItem[], f: InboxFilter): InboxItem[] {
   const q = f.q.trim().toLowerCase()
   return items.filter((m) => {
-    if (f.result === OPEN ? !ATTENTION_RESULTS.has(m.result) : f.result && m.result !== f.result) return false
+    if (f.result === OPEN ? !m.needsAttention : f.result && m.result !== f.result) return false
     if (f.kind && m.kind !== f.kind) return false
     if (f.sender && senderOf(m) !== f.sender) return false
     const day = toIso(new Date(m.receivedAt))

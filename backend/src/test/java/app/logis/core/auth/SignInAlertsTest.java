@@ -2,6 +2,7 @@ package app.logis.core.auth;
 
 import app.logis.IntegrationTest;
 import app.logis.core.geo.GeoLocator;
+import app.logis.core.notifications.TestChannels;
 import app.logis.core.users.Role;
 import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.util.ServerSetupTest;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 
 import java.sql.Timestamp;
@@ -24,10 +26,14 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Warning mails for sign-ins from a new device or country (spec sign-in-alerts); invented values only. */
-@Import(SignInAlertsTest.GeoStub.class)
+@Import({SignInAlertsTest.GeoStub.class, TestChannels.class})
 @TestPropertySource(properties = "logis.auth.public-url=https://logis.example.org")
 class SignInAlertsTest extends IntegrationTest {
 
@@ -54,6 +60,8 @@ class SignInAlertsTest extends IntegrationTest {
     JdbcTemplate jdbc;
     @Autowired
     SignInMonitor monitor;
+    @Autowired
+    TestChannels.Recording recording;
 
     @BeforeEach
     void mailServer() {
@@ -206,5 +214,55 @@ class SignInAlertsTest extends IntegrationTest {
         monitor.deleteOld();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM core.sign_ins WHERE user_id = ?", Long.class, anna.id()))
                 .isEqualTo(1);
+    }
+
+    /** Spec sign-in-alerts, „Warning as a notification“ and „Warning by Pushover“ (here: a recording channel). */
+    @Test
+    void theMailIsMandatoryAndAnotherChannelGetsTheShortFormWithoutTheAddress() throws Exception {
+        var anna = userWithAddress("anna.kanal@example.org");
+        var carla = createUser(Role.USER, true);
+        var session = login(anna);
+        getWith("/api/notifications", session)
+                .andExpect(jsonPath("$.types[?(@.key == 'core.signIn')].label").value("Neue Anmeldung"))
+                .andExpect(jsonPath("$.types[?(@.key == 'core.signIn')].group").value("Sicherheit"))
+                .andExpect(jsonPath("$.types[?(@.key == 'core.signIn')].channels.mail.enabled").value(true))
+                .andExpect(jsonPath("$.types[?(@.key == 'core.signIn')].channels.mail.mandatory").value(true))
+                .andExpect(jsonPath("$.types[?(@.key == 'core.signIn')].channels.recording.enabled").value(false));
+        mvc.perform(put("/api/notifications/core.signIn/mail").with(csrf()).session(session)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":false}"))
+                .andExpect(status().isBadRequest());
+        for (var user : new TestUser[] {anna, carla}) {
+            device(FIREFOX_LINUX, "192.168.1.20").signIn(user, false);
+        }
+        // The sign-ins so far may have warned Anna by mail; from here on the other channel is on as well.
+        Thread.sleep(700);
+        var before = mailsTo("anna.kanal@example.org").length;
+        for (var user : new TestUser[] {anna, carla}) {
+            jdbc.update("INSERT INTO core.notification_settings (user_id, event_type, channel, enabled, updated_at) "
+                    + "VALUES (?, 'core.signIn', 'recording', true, now())", user.id());
+        }
+
+        device(CHROME_ANDROID, "203.0.113.7").signIn(anna, false);
+        // Carla has no address: no mail, but the channel she switched on.
+        device(CHROME_ANDROID, "198.51.100.9").signIn(carla, false);
+
+        var push = recording.await(anna.id(), 1).get(0);
+        assertThat(push.title()).isEqualTo("Neue Anmeldung bei Logis");
+        assertThat(push.text()).isEqualTo("Chrome auf Android, Hamburg, Deutschland");
+        assertThat(push.link()).isNull();
+        var other = recording.await(carla.id(), 1).get(0);
+        assertThat(other.text()).isEqualTo("Chrome auf Android, Madrid, Spanien").doesNotContain("198.51");
+        assertThat(awaitMails("anna.kanal@example.org", before + 1)).isNotEmpty();
+    }
+
+    @Test
+    void withoutTheSwitchOnlyTheMailIsSentAndAnUnknownPlaceIsNamed() throws Exception {
+        var bert = userWithAddress("bert.kanal@example.org");
+        device(FIREFOX_LINUX, null).signIn(bert, false);
+        device(CHROME_ANDROID, null).signIn(bert, false);
+        awaitMails("bert.kanal@example.org", 1);
+        recording.await(bert.id(), 0);
+        assertThat(SignInMonitor.shortText(DeviceFamily.of(CHROME_ANDROID), null))
+                .isEqualTo("Chrome auf Android, Ort unbekannt");
     }
 }
