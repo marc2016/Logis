@@ -335,6 +335,8 @@ class BookingService {
         }
         if (p.type() == BookingProposal.Type.CANCELLATION) {
             booking.setCancelled(true);
+            // A cancelled booking has nothing left to confirm: the review of an unconfirmed booking ends here.
+            booking.setReviewState(ReviewState.NONE);
         } else {
             var g = p.guest() == null ? booking.getGuest() : merge(booking.getGuest(), p.guest());
             apply(userId, booking, new BookingInput(booking.getUnitId(),

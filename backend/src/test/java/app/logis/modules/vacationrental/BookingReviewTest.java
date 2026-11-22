@@ -164,4 +164,56 @@ class BookingReviewTest extends VacationRentalTest {
         mvc.perform(delete("/api/vacationrental/bookings/" + id).with(csrf()).session(anna.session()))
                 .andExpect(status().isNoContent());
     }
+
+    private void reportCancellation(Long bookingId) {
+        jdbc.update("UPDATE vacationrental.bookings SET review_state = 'NEW', proposal = ?::jsonb WHERE id = ?",
+                "{\"type\":\"CANCELLATION\"}", bookingId);
+    }
+
+    @Test
+    void applyCancellationOfAnUnconfirmedBookingEndsTheReview() throws Exception {
+        var anna = actor();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
+        var id = booking(anna, unit, "2026-11-06", "2026-11-08");
+        reportCancellation(id);
+        getWith("/api/vacationrental/bookings/" + id, anna.session())
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.proposal.type").value("CANCELLATION"));
+        postJson("/api/vacationrental/bookings/" + id + "/proposal/apply", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.reviewState").value("NONE"))
+                .andExpect(jsonPath("$.proposal").doesNotExist());
+        // The data stays, and the period is free again.
+        getWith("/api/vacationrental/bookings/" + id, anna.session())
+                .andExpect(jsonPath("$.arrival").value("2026-11-06"));
+        booking(anna, unit, "2026-11-06", "2026-11-08");
+    }
+
+    @Test
+    void discardingTheCancellationKeepsTheBookingToReview() throws Exception {
+        var anna = actor();
+        var unit = unitIds(singleUnitProperty(anna, "Haus Waldeck")).getFirst();
+        var id = booking(anna, unit, "2026-11-06", "2026-11-08");
+        reportCancellation(id);
+        postJson("/api/vacationrental/bookings/" + id + "/proposal/discard", Map.of(), anna.session())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PLANNED"))
+                .andExpect(jsonPath("$.reviewState").value("NEW"))
+                .andExpect(jsonPath("$.proposal").doesNotExist());
+    }
+
+    @Test
+    void calendarMarksReportedCancellations() throws Exception {
+        var anna = actor();
+        var property = singleUnitProperty(anna, "Haus Waldeck");
+        var unit = unitIds(property).getFirst();
+        var cancelled = booking(anna, unit, "2026-11-06", "2026-11-08");
+        var changed = booking(anna, unit, "2026-11-10", "2026-11-12");
+        booking(anna, unit, "2026-11-14", "2026-11-16");
+        reportCancellation(cancelled);
+        propose(changed, "{\"type\":\"CHANGE\",\"departure\":\"2026-11-13\"}");
+        getWith("/api/vacationrental/occupancy/calendar?propertyId=" + property + "&year=2026", anna.session())
+                .andExpect(jsonPath("$.units[0].bookings[*].cancellationReported", contains(true, false, false)));
+    }
 }

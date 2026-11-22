@@ -92,6 +92,52 @@ describe('Review mode', () => {
     expect(screen.getByRole('link', { name: 'Zur Liste' })).toHaveAttribute('href', '/ferienvermietung/buchungen')
   })
 
+  it('stays on an unconfirmed booking after its reported cancellation was discarded, and moves on after applying one', async () => {
+    const cancellation: Booking['proposal'] = { type: 'CANCELLATION', arrival: null, departure: null, adults: null, children: null, pets: null, expectedRent: null, guest: null }
+    const bookings = new Map<number, Booking>([
+      [501, booking({ id: 501, arrival: '2026-12-01', departure: '2026-12-03', reviewState: 'NEW', guest: guest('Anna Gast'), proposal: cancellation })],
+      [502, booking({ id: 502, arrival: '2026-12-05', departure: '2026-12-07', reviewState: 'NEW', guest: guest('Bruno Gast'), proposal: cancellation })],
+      [503, booking({ id: 503, arrival: '2026-12-10', departure: '2026-12-12', reviewState: 'NEW', guest: guest('Clara Gast'), proposal: cancellation })],
+    ])
+    const change = (id: number, changes: Partial<Booking>) => {
+      const b = { ...bookings.get(id)!, ...changes, proposal: null, version: bookings.get(id)!.version + 1 }
+      bookings.set(id, b)
+      return { body: b }
+    }
+    mockApi({
+      ...base,
+      'GET /api/vacationrental/bookings': () => ({ body: bookingPage([...bookings.values()].filter((b) => b.reviewState !== 'NONE')) }),
+      'GET /api/vacationrental/bookings/501': () => ({ body: bookings.get(501) }),
+      'GET /api/vacationrental/bookings/502': () => ({ body: bookings.get(502) }),
+      'GET /api/vacationrental/bookings/503': () => ({ body: bookings.get(503) }),
+      'POST /api/vacationrental/bookings/501/proposal/discard': () => change(501, {}),
+      'POST /api/vacationrental/bookings/501/proposal/apply': () => change(501, { status: 'CANCELLED', reviewState: 'NONE' }),
+      'POST /api/vacationrental/bookings/501/confirm': () => change(501, { reviewState: 'NONE' }),
+      'POST /api/vacationrental/bookings/502/proposal/apply': () => change(502, { status: 'CANCELLED', reviewState: 'NONE' }),
+      'POST /api/vacationrental/bookings/503/discard': () => {
+        bookings.delete(503)
+        return { status: 204 }
+      },
+    } as Parameters<typeof mockApi>[0])
+    renderApp('/ferienvermietung/pruefen')
+    const user = userEvent.setup()
+    expect(await screen.findByRole('heading', { name: 'Anna Gast' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stornierung verwerfen' }))
+    // Still the same booking: it is not confirmed yet.
+    expect(await screen.findByRole('button', { name: 'Bestätigen' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Anna Gast' })).toBeInTheDocument()
+    await waitFor(() => expect(position()).toHaveTextContent('1 von 3'))
+    await user.click(screen.getByRole('button', { name: 'Bestätigen' }))
+
+    expect(await screen.findByRole('heading', { name: 'Bruno Gast' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Stornierung übernehmen' }))
+
+    expect(await screen.findByRole('heading', { name: 'Clara Gast' })).toBeInTheDocument()
+    await waitFor(() => expect(position()).toHaveTextContent('1 von 1'))
+    await user.click(await screen.findByRole('button', { name: 'Buchung verwerfen' }))
+    expect(await screen.findByText('Alles geprüft.')).toBeInTheDocument()
+  })
+
   it('keeps the list filters in the queue', async () => {
     queueApi()
     const { router } = renderApp('/ferienvermietung/buchungen?unitId=70&sort=nights,asc')

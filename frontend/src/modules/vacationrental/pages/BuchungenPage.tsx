@@ -25,7 +25,7 @@ import { SkipError } from '@/lib/bulk'
 import { backTo, bookingPath } from '../BookingPage.paths'
 import { IdSelect } from '../RentalFilters'
 import { queueParams, reviewStartPath, useReviewCount } from '../reviewQueue'
-import { kindLabel, rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingKind, type BookingStatus } from '../api'
+import { CANCELLATION_REPORTED, cancellationReported, kindLabel, rentalProperties, statusLabel, unitLabel, useAgencies, useBookings, useInvalidateRental, useRentalUnits, type Booking, type BookingKind, type BookingStatus } from '../api'
 
 const PAGE_SIZE = 50
 const ALL = 'all'
@@ -60,6 +60,7 @@ const columns = [
       <span className="inline-flex flex-wrap gap-1">
         <Badge variant={c.getValue() === 'CANCELLED' ? 'secondary' : 'outline'}>{statusLabel[c.getValue()]}</Badge>
         {c.row.original.reviewState !== 'NONE' && <Badge>zu prüfen</Badge>}
+        {cancellationReported(c.row.original) && <Badge variant="destructive">{CANCELLATION_REPORTED}</Badge>}
       </span>
     ),
     meta: { label: 'Status', sortable: true },
@@ -233,7 +234,7 @@ export function BuchungenPage() {
           disabled={bulk.busy}
           onClick={() =>
             bulk.run(selected, bookingId, (b) => {
-              if (b.reviewState === 'CHANGE') throw new SkipError('Änderungsvorschläge bitte einzeln prüfen')
+              if (b.reviewState === 'CHANGE' || cancellationReported(b)) throw new SkipError('Änderungsvorschläge bitte einzeln prüfen')
               if (b.reviewState !== 'NEW') throw new SkipError('Die Buchung ist nicht „zu prüfen“')
               return api(`${base(b)}/confirm`, { method: 'POST' })
             }, 'bestätigt')

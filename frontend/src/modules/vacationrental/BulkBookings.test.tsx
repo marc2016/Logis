@@ -45,6 +45,32 @@ describe('Bulk actions on bookings', () => {
     expect(screen.getByRole('checkbox', { name: /Buchung 250902 .* auswählen/ })).toBeChecked()
   })
 
+  it('does not confirm a booking whose cancellation a mail reports', async () => {
+    let list = bookings(2, (i) => ({
+      reviewState: 'NEW',
+      proposal: i === 1 ? { type: 'CANCELLATION', arrival: null, departure: null, adults: null, children: null, pets: null, expectedRent: null, guest: null } : null,
+    }))
+    const confirmed: number[] = []
+    const handlers: Record<string, unknown> = {}
+    list.forEach((b) => {
+      handlers[`POST /api/vacationrental/bookings/${b.id}/confirm`] = () => {
+        confirmed.push(b.id)
+        list = list.map((x) => (x.id === b.id ? { ...x, reviewState: 'NONE' } : x))
+        return { body: { ...b, reviewState: 'NONE' } }
+      }
+    })
+    mockApi({ ...base, ...(handlers as object), 'GET /api/vacationrental/bookings': () => ({ body: bookingPage(list) }) })
+    renderApp('/ferienvermietung/buchungen')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+    await user.click(within(toolbar()).getByRole('button', { name: 'Bestätigen' }))
+    expect(await screen.findByText('1 bestätigt, 1 nicht: Änderungsvorschläge bitte einzeln prüfen')).toBeInTheDocument()
+    expect(confirmed).toEqual([500])
+    const row = screen.getByRole('row', { name: /Buchung 250901/ })
+    expect(within(row).getByText('zu prüfen')).toBeInTheDocument()
+    expect(within(row).getByText('Stornierung gemeldet')).toBeInTheDocument()
+  })
+
   it('deletes after confirmation; a settled booking fails with the server message', async () => {
     let list = bookings(3)
     const handlers: Record<string, unknown> = {}

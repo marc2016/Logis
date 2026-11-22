@@ -23,7 +23,7 @@ import { REVIEW_PARAM, listPath, nextAfter, previousBefore, queueParams, reviewP
 import { SourcePanel } from '../SourcePanel'
 import type { ActiveField } from '../sources'
 import { backLabel, type BackState } from '../BookingPage.paths'
-import { statusLabel, unitLabel, useBooking, useInvalidateRental, type Booking } from '../api'
+import { CANCELLATION_REPORTED, cancellationReported, mailKindLabel, statusLabel, unitLabel, useBooking, useInvalidateRental, type Booking } from '../api'
 
 const LIST = '/ferienvermietung/buchungen'
 
@@ -42,6 +42,7 @@ function Header({ booking }: { booking: Booking }) {
         <h1 className="text-2xl font-semibold tracking-tight">{guest}</h1>
         <Badge variant={booking.status === 'CANCELLED' ? 'secondary' : 'outline'}>{statusLabel[booking.status]}</Badge>
         {booking.reviewState !== 'NONE' && <Badge>zu prüfen</Badge>}
+        {cancellationReported(booking) && <Badge variant="destructive">{CANCELLATION_REPORTED}</Badge>}
       </div>
       <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm" aria-label="Wichtige Angaben">
         <div>
@@ -185,6 +186,8 @@ export function BookingPage() {
   const proposalLocations = booking.proposalLocations ?? {}
   const sources = booking.sources ?? []
   const withSources = booking.canEdit
+  // A reported cancellation carries no values to click on, so its mail is shown without being asked for (design D4).
+  const cancellationSource = cancellationReported(booking) ? sources.findLast((s) => s.label.endsWith(` ${mailKindLabel.CANCELLATION}`)) : undefined
   const base = `/api/vacationrental/bookings/${booking.id}`
 
   /** Shows a location in its source; on narrow screens the source tab stays where the user is. */
@@ -275,7 +278,7 @@ export function BookingPage() {
       sources={sources}
       locations={locations}
       proposalLocations={proposalLocations}
-      sourceId={sourceId}
+      sourceId={sourceId ?? cancellationSource?.id ?? null}
       onSourceChange={setSourceId}
       active={active}
       onMarkClick={(mark) => {
@@ -309,9 +312,11 @@ export function BookingPage() {
         <ReviewPanel
           booking={booking}
           onChanged={(result) => {
-            // In the review mode every decision moves on; otherwise only a discarded booking leaves.
-            if (reviewing) void moveOn(booking)
-            else if (!result) navigate(back)
+            // In the review mode a decision moves on once nothing is left to review on this booking
+            // (a discarded cancellation leaves an unconfirmed booking open); otherwise only a discarded booking leaves.
+            if (reviewing) {
+              if (!result || result.reviewState === 'NONE') void moveOn(booking)
+            } else if (!result) navigate(back)
           }}
           onShowProposal={(field) => {
             show({ field, scope: 'proposal' })

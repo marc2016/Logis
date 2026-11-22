@@ -38,7 +38,7 @@ class OccupancyService {
     }
 
     record CalendarBooking(Long id, LocalDate arrival, LocalDate departure, BookingStatus status, String guestName,
-            String externalRef, ReviewState reviewState, BookingKind kind) {
+            String externalRef, ReviewState reviewState, BookingKind kind, boolean cancellationReported) {
     }
 
     record CalendarUnit(Long id, String name, boolean archived, boolean canEdit, List<CalendarBooking> bookings) {
@@ -88,7 +88,9 @@ class OccupancyService {
                                 .map(d -> new CalendarBooking(d.booking().getId(), d.booking().getArrival(),
                                         d.booking().getDeparture(), d.status(), d.guest().name(),
                                         d.booking().getExternalRef(), d.booking().getReviewState(),
-                                        d.booking().getKind()))
+                                        d.booking().getKind(), d.booking().getProposal() != null
+                                                && d.booking().getProposal().type()
+                                                        == BookingProposal.Type.CANCELLATION))
                                 .toList()))
                 .toList();
         return new Calendar(propertyId, units.getFirst().propertyName(), year, from, to, rows);

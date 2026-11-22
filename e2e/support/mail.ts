@@ -88,6 +88,29 @@ Content-Transfer-Encoding: 8bit
 `
 }
 
+/** A cancellation („Stornierung“) of „Fewo & Meer“ for a booking it reported before. */
+export function fewoCancellation(opts: { to: string; object: string; ref: string; arrival: string; departure: string }) {
+  const from = germanDate(opts.arrival)
+  const until = germanDate(opts.departure)
+  return `From: "Fewo & Meer" <buchung@fewoundmeer.de>
+To: ${opts.to}
+Subject: Stornierung ${opts.ref}, ${opts.object} - Talstadt, vom ${from} bis zum ${until}
+Date: ${new Date().toUTCString().replace('GMT', '+0000')}
+Message-ID: <fewo-storno-${opts.ref}@fewoundmeer.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Sehr geehrter Gast,
+
+hiermit teilen wir Ihnen mit, dass wir Ihre Buchung Nr. ${opts.ref}, ${opts.object} - Talstadt, vom ${from} bis ${until} storniert haben.
+
+Mit freundlichen Grüßen
+
+Fewo & Meer e.K.
+`
+}
+
 /** An owner block notice („Eigentümerblockung“) of „Fewo & Meer“: the owner blocked the period for their own use. */
 export function fewoOwnerBlock(opts: { to: string; object: string; ref: string; arrival: string; departure: string }) {
   const from = germanDate(opts.arrival)
