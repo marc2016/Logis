@@ -10,30 +10,30 @@ Booking mails turn the mails of rental agencies (confirmations, short-notice not
 The system SHALL recognise the mail type and read its fields with fixed rules for known agencies: Fewo & Meer confirmations, short-notice notices, block notices and cancellations, and DS Destination Solutions confirmations. A mail MUST count as coming from Fewo & Meer if it is sent from `fewoundmeer.de` or `fewoscout.com`, or if its text names Fewo & Meer. Read fields MUST include agency, booking number, property name, arrival, departure, adults, children, and where present pets, rent and guest data; a block notice carries only booking number, property name, period and intermediary. Amounts and dates MUST be read in German notation. For DS confirmations the total price MUST be used as the expected rent, and the agency MUST be taken from the line „Vermittler (Stornierung/Änderung)“: "Holidu" if the intermediary mentions Holidu or the line is missing, otherwise the intermediary's name without the suffix „in Kooperation mit …“.
 
 #### Scenario: Fewo & Meer confirmation
-- **WHEN** the mail "Neue Buchung für Haus Seeufer - Nordhorn" with booking number 250903, "2 Erwachsene, 1 Kind", 23.12.2026–27.12.2026 and "559,00 EUR" arrives
+- **WHEN** the mail "Neue Buchung für Haus Waldeck - Talstadt" with booking number 250903, "2 Erwachsene, 1 Kind", 23.12.2026–27.12.2026 and "559,00 EUR" arrives
 - **THEN** it is read as a confirmation of Fewo & Meer with 2 adults, 1 child and an expected rent of 559.00
 
 #### Scenario: Fewo & Meer confirmation from FeWoScout without signature
-- **WHEN** the mail "Neue Buchung für Haus Seeufer - Nordhorn" from `info@fewoscout.com` with booking number 250902, "2 Erwachsene", 01.11.2026–06.11.2026 and "432,10 EUR" arrives, and its text does not mention Fewo & Meer
+- **WHEN** the mail "Neue Buchung für Haus Waldeck - Talstadt" from `info@fewoscout.com` with booking number 250902, "2 Erwachsene", 01.11.2026–06.11.2026 and "432,10 EUR" arrives, and its text does not mention Fewo & Meer
 - **THEN** it is read as a confirmation of Fewo & Meer with 2 adults and an expected rent of 432.10
 
 #### Scenario: Holidu/DS confirmation
-- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 3e12f345gh)" with "REISEPREIS: 309,08 EUR" for "Ferienhaus Seeufer" and the intermediary „Holidu GmbH in Kooperation mit "DS Destination Solutions"“ arrives
+- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 3e12f345gh)" with "REISEPREIS: 309,08 EUR" for "Ferienhaus Waldeck" and the intermediary „Holidu GmbH in Kooperation mit "DS Destination Solutions"“ arrives
 - **THEN** it is read as a confirmation of Holidu with booking number "3e12f345gh" and an expected rent of 309.08
 
-#### Scenario: VVV Nordhorn booking through DS
-- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 3e98f765kl)" with the intermediary „VVV-Stadt- und Citymarketing Nordhorn e.V.“, „Reisende: 2 Erwachsene(r), 2 Kind(er)“ and "REISEPREIS: 447,00 EUR" arrives
-- **THEN** it is read as a confirmation of the agency "VVV-Stadt- und Citymarketing Nordhorn e.V." with 2 adults, 2 children and an expected rent of 447.00
+#### Scenario: VVV Talstadt booking through DS
+- **WHEN** a "Buchungsmitteilung (Buchungsnummer: 3e98f765kl)" with the intermediary „VVV-Stadt- und Citymarketing Talstadt e.V.“, „Reisende: 2 Erwachsene(r), 2 Kind(er)“ and "REISEPREIS: 447,00 EUR" arrives
+- **THEN** it is read as a confirmation of the agency "VVV-Stadt- und Citymarketing Talstadt e.V." with 2 adults, 2 children and an expected rent of 447.00
 
 #### Scenario: Fewo & Meer block notice
-- **WHEN** the mail "Neue Blockung für Haus Seeufer - Nordhorn,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn" arrives
-- **THEN** it is read as a block notice of Fewo & Meer with booking number 250904, property "Haus Seeufer - Nordhorn", arrival 2027-05-15, departure 2027-05-18 and intermediary "VVV Nordhorn"
+- **WHEN** the mail "Neue Blockung für Haus Waldeck - Talstadt,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Talstadt" arrives
+- **THEN** it is read as a block notice of Fewo & Meer with booking number 250904, property "Haus Waldeck - Talstadt", arrival 2027-05-15, departure 2027-05-18 and intermediary "VVV Talstadt"
 
 ### Requirement: Forwarded mails
 Forwarded booking mails MUST be recognised like the originals, whether forwarded inline (with „WG:“ or „Fwd:“ and quoted text) or as an attachment. Changes that forwarding makes to the spacing between a field label and its value (spaces next to tabs, several spaces) MUST NOT prevent recognition.
 
 #### Scenario: Forwarded by the user
-- **WHEN** Anna forwards the confirmation of booking 250905 to the mailbox with the subject "WG: Neue Buchung für Haus Seeufer - Nordhorn"
+- **WHEN** Anna forwards the confirmation of booking 250905 to the mailbox with the subject "WG: Neue Buchung für Haus Waldeck - Talstadt"
 - **THEN** it is read as a confirmation of Fewo & Meer like the original
 
 #### Scenario: Forwarded as attachment
@@ -59,12 +59,12 @@ If AI is enabled by the administrator, mails that no rule recognises SHALL be re
 The system SHALL map the property name of a mail to a unit per agency, where the agency is the one resolved from the mail through the shared list of agencies. The first time a name is unknown, the mail MUST stay in the inbox as „Einheit zuordnen“. Once the user assigns a unit, the mapping MUST be remembered, and that mail and later mails with this name MUST be processed with it. Mappings MUST stay per mailbox owner, MUST follow their agency when it is renamed or merged, and MUST be found through any of the agency's mail names. Only units on which the mailbox owner has at least `EDITOR` MUST be offered.
 
 #### Scenario: Two names for one house
-- **WHEN** Anna has assigned "Haus Seeufer - Nordhorn" (Fewo & Meer) and "Ferienhaus Seeufer" (Holidu) to the same unit
+- **WHEN** Anna has assigned "Haus Waldeck - Talstadt" (Fewo & Meer) and "Ferienhaus Waldeck" (Holidu) to the same unit
 - **THEN** mails of both agencies create bookings on that unit without asking again
 
 #### Scenario: Mapping survives renaming
-- **WHEN** Anna has assigned "Ferienhaus Seeufer" for „VVV-Stadt- und Citymarketing Nordhorn e.V.“ and then renames that agency to „VVV Nordhorn“
-- **THEN** the next VVV mail for "Ferienhaus Seeufer" creates a booking without asking for the unit again
+- **WHEN** Anna has assigned "Ferienhaus Waldeck" for „VVV-Stadt- und Citymarketing Talstadt e.V.“ and then renames that agency to „VVV Talstadt“
+- **THEN** the next VVV mail for "Ferienhaus Waldeck" creates a booking without asking for the unit again
 
 ### Requirement: Effects on bookings
 A recognised mail SHALL have exactly one of these effects, decided by agency and booking number: a new booking awaiting review, a proposed change or cancellation on the existing booking, or only attaching the mail when nothing differs. An owner block notice SHALL instead create an owner use directly, without review, or, for a known booking number, attach the mail and take over a different period directly. A block notice MUST NOT create or change a booking: it SHALL be attached to the booking on the mapped unit that is not cancelled and has exactly the same period, and otherwise MUST stay in the inbox as „nicht zugeordnet“. Whenever a booking is created or changed, the original mail MUST be attached to it as a document.
@@ -78,11 +78,11 @@ A recognised mail SHALL have exactly one of these effects, decided by agency and
 - **THEN** the mail is attached to the booking and nothing else changes
 
 #### Scenario: Cancellation mail
-- **WHEN** the mail "Stornierung 250905, Haus Seeufer - Nordhorn" is fetched
+- **WHEN** the mail "Stornierung 250905, Haus Waldeck - Talstadt" is fetched
 - **THEN** booking 250905 shows a proposed cancellation „zu prüfen“ with the mail attached
 
 #### Scenario: Block notice for a known stay
-- **WHEN** booking "3e98f765kl" of VVV Nordhorn runs from 2027-05-15 to 2027-05-18 and the Fewo & Meer block notice 250904 for that period is fetched
+- **WHEN** booking "3e98f765kl" of VVV Talstadt runs from 2027-05-15 to 2027-05-18 and the Fewo & Meer block notice 250904 for that period is fetched
 - **THEN** the mail is attached to booking "3e98f765kl", and its booking number and agency stay unchanged
 
 #### Scenario: Block notice before the booking mail
@@ -94,8 +94,8 @@ A recognised mail SHALL have exactly one of these effects, decided by agency and
 - **THEN** the mail appears in the inbox as „nicht zugeordnet“
 
 #### Scenario: Owner block notice creates an owner use
-- **WHEN** the mail "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027" is fetched and "Haus Seeufer - Nordhorn" of Fewo & Meer is assigned to "Haus Seeufer"
-- **THEN** "Haus Seeufer" has an owner use from 2027-06-09 to 2027-06-14 with booking number 275001, it is not „zu prüfen“, the mail is attached, and the inbox shows „Eigenbelegung angelegt“
+- **WHEN** the mail "Eigentümerblockung 275001, Haus Waldeck - Talstadt, vom 09.06.2027 bis 14.06.2027" is fetched and "Haus Waldeck - Talstadt" of Fewo & Meer is assigned to "Haus Waldeck"
+- **THEN** "Haus Waldeck" has an owner use from 2027-06-09 to 2027-06-14 with booking number 275001, it is not „zu prüfen“, the mail is attached, and the inbox shows „Eigenbelegung angelegt“
 
 #### Scenario: Owner block notice again with another period
 - **WHEN** owner use 275001 runs from 2027-06-09 to 2027-06-14 and an owner block notice 275001 for 10.06.2027 to 14.06.2027 is fetched
@@ -127,7 +127,7 @@ Recognition SHALL report, for every field it reads, where in the mail the value 
 - **THEN** the arrival 2026-12-23 is reported with the location of „23.12.2026“ in the mail text
 
 #### Scenario: Subject fields
-- **WHEN** the Fewo & Meer cancellation "Stornierung 250905, Haus Seeufer - Nordhorn, vom 06.11.2026 bis zum 08.11.2026" is recognised
+- **WHEN** the Fewo & Meer cancellation "Stornierung 250905, Haus Waldeck - Talstadt, vom 06.11.2026 bis zum 08.11.2026" is recognised
 - **THEN** booking number, property name, arrival and departure are reported with their locations in the subject
 
 #### Scenario: AI quote not found
@@ -138,15 +138,15 @@ Recognition SHALL report, for every field it reads, where in the mail the value 
 The system SHALL recognise a Fewo & Meer mail whose subject reads „Eigentümerblockung <Nr>, <Objekt>, vom TT.MM.JJJJ bis TT.MM.JJJJ“ as an owner block notice with booking number, property name, arrival and departure. The unit SHALL be found through the same property assignment as for other mails of the agency, and an unknown property name MUST leave the mail waiting for a unit. If no booking of the agency with that number exists but the unit has an owner use that is not cancelled, has no booking number and has exactly the same period, the mail SHALL be attached to it and SHALL set its booking number and agency. Otherwise it SHALL create an owner use with that number and period; if the period is taken, the mail MUST stay in the inbox as „Zeitraum belegt“. The inbox SHALL show the result „Eigenbelegung angelegt“.
 
 #### Scenario: Read an owner block notice
-- **WHEN** the mail "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027" from Fewo & Meer arrives
-- **THEN** it is read as an owner block notice of Fewo & Meer with booking number 275001, property "Haus Seeufer - Nordhorn", arrival 2027-06-09 and departure 2027-06-14
+- **WHEN** the mail "Eigentümerblockung 275001, Haus Waldeck - Talstadt, vom 09.06.2027 bis 14.06.2027" from Fewo & Meer arrives
+- **THEN** it is read as an owner block notice of Fewo & Meer with booking number 275001, property "Haus Waldeck - Talstadt", arrival 2027-06-09 and departure 2027-06-14
 
 #### Scenario: Unknown property
 - **WHEN** the owner block notice names a property that is not assigned to a unit yet
 - **THEN** the mail waits in the inbox for „Einheit zuordnen“, and assigning the unit creates the owner use
 
 #### Scenario: Owner use recorded by hand first
-- **WHEN** Anna has recorded an „Eigenbelegung“ without booking number on "Haus Seeufer" from 2027-06-09 to 2027-06-14 and the owner block notice 275001 for that period is fetched
+- **WHEN** Anna has recorded an „Eigenbelegung“ without booking number on "Haus Waldeck" from 2027-06-09 to 2027-06-14 and the owner block notice 275001 for that period is fetched
 - **THEN** no second owner use is created, the mail is attached to Anna's owner use, and it now has booking number 275001 and agency Fewo & Meer
 
 #### Scenario: Period taken

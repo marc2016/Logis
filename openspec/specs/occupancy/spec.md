@@ -10,7 +10,7 @@ Occupancy shows how vacation rental units are used over time: a calendar of stay
 The system SHALL show the occupancy calendar for one vacation rental unit chosen by the user as a table with one row per month and one column per day of the month, with one bar per booking that is not cancelled. It SHALL show one calendar year at a time: the last month of the previous year, the twelve months of the year, and the first month of the following year. It SHALL start with the current year. The user SHALL be able to page to the previous and the next year and to return to the current year with „Heute“, and the shown year SHALL be kept in the address. The months of the neighbouring years MUST be visually set apart from the year, and the current month MUST be marked. The calendar MUST fit the width of the screen without scrolling sideways. Every day SHALL show its number; where the day columns are wide enough, it SHALL also show its weekday as a two-letter abbreviation („Mo“, „Di“, „Mi“, „Do“, „Fr“, „Sa“, „So“). Saturdays and Sundays MUST be set apart by their background. Today MUST be marked in its cell. Planned and settled bookings MUST be distinguishable. Only units with an effective role for the user MUST be offered.
 
 #### Scenario: November at the holiday home
-- **WHEN** Anna opens the calendar of the unit "Haus Seeufer" in November 2026
+- **WHEN** Anna opens the calendar of the unit "Haus Waldeck" in November 2026
 - **THEN** they see in the row of November a bar from 6 to 8 November for booking "250905", marked as planned
 
 #### Scenario: Record from the calendar
@@ -83,7 +83,7 @@ The system SHALL show, for a vacation rental unit and a year, per month: booked 
 The occupancy calendar SHALL show owner uses that are not cancelled as bars labelled „Eigenbelegung“, distinguishable from planned and settled guest bookings.
 
 #### Scenario: Owner use in June
-- **WHEN** Anna opens the calendar of "Haus Seeufer" for 2027 and an owner use runs from 2027-06-09 to 2027-06-14
+- **WHEN** Anna opens the calendar of "Haus Waldeck" for 2027 and an owner use runs from 2027-06-09 to 2027-06-14
 - **THEN** the June row shows an „Eigenbelegung“ bar from 9 to 13 June, set apart from guest bookings
 
 ### Requirement: Charts of the yearly overview
@@ -120,11 +120,11 @@ The evaluation page SHALL offer the switch „Vorjahr einblenden“. When it is 
 The unit selection of the evaluation page SHALL offer „Alle Einheiten“. It SHALL show, for the chosen year, every vacation rental unit for which the user has an effective role, across properties, in a chart of the occupancy rate per unit and a chart of settled net and planned rent per unit. Each unit SHALL be labelled with its property. Units without a role for the user MUST NOT appear.
 
 #### Scenario: Two properties
-- **WHEN** Anna can see the unit „Haus Seeufer“ of one property and the units „Wohnung 1“ and „Wohnung 2“ of another, and chooses „Alle Einheiten“ for 2026
+- **WHEN** Anna can see the unit „Haus Waldeck“ of one property and the units „Wohnung 1“ and „Wohnung 2“ of another, and chooses „Alle Einheiten“ for 2026
 - **THEN** the charts and the table show all three units, each with its property name
 
 #### Scenario: Same figures as the unit overview
-- **WHEN** „Haus Seeufer“ has 120 nights and a settled net of 9,840.00 in 2026 in its yearly overview
+- **WHEN** „Haus Waldeck“ has 120 nights and a settled net of 9,840.00 in 2026 in its yearly overview
 - **THEN** its row under „Alle Einheiten“ shows 120 nights and 9,840.00
 
 #### Scenario: Shared unit

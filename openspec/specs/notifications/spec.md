@@ -62,7 +62,7 @@ Every switch SHALL be off until the user switches it on, unless the event type d
 Every notification SHALL have a title, a short text and a long text. „Pushover“ MUST send the title and the short text, „E-Mail“ MUST send the title as the subject and the long text. The short text MUST NOT contain names or contact data of guests or tenants, amounts or booking numbers.
 
 #### Scenario: Same event, two channels
-- **WHEN** a booking of "Haus Seeufer" awaits review and Anna has switched on both channels
+- **WHEN** a booking of "Haus Waldeck" awaits review and Anna has switched on both channels
 - **THEN** the Pushover notification names the property and the period, and the mail additionally names the guest and the expected rent
 
 ### Requirement: Link into the app
@@ -80,7 +80,7 @@ A notification SHALL carry a link to the page of the record it is about, or to t
 A notification MUST only be sent to active users who may see the record it is about at the time of sending. The role `ADMIN` alone MUST NOT make a user a recipient of notifications about domain data. Disabled users MUST NOT receive notifications.
 
 #### Scenario: Admin without a role
-- **WHEN** a booking of "Haus Seeufer" awaits review and the admin has no role on the property
+- **WHEN** a booking of "Haus Waldeck" awaits review and the admin has no role on the property
 - **THEN** the admin gets no notification, whatever their switches are
 
 #### Scenario: Disabled user

@@ -10,8 +10,8 @@ DECLARE
   totp CONSTANT TEXT := 'TXWTwhX0f9fDqp3MsxQy0LG4+v9SkhTa0JpQ/F+FhgVulP4gRE8Jv/1cPic++cjr6oR7cjxbGN5FeBFc';
   u_admin BIGINT; u_anna BIGINT; u_bert BIGINT; u_carla BIGINT; u_dieter BIGINT; u_erik BIGINT;
   le_anna BIGINT; le_gbr BIGINT; le_bert BIGINT; le_carla BIGINT; le_dieter BIGINT;
-  p_seeufer BIGINT; p_duene BIGINT; p_linden BIGINT; p_park BIGINT;
-  seeufer BIGINT; whg1 BIGINT; whg2 BIGINT; eg_links BIGINT; eg_rechts BIGINT; og1 BIGINT; dg BIGINT; garage BIGINT; park BIGINT;
+  p_waldeck BIGINT; p_duene BIGINT; p_linden BIGINT; p_park BIGINT;
+  waldeck BIGINT; whg1 BIGINT; whg2 BIGINT; eg_links BIGINT; eg_rechts BIGINT; og1 BIGINT; dg BIGINT; garage BIGINT; park BIGINT;
   a_giro BIGINT; a_gbr BIGINT; a_tages BIGINT; a_kasse BIGINT;
   ag_fewo BIGINT; ag_holidu BIGINT; ag_airbnb BIGINT; ag_booking BIGINT; ag_direkt BIGINT; ag_vvv BIGINT;
   c_gehalt BIGINT; c_miete BIGINT; c_kapital BIGINT; c_wohnen BIGINT; c_lebensmittel BIGINT; c_mobil BIGINT;
@@ -58,8 +58,8 @@ BEGIN
 
   -- Properties and units -------------------------------------------------------------------------
   INSERT INTO core.properties (legal_entity_id, name, street, postal_code, city, multi_unit)
-    VALUES (le_gbr, 'Haus Seeufer', 'Uferweg 3', '12345', 'Musterstadt', false) RETURNING id INTO p_seeufer;
-  INSERT INTO core.units (property_id, name, usage) VALUES (p_seeufer, 'Haus Seeufer', 'VACATION_RENTAL') RETURNING id INTO seeufer;
+    VALUES (le_gbr, 'Haus Waldeck', 'Uferweg 3', '12345', 'Musterstadt', false) RETURNING id INTO p_waldeck;
+  INSERT INTO core.units (property_id, name, usage) VALUES (p_waldeck, 'Haus Waldeck', 'VACATION_RENTAL') RETURNING id INTO waldeck;
   INSERT INTO core.properties (legal_entity_id, name, street, postal_code, city, multi_unit)
     VALUES (le_gbr, 'Strandhaus Dünenblick', 'Dünenstraße 7', '12346', 'Seehausen', true) RETURNING id INTO p_duene;
   INSERT INTO core.units (property_id, name, usage, sort_order) VALUES (p_duene, 'Whg. 1', 'VACATION_RENTAL', 1) RETURNING id INTO whg1;
@@ -75,11 +75,11 @@ BEGIN
     VALUES (le_anna, 'Eigentumswohnung Parkallee', 'Parkallee 5', '12348', 'Musterstadt', false) RETURNING id INTO p_park;
   INSERT INTO core.units (property_id, name, usage) VALUES (p_park, 'Eigentumswohnung Parkallee', 'OWN_USE') RETURNING id INTO park;
 
-  -- Anna owns everything; Bert edits one holiday flat, Carla reads Haus Seeufer and the GbR account.
+  -- Anna owns everything; Bert edits one holiday flat, Carla reads Haus Waldeck and the GbR account.
   INSERT INTO core.object_shares (object_type, object_id, user_id, role) VALUES
-    ('property', p_seeufer, u_anna, 'OWNER'), ('property', p_duene, u_anna, 'OWNER'),
+    ('property', p_waldeck, u_anna, 'OWNER'), ('property', p_duene, u_anna, 'OWNER'),
     ('property', p_linden, u_anna, 'OWNER'), ('property', p_park, u_anna, 'OWNER'),
-    ('unit', whg1, u_bert, 'EDITOR'), ('property', p_seeufer, u_carla, 'VIEWER');
+    ('unit', whg1, u_bert, 'EDITOR'), ('property', p_waldeck, u_carla, 'VIEWER');
 
   -- Accounts ---------------------------------------------------------------------------------------
   INSERT INTO core.accounts (legal_entity_id, name, kind, iban, opening_balance) VALUES (le_anna, 'Girokonto', 'CHECKING', 'DE89370400440532013000', 2450.00) RETURNING id INTO a_giro;
@@ -110,23 +110,23 @@ BEGIN
   INSERT INTO vacationrental.agencies (name) VALUES ('Airbnb') RETURNING id INTO ag_airbnb;
   INSERT INTO vacationrental.agencies (name) VALUES ('Booking.com') RETURNING id INTO ag_booking;
   INSERT INTO vacationrental.agencies (name) VALUES ('Direkt') RETURNING id INTO ag_direkt;
-  INSERT INTO vacationrental.agencies (name) VALUES ('VVV Nordhorn') RETURNING id INTO ag_vvv;
+  INSERT INTO vacationrental.agencies (name) VALUES ('VVV Talstadt') RETURNING id INTO ag_vvv;
   INSERT INTO vacationrental.agency_aliases (agency_id, alias) VALUES
     (ag_fewo, 'Fewo & Meer'), (ag_holidu, 'Holidu'), (ag_airbnb, 'Airbnb'), (ag_booking, 'Booking.com'),
-    (ag_direkt, 'Direkt'), (ag_vvv, 'VVV Nordhorn'), (ag_vvv, 'VVV-Stadt- und Citymarketing Nordhorn e.V.');
+    (ag_direkt, 'Direkt'), (ag_vvv, 'VVV Talstadt'), (ag_vvv, 'VVV-Stadt- und Citymarketing Talstadt e.V.');
   INSERT INTO vacationrental.unit_mappings (owner_user_id, agency_id, property_name, unit_id) VALUES
-    (u_anna, ag_fewo, 'Haus Seeufer - Nordhorn', seeufer), (u_anna, ag_holidu, 'Ferienhaus Seeufer', seeufer),
-    (u_anna, ag_vvv, 'Ferienhaus Seeufer', whg1);
+    (u_anna, ag_fewo, 'Haus Waldeck - Talstadt', waldeck), (u_anna, ag_holidu, 'Ferienhaus Waldeck', waldeck),
+    (u_anna, ag_vvv, 'Ferienhaus Waldeck', whg1);
 
   -- Bookings imported from mails; their sources and highlights are derived at startup ---------------
   INSERT INTO vacationrental.bookings (unit_id, arrival, departure, external_ref, adults, children, expected_rent,
       guest_name, guest_street, guest_postal_code, guest_city, guest_country, guest_phone, guest_email, agency_id, review_state, created_at)
-    VALUES (seeufer, '2026-11-06', '2026-11-08', '250905', 4, 0, 248.58, 'Erika Musterfrau', 'Musterweg 1', '12345',
+    VALUES (waldeck, '2026-11-06', '2026-11-08', '250905', 4, 0, 248.58, 'Erika Musterfrau', 'Musterweg 1', '12345',
       'Musterstadt', 'Deutschland', '0151 0000001', 'erika@example.org', ag_fewo, 'NEW', '2026-11-06 11:15+00') RETURNING id INTO b;
   INSERT INTO core.documents (owner_type, owner_id, file_name, content_type, size_bytes, content, created_at) VALUES
     ('vacationrental.booking', b, 'Fewo & Meer Buchungsbestätigung 250905.eml', 'message/rfc822', 1, convert_to($eml$From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: vermieter@example.org
-Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Subject: Neue Buchung für Haus Waldeck - Talstadt
 Date: Fri, 06 Nov 2026 12:15:00 +0100
 Message-ID: <fewo-250905@fewoundmeer.de>
 MIME-Version: 1.0
@@ -135,7 +135,7 @@ Content-Transfer-Encoding: 8bit
 
 <html><body>
 <p>Sehr geehrte(r) Muster GbR,</p>
-<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 06.11.2026 bis 08.11.2026.</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Waldeck - Talstadt vom 06.11.2026 bis 08.11.2026.</p>
 <table>
 <tr><td><b>Buchungsnummer</b></td><td>250905</td></tr>
 <tr><td><b>Anzahl Gäste</b></td><td>4 Erwachsene</td></tr>
@@ -156,7 +156,7 @@ Content-Transfer-Encoding: 8bit
 $eml$, 'UTF8'), '2026-11-06 11:15+00'),
     ('vacationrental.booking', b, 'Fewo & Meer Last-Minute 250905.eml', 'message/rfc822', 1, convert_to($eml$From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: vermieter@example.org
-Subject: Last-Minute Buchung 250905, Haus Seeufer - Nordhorn, vom 06.11.2026 bis 08.11.2026
+Subject: Last-Minute Buchung 250905, Haus Waldeck - Talstadt, vom 06.11.2026 bis 08.11.2026
 Date: Fri, 06 Nov 2026 12:20:00 +0100
 Message-ID: <fewo-lm-250905@fewoundmeer.de>
 MIME-Version: 1.0
@@ -167,7 +167,7 @@ Sehr geehrte Damen und Herren,
 
 wir möchten Sie über eine kurzfristige Anreise informieren.
 
-Objekt: Haus Seeufer - Nordhorn
+Objekt: Haus Waldeck - Talstadt
 Gast-Name: Musterfrau Erika
 Zeitraum: 06.11.2026 - 08.11.2026
 Personenzahl: 4 Erwachsene/ 0 Kinder
@@ -187,13 +187,13 @@ $eml$, 'UTF8'), '2026-11-06 12:00+00');
   INSERT INTO vacationrental.bookings (unit_id, arrival, departure, external_ref, adults, children, expected_rent,
       guest_name, guest_street, guest_postal_code, guest_city, guest_country, guest_phone, guest_email, agency_id,
       review_state, proposal, created_at)
-    VALUES (seeufer, '2026-12-23', '2026-12-27', '250903', 2, 1, 559.00, 'Jonas Beispiel-Lang', 'Probeweg 6', '34497',
+    VALUES (waldeck, '2026-12-23', '2026-12-27', '250903', 2, 1, 559.00, 'Jonas Beispiel-Lang', 'Probeweg 6', '34497',
       'Probestadt', 'Deutschland', '0172 0000002', 'jonas@example.org', ag_fewo, 'CHANGE',
       '{"type":"CHANGE","departure":"2026-12-28"}'::jsonb, '2026-11-02 10:00+00') RETURNING id INTO b;
   INSERT INTO core.documents (owner_type, owner_id, file_name, content_type, size_bytes, content, created_at) VALUES
     ('vacationrental.booking', b, 'Fewo & Meer Buchungsbestätigung 250903.eml', 'message/rfc822', 1, convert_to($eml$From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: vermieter@example.org
-Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Subject: Neue Buchung für Haus Waldeck - Talstadt
 Date: Sat, 07 Nov 2026 09:00:00 +0100
 Message-ID: <fewo-250903@fewoundmeer.de>
 MIME-Version: 1.0
@@ -202,7 +202,7 @@ Content-Transfer-Encoding: 8bit
 
 <html><body>
 <p>Sehr geehrte(r) Muster GbR,</p>
-<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 23.12.2026 bis 27.12.2026.</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Waldeck - Talstadt vom 23.12.2026 bis 27.12.2026.</p>
 <table>
 <tr><td>Buchungsnummer</td><td>250903</td></tr>
 <tr><td>Anzahl Gäste</td><td>2 Erwachsene, 1 Kind</td></tr>
@@ -222,7 +222,7 @@ Content-Transfer-Encoding: 8bit
 $eml$, 'UTF8'), '2026-11-02 10:00+00'),
     ('vacationrental.booking', b, 'Fewo & Meer Änderung 250903.eml', 'message/rfc822', 1, convert_to($eml$From: "Fewo & Meer" <buchung@fewoundmeer.de>
 To: vermieter@example.org
-Subject: Neue Buchung für Haus Seeufer - Nordhorn
+Subject: Neue Buchung für Haus Waldeck - Talstadt
 Date: Mon, 09 Nov 2026 09:00:00 +0100
 Message-ID: <dev-change-250903@example.org>
 MIME-Version: 1.0
@@ -231,7 +231,7 @@ Content-Transfer-Encoding: 8bit
 
 <html><body>
 <p>Sehr geehrte(r) Muster GbR,</p>
-<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Seeufer - Nordhorn vom 23.12.2026 bis 28.12.2026.</p>
+<p>wir informieren Sie hiermit über den Eingang einer Buchung für Ihr Objekt Haus Waldeck - Talstadt vom 23.12.2026 bis 28.12.2026.</p>
 <table>
 <tr><td>Buchungsnummer</td><td>250903</td></tr>
 <tr><td>Anzahl Gäste</td><td>2 Erwachsene, 1 Kind</td></tr>
@@ -252,12 +252,12 @@ $eml$, 'UTF8'), '2026-11-09 08:00+00');
 
   INSERT INTO vacationrental.bookings (unit_id, arrival, departure, external_ref, adults, children, expected_rent,
       guest_name, guest_street, guest_postal_code, guest_city, guest_country, guest_phone, guest_email, agency_id, created_at)
-    VALUES (seeufer, '2026-12-04', '2026-12-06', '3e12f345gh', 2, 0, 309.08, 'Anna Probe', 'Ackerweg 2', '45701',
+    VALUES (waldeck, '2026-12-04', '2026-12-06', '3e12f345gh', 2, 0, 309.08, 'Anna Probe', 'Ackerweg 2', '45701',
       'Beispielstadt', 'Deutschland', '004915200000003', 'gast-0003@guest.holidu.com', ag_holidu, '2026-10-31 13:00+00') RETURNING id INTO b;
   INSERT INTO core.documents (owner_type, owner_id, file_name, content_type, size_bytes, content, created_at) VALUES
     ('vacationrental.booking', b, 'Holidu Buchungsbestätigung 3e12f345gh.eml', 'message/rfc822', 1, convert_to($eml$From: "Holidu Buchungsservice" <buchungsservice@ds-destinationsolutions.com>
 To: vermieter@example.org
-Subject: Buchungsmitteilung 3e12f345gh - Ferienhaus Seeufer
+Subject: Buchungsmitteilung 3e12f345gh - Ferienhaus Waldeck
 Date: Sat, 31 Oct 2026 14:00:00 +0100
 Message-ID: <ds-3e12f345gh@ds-destinationsolutions.com>
 MIME-Version: 1.0
@@ -274,7 +274,7 @@ Buchungsmitteilung (Buchungsnummer: 3e12f345gh)
 Buchungsart: fremd, Buchungssystem: im-web
 Partnerwebsite: HRS holidays / holidu.de
 
-Ihre Unterkunft: Ferienhaus Seeufer (Kategorie: Ferienhaus Seeufer, Wohneinheit: Ferienhaus Seeufer) wurde wie folgt gebucht:
+Ihre Unterkunft: Ferienhaus Waldeck (Kategorie: Ferienhaus Waldeck, Wohneinheit: Ferienhaus Waldeck) wurde wie folgt gebucht:
 
 Reisezeit:          Anreise: 04.12.2026 Abreise: 06.12.2026 (2 Übernachtungen)
 
@@ -304,9 +304,9 @@ $eml$, 'UTF8'), '2026-10-31 13:00+00');
     VALUES (whg1, '2027-05-15', '2027-05-18', '3e98f765kl', 2, 2, 447.00, 'Max Probe', 'Testweg 19a', '46242',
       'Beispielstadt', 'Deutschland', '004917400000005', 'max@example.org', ag_vvv, '2026-10-29 10:50+00') RETURNING id INTO b;
   INSERT INTO core.documents (owner_type, owner_id, file_name, content_type, size_bytes, content, created_at) VALUES
-    ('vacationrental.booking', b, 'VVV Nordhorn Buchungsbestätigung 3e98f765kl.eml', 'message/rfc822', 1, convert_to($eml$From: "VVV Buchungsservice" <buchungsservice@ds-destinationsolutions.com>
+    ('vacationrental.booking', b, 'VVV Talstadt Buchungsbestätigung 3e98f765kl.eml', 'message/rfc822', 1, convert_to($eml$From: "VVV Buchungsservice" <buchungsservice@ds-destinationsolutions.com>
 To: vermieter@example.org
-Subject: Buchungsmitteilung 3e98f765kl - Ferienhaus Seeufer
+Subject: Buchungsmitteilung 3e98f765kl - Ferienhaus Waldeck
 Date: Thu, 29 Oct 2026 11:50:00 +0100
 Message-ID: <ds-3e98f765kl@ds-destinationsolutions.com>
 MIME-Version: 1.0
@@ -317,18 +317,18 @@ Sie haben eine neue Buchung über "Destination Solutions" erhalten.
 Achten Sie auf den Gesamtpreis in Höhe von 447,00 EUR der dem Gast für
 diese Buchung zu berechnen ist.
 
-                                                             Nordhorn, 29.10.2026
-Vermittler (Stornierung/Änderung): VVV-Stadt- und Citymarketing Nordhorn e.V.
-                   Firnhaberstraße 17, 48529 Nordhorn
+                                                             Talstadt, 29.10.2026
+Vermittler (Stornierung/Änderung): VVV-Stadt- und Citymarketing Talstadt e.V.
+                   Beispielstraße 1, 34567 Talstadt
 
-Datenhalter:        VVV-Stadt- und Citymarketing Nordhorn e.V.
-                   Firnhaberstraße 17, 48529 Nordhorn
+Datenhalter:        VVV-Stadt- und Citymarketing Talstadt e.V.
+                   Beispielstraße 1, 34567 Talstadt
 
 Buchungsmitteilung (Buchungsnummer: 3e98f765kl)
 Buchungsart: fremd, Buchungssystem: im-web, Partnerwebsite: IBE NG
 
-Ihre Unterkunft: Ferienhaus Seeufer
-(Kategorie: Ferienhaus Seeufer, Wohneinheit: Ferienhaus Seeufer) wurde wie folgt
+Ihre Unterkunft: Ferienhaus Waldeck
+(Kategorie: Ferienhaus Waldeck, Wohneinheit: Ferienhaus Waldeck) wurde wie folgt
 gebucht:
 
 Reisezeit:          Anreise: 15.05.2027 Abreise: 18.05.2027 (3 Übernachtungen)
@@ -352,23 +352,23 @@ Anzahlung:          89,40 EUR
 Restzahlung:        357,60 EUR
 
 Mit freundlichen Grüßen
-VVV-Stadt- und Citymarketing Nordhorn e.V
+VVV-Stadt- und Citymarketing Talstadt e.V
 $eml$, 'UTF8'), '2026-10-29 10:50+00'),
     ('vacationrental.booking', b, 'Fewo & Meer Blockung 250904.eml', 'message/rfc822', 1, convert_to($eml$From: "fewoscout.com" <info@fewoscout.com>
 To: vermieter@example.org
 Cc: uebernachtungen@example.org
-Subject: Neue Blockung für Haus Seeufer - Nordhorn,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn
+Subject: Neue Blockung für Haus Waldeck - Talstadt,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Talstadt
 Date: Thu, 29 Oct 2026 11:55:30 +0100
 Message-ID: <fewo-block-250904@fewoscout.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Neue Blockung für Haus Seeufer - Nordhorn,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn
+Neue Blockung für Haus Waldeck - Talstadt,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Talstadt
 
 Sehr geehrter Eigentümer,
 
-das Stadtmarketing hat Ihr Objekt Haus Seeufer - Nordhorn für den Zeitraum vom 15.05.2027 bis 18.05.2027 für Sie geblockt.
+das Stadtmarketing hat Ihr Objekt Haus Waldeck - Talstadt für den Zeitraum vom 15.05.2027 bis 18.05.2027 für Sie geblockt.
 
 Viele Grüße
 
@@ -381,7 +381,7 @@ $eml$, 'UTF8'), '2026-10-29 11:00+00');
   UPDATE core.documents SET size_bytes = length(content) WHERE owner_type = 'vacationrental.booking';
 
   -- Bookings from January 2025 to June 2027, recorded by hand: longer stays in summer, fewer in winter --
-  units := ARRAY[seeufer, whg1, whg2];
+  units := ARRAY[waldeck, whg1, whg2];
   FOREACH u IN ARRAY units LOOP
     d := DATE '2025-01-03';
     WHILE d < DATE '2027-06-30' LOOP
@@ -405,7 +405,7 @@ $eml$, 'UTF8'), '2026-10-29 11:00+00');
                        WHEN ag_booking THEN (4100000000 + counter * 7)::text
                        ELSE NULL END;
         nightly := CASE WHEN extract(month FROM d) IN (6, 7, 8) THEN 125 WHEN extract(month FROM d) IN (4, 5, 9, 10, 12) THEN 95 ELSE 78 END
-                   * CASE WHEN u = seeufer THEN 1.0 ELSE 0.85 END;
+                   * CASE WHEN u = waldeck THEN 1.0 ELSE 0.85 END;
         first := firsts[1 + floor(random() * array_length(firsts, 1))::int];
         last := lasts[1 + floor(random() * array_length(lasts, 1))::int];
         city := cities[1 + floor(random() * array_length(cities, 1))::int];
@@ -462,20 +462,20 @@ $eml$, 'UTF8'), '2026-10-29 11:00+00');
   WHILE m <= DATE '2026-11-01' LOOP
     -- GbR: utilities per holiday home, account fee, property tax each quarter, insurance in January.
     INSERT INTO core.transactions (account_id, booking_date, amount, category_id, counterparty, purpose, property_id, created_by, updated_by) VALUES
-      (a_gbr, m + 2, -94.50, c_neben, 'Stadtwerke Musterstadt', 'Abschlag Strom/Wasser Haus Seeufer', p_seeufer, u_anna, u_anna),
+      (a_gbr, m + 2, -94.50, c_neben, 'Stadtwerke Musterstadt', 'Abschlag Strom/Wasser Haus Waldeck', p_waldeck, u_anna, u_anna),
       (a_gbr, m + 2, -132.00, c_neben, 'Stadtwerke Seehausen', 'Abschlag Strom/Wasser Dünenblick', p_duene, u_anna, u_anna),
       (a_gbr, m + 9, -38.00, c_neben, 'Reinigungsdienst Blitzblank', 'Wäschepauschale', p_duene, u_anna, u_anna);
     INSERT INTO core.transactions (account_id, booking_date, amount, category_id, counterparty, purpose, created_by, updated_by)
       VALUES (a_gbr, (m + interval '1 month - 1 day')::date, -9.90, c_gebuehren, 'Beispielbank', 'Kontoführung', u_anna, u_anna);
     IF extract(month FROM m) IN (2, 5, 8, 11) THEN
       INSERT INTO core.transactions (account_id, booking_date, amount, category_id, counterparty, purpose, property_id, created_by, updated_by) VALUES
-        (a_gbr, m + 14, -182.40, c_grundsteuer, 'Stadtkasse Musterstadt', 'Grundsteuer Haus Seeufer', p_seeufer, u_anna, u_anna),
+        (a_gbr, m + 14, -182.40, c_grundsteuer, 'Stadtkasse Musterstadt', 'Grundsteuer Haus Waldeck', p_waldeck, u_anna, u_anna),
         (a_gbr, m + 14, -236.10, c_grundsteuer, 'Gemeindekasse Seehausen', 'Grundsteuer Dünenblick', p_duene, u_anna, u_anna),
         (a_giro, m + 14, -311.75, c_grundsteuer, 'Stadtkasse Beispielstadt', 'Grundsteuer Lindenstraße', p_linden, u_anna, u_anna);
     END IF;
     IF extract(month FROM m) = 1 THEN
       INSERT INTO core.transactions (account_id, booking_date, amount, category_id, counterparty, purpose, property_id, created_by, updated_by) VALUES
-        (a_gbr, m + 10, -428.00, c_vers, 'Musterversicherung AG', 'Gebäudeversicherung Haus Seeufer', p_seeufer, u_anna, u_anna),
+        (a_gbr, m + 10, -428.00, c_vers, 'Musterversicherung AG', 'Gebäudeversicherung Haus Waldeck', p_waldeck, u_anna, u_anna),
         (a_gbr, m + 10, -515.00, c_vers, 'Musterversicherung AG', 'Gebäudeversicherung Dünenblick', p_duene, u_anna, u_anna),
         (a_giro, m + 10, -890.00, c_vers, 'Musterversicherung AG', 'Gebäudeversicherung Lindenstraße', p_linden, u_anna, u_anna);
     END IF;
@@ -525,14 +525,14 @@ $eml$, 'UTF8'), '2026-10-29 11:00+00');
   -- Repairs as transactions and as property costs.
   INSERT INTO core.transactions (account_id, booking_date, amount, category_id, counterparty, purpose, unit_id, created_by, updated_by) VALUES
     (a_gbr, '2025-04-11', -840.00, c_instand, 'Malerbetrieb Farbenfroh', 'Anstrich Wohnzimmer', whg2, u_anna, u_anna),
-    (a_gbr, '2026-03-20', -1290.00, c_instand, 'Sanitär Tropfnix', 'Neue Duschkabine', seeufer, u_anna, u_anna),
+    (a_gbr, '2026-03-20', -1290.00, c_instand, 'Sanitär Tropfnix', 'Neue Duschkabine', waldeck, u_anna, u_anna),
     (a_giro, '2025-09-02', -2650.00, c_instand, 'Dachdecker Ziegelmann', 'Dachrinne erneuert', NULL, u_anna, u_anna);
   UPDATE core.transactions SET property_id = p_linden WHERE purpose = 'Dachrinne erneuert';
   INSERT INTO core.property_costs (property_id, unit_id, cost_date, amount, category_id, counterparty, note) VALUES
     (p_linden, NULL, '2025-10-15', 185.00, c_instand, 'Heizung Warmhaus', 'Jährliche Heizungswartung'),
     (p_linden, NULL, '2026-10-14', 192.00, c_instand, 'Heizung Warmhaus', 'Jährliche Heizungswartung'),
     (p_linden, dg, '2026-05-20', 1450.00, c_instand, 'Malerbetrieb Farbenfroh', 'Renovierung vor Neuvermietung'),
-    (p_seeufer, NULL, '2026-04-02', 310.00, c_instand, 'Gartenbau Grünfink', 'Hecke und Rasen'),
+    (p_waldeck, NULL, '2026-04-02', 310.00, c_instand, 'Gartenbau Grünfink', 'Hecke und Rasen'),
     (p_duene, whg1, '2025-06-01', 129.00, c_sonst, 'Möbelhaus Beispiel', 'Neue Bettwäsche');
 
   RAISE NOTICE 'Development data created';

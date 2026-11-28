@@ -10,7 +10,7 @@ Rental statements record what a rental service provider settles for a unit: the 
 A user with at least `EDITOR` as effective role on a unit SHALL be able to create a statement for it with provider name, period (from, to) and statement date. The provider name MUST NOT be empty. The system SHALL suggest provider names from earlier statements of the same unit.
 
 #### Scenario: October statement
-- **WHEN** Anna creates a statement from "Ferienwohnungen Nord" for "Haus Seeufer", period 2026-10-01 to 2026-10-31
+- **WHEN** Anna creates a statement from "Ferienwohnungen Nord" for "Haus Waldeck", period 2026-10-01 to 2026-10-31
 - **THEN** the statement appears in the unit's statements with a payout of 0.00
 
 #### Scenario: Provider suggestion
@@ -57,7 +57,7 @@ Statements MUST be visible exactly to users with an effective role on their unit
 Every statement SHALL open as a page of its own with an address containing the statement's id, reached from the list of statements. The page SHALL have a header with provider, unit, period, statement date and payout, and SHALL show the statement's lines with their actions. The back button SHALL return to the list of statements with its unit filter. Earlier addresses that selected a statement in the list SHALL lead to its page. A statement that does not exist or is not visible MUST show „Abrechnung nicht gefunden“.
 
 #### Scenario: Open a statement
-- **WHEN** Anna clicks the November statement of „Haus Seeufer“ in the list
+- **WHEN** Anna clicks the November statement of „Haus Waldeck“ in the list
 - **THEN** its page opens at its own address with the provider, the period 2026-11-01 to 2026-11-30 and the payout in the header
 
 #### Scenario: Old link
@@ -68,7 +68,7 @@ Every statement SHALL open as a page of its own with an address containing the s
 The list of statements SHALL offer „Löschen“ for selected statements, with the effect of deleting each one. A statement page SHALL offer „Buchungen zuordnen“, which lists the unit's bookings that are on no statement, filtered to the statement's period by default. The selected bookings are assigned with their expected rent as gross, a commission rate in percent and a cleaning amount entered once. The statement page SHALL also offer to remove selected lines. Each line MUST follow the rules of the single action.
 
 #### Scenario: Fill a statement
-- **WHEN** Anna opens the October statement of „Haus Seeufer“, chooses „Buchungen zuordnen“, keeps the 7 preselected bookings of October and enters 15 % and 60.00
+- **WHEN** Anna opens the October statement of „Haus Waldeck“, chooses „Buchungen zuordnen“, keeps the 7 preselected bookings of October and enters 15 % and 60.00
 - **THEN** the statement shows 7 lines and the payout as the sum of their nets
 
 #### Scenario: Remove lines

@@ -66,8 +66,8 @@ A user with a stored key SHALL be able to choose „Testnachricht senden“. The
 The Pushover channel MUST send only the application token, the user's key, the title, the short text and the link of a notification. It MUST NOT send the long text, the user's name or e-mail address, or client addresses. Titles and texts longer than Pushover accepts MUST be shortened with „…“ rather than rejected.
 
 #### Scenario: Booking awaiting review
-- **WHEN** a booking of "Haus Seeufer" from 2027-07-12 to 2027-07-19 awaits review and Anna has switched on Pushover
-- **THEN** Pushover receives the title „Neue Buchung zu prüfen“ and a text naming "Haus Seeufer" and the period, and no guest name
+- **WHEN** a booking of "Haus Waldeck" from 2027-07-12 to 2027-07-19 awaits review and Anna has switched on Pushover
+- **THEN** Pushover receives the title „Neue Buchung zu prüfen“ and a text naming "Haus Waldeck" and the period, and no guest name
 
 #### Scenario: Long text
 - **WHEN** the short text of a digest exceeds the length Pushover accepts

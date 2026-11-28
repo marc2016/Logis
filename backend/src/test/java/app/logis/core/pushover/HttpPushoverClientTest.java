@@ -83,7 +83,7 @@ class HttpPushoverClientTest {
 
     @Test
     void sendsExactlyTokenKeyTitleTextAndLink() {
-        client.send(TOKEN, KEY, "Neue Buchung zu prüfen", "Haus Seeufer, 12.07.2027 – 19.07.2027",
+        client.send(TOKEN, KEY, "Neue Buchung zu prüfen", "Haus Waldeck, 12.07.2027 – 19.07.2027",
                 "https://logis.example.org/ferienvermietung/buchungen/7");
 
         assertThat(calls).singleElement().satisfies(call -> {
@@ -91,7 +91,7 @@ class HttpPushoverClientTest {
             assertThat(call.path()).isEqualTo("/1/messages.json");
             assertThat(call.form()).containsOnly(Map.entry("token", TOKEN), Map.entry("user", KEY),
                     Map.entry("title", "Neue Buchung zu prüfen"),
-                    Map.entry("message", "Haus Seeufer, 12.07.2027 – 19.07.2027"),
+                    Map.entry("message", "Haus Waldeck, 12.07.2027 – 19.07.2027"),
                     Map.entry("url", "https://logis.example.org/ferienvermietung/buchungen/7"),
                     Map.entry("url_title", "In Logis öffnen"));
         });

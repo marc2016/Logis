@@ -37,7 +37,7 @@ class PushoverTest extends IntegrationTest {
     private static final String CHANNEL = "$.channels[?(@.id == 'pushover')]";
     private static final String OTHER_KEY = "userkey11111111111111111111111";
     private static final Notification NOTE = new Notification("Neue Buchung zu prüfen",
-            "Haus Seeufer, 12.07.2027 – 19.07.2027", "Haus Seeufer\nGast: Erika Musterfrau", "/buchungen/7");
+            "Haus Waldeck, 12.07.2027 – 19.07.2027", "Haus Waldeck\nGast: Erika Musterfrau", "/buchungen/7");
 
     @Autowired
     JdbcTemplate jdbc;
@@ -209,7 +209,7 @@ class PushoverTest extends IntegrationTest {
 
         assertThat(pushover.await(FakePushover.KEY, 1).get(0)).isEqualTo(new FakePushover.Message(
                 FakePushover.TOKEN, FakePushover.KEY, "Neue Buchung zu prüfen",
-                "Haus Seeufer, 12.07.2027 – 19.07.2027", "https://logis.example.org/buchungen/7"));
+                "Haus Waldeck, 12.07.2027 – 19.07.2027", "https://logis.example.org/buchungen/7"));
         assertThat(pushover.messages.toString()).doesNotContain("Musterfrau").doesNotContain("anna@example.org")
                 .doesNotContain(anna.username());
         pushover.await(OTHER_KEY, 0);

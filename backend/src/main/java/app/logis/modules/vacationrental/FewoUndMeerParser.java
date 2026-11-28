@@ -27,12 +27,12 @@ class FewoUndMeerParser implements MailParser {
             "^Last-Minute Buchung (\\S+), (.+?), vom " + DATE + " bis " + DATE);
     private static final Pattern CANCELLATION_SUBJECT = Pattern.compile(
             "^Stornierung (\\S+), (.+?), vom " + DATE + " bis zum " + DATE);
-    // "Neue Blockung für Haus Seeufer - Nordhorn,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Nordhorn"
+    // "Neue Blockung für Haus Waldeck - Talstadt,250904, vom 15.05.2027 bis 18.05.2027 durch den VVV Talstadt"
     private static final Pattern BLOCK_NOTICE_SUBJECT = Pattern.compile(
             "^Neue Blockung für (.+?),\\s*(\\S+), vom " + DATE + " bis " + DATE
                     + "(?: durch (?:den |die |das )?(.+))?$");
 
-    // "Eigentümerblockung 275001, Haus Seeufer - Nordhorn, vom 09.06.2027 bis 14.06.2027"
+    // "Eigentümerblockung 275001, Haus Waldeck - Talstadt, vom 09.06.2027 bis 14.06.2027"
     private static final Pattern OWNER_BLOCK_SUBJECT = Pattern.compile(
             "^Eigentümerblockung (\\S+), (.+?), vom " + DATE + " bis " + DATE);
 

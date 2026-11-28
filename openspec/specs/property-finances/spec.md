@@ -10,7 +10,7 @@ Property finances show on each property what it earns and what it costs: costs r
 A user with at least `EDITOR` on a property, or as effective role on one of its units, SHALL be able to record a cost on it with date, amount, and optionally category, counterparty and note. The amount MUST be positive, have at most two decimal places and not exceed 999,999,999.99. Only active expense categories MUST be selectable. No account MUST be required.
 
 #### Scenario: Repair invoice
-- **WHEN** Anna records a cost of 320.00 on 2026-11-12 on "Haus Seeufer" with category "Reparatur" and counterparty "Handwerker Meyer"
+- **WHEN** Anna records a cost of 320.00 on 2026-11-12 on "Haus Waldeck" with category "Reparatur" and counterparty "Handwerker Meyer"
 - **THEN** the cost appears in the property's finances as an expense of 320.00 in November
 
 #### Scenario: Viewer may not record

@@ -10,7 +10,7 @@ Calendar subscriptions let users follow the occupancy of a vacation rental unit 
 A user who can see a vacation rental unit SHALL be able to create subscription links for it, each with a name and the choice whether guest data is included, and SHALL be able to list and revoke their own links of that unit. A link MUST be a secret, randomly generated address that cannot be derived from other data. The system MUST NOT store the secret in readable form, so the full address SHALL be shown only right after creating the link.
 
 #### Scenario: Create a link for the cleaning service
-- **WHEN** Anna creates the link „Reinigung“ without guest data for "Haus Seeufer"
+- **WHEN** Anna creates the link „Reinigung“ without guest data for "Haus Waldeck"
 - **THEN** they see its address once and the link appears in the list of the unit as „ohne Gastdaten“
 
 #### Scenario: Revoke a link
@@ -18,7 +18,7 @@ A user who can see a vacation rental unit SHALL be able to create subscription l
 - **THEN** fetching its address fails and the link disappears from the list
 
 #### Scenario: Viewer creates a link
-- **WHEN** Dieter, as `VIEWER` of "Haus Seeufer", creates a link with guest data
+- **WHEN** Dieter, as `VIEWER` of "Haus Waldeck", creates a link with guest data
 - **THEN** the link is created, because viewers may see guest names
 
 ### Requirement: Calendar feed
@@ -40,7 +40,7 @@ Fetching the address of a valid link without signing in SHALL return an iCalenda
 The system MUST deliver a feed only while its link exists and its creator still has an effective role on the unit. Otherwise the request MUST fail without revealing whether the link ever existed.
 
 #### Scenario: Creator loses access
-- **WHEN** the sharing of "Haus Seeufer" with Dieter is removed
+- **WHEN** the sharing of "Haus Waldeck" with Dieter is removed
 - **THEN** Dieter's links of that unit no longer deliver a feed
 
 #### Scenario: Unknown address

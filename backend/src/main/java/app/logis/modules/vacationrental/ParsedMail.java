@@ -11,7 +11,7 @@ import java.util.Map;
  *
  * @param agency       the rental agency, e.g. "Fewo & Meer" or "Holidu"
  * @param propertyName the property as the agency calls it, mapped to a unit per agency
- * @param intermediary who a block notice was made for, e.g. "VVV Nordhorn"; {@code null} for other mails
+ * @param intermediary who a block notice was made for, e.g. "VVV Talstadt"; {@code null} for other mails
  * @param original     the original period of an extension notice; {@code null} for other mails
  * @param locations    where each read value was found in the mail; not part of what the inbox stores
  */

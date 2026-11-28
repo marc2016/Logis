@@ -26,8 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MailChannelTest extends IntegrationTest {
 
     private static final String MAIL = "$.channels[?(@.id == 'mail')]";
-    private static final Notification NOTE = new Notification("Neue Buchung zu prüfen", "Haus Seeufer",
-            "Haus Seeufer\nGast: Erika Musterfrau", "/buchungen/7");
+    private static final Notification NOTE = new Notification("Neue Buchung zu prüfen", "Haus Waldeck",
+            "Haus Waldeck\nGast: Erika Musterfrau", "/buchungen/7");
 
     @RegisterExtension
     static GreenMailExtension greenMail = new GreenMailExtension(ServerSetupTest.SMTP);
@@ -74,7 +74,7 @@ class MailChannelTest extends IntegrationTest {
                 .contains("In Logis öffnen: https://logis.example.org/buchungen/7");
         assertThat(body).isNotBlank();
         // The other channel got the short form.
-        assertThat(recording.await(anna.id(), 1).get(0).text()).isEqualTo("Haus Seeufer");
+        assertThat(recording.await(anna.id(), 1).get(0).text()).isEqualTo("Haus Waldeck");
     }
 
     @Test

@@ -10,7 +10,7 @@ Bookings record who stays in a vacation rental unit and when, from the service p
 A user with at least `EDITOR` as effective role on a unit SHALL be able to record a booking on it with arrival, departure, adults, and optionally children, external booking number, agency and expected rent. Only active units with usage `VACATION_RENTAL` MUST accept new bookings. Departure MUST be after arrival. A new booking SHALL have the status planned. A booking MUST NOT carry a channel.
 
 #### Scenario: Booking from the provider's confirmation
-- **WHEN** Anna records booking number "250905" on "Haus Seeufer" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
+- **WHEN** Anna records booking number "250905" on "Haus Waldeck" from 2026-11-06 to 2026-11-08 for 4 adults with an expected rent of 248.58
 - **THEN** the booking appears as planned with 2 nights
 
 #### Scenario: Unit not used for vacation rental
@@ -87,7 +87,7 @@ A user with at least `EDITOR` on the unit SHALL be able to attach documents to a
 The system SHALL list the bookings visible to the user, filterable by property, unit, status, period (stays that overlap it) and a search text in booking number and guest name. The list SHALL be sortable by arrival, departure, unit, guest, nights, expected rent and status, and sorted by arrival descending by default. Users with a role below `EDITOR` MUST NOT find bookings by text that only appears in contact details.
 
 #### Scenario: Upcoming stays of one unit
-- **WHEN** Anna filters by "Haus Seeufer" and status planned and sorts by arrival ascending
+- **WHEN** Anna filters by "Haus Waldeck" and status planned and sorts by arrival ascending
 - **THEN** they see the planned bookings of that unit, earliest first
 
 #### Scenario: Search by booking number
@@ -154,8 +154,8 @@ The page SHALL have a header with the most important details: guest name, period
 For users with at least `EDITOR`, the page SHALL show the booking's sources next to the data, one tab per source. Focusing or clicking a field with a location SHALL show its source and highlight the location. Clicking a highlighted location SHALL focus its field. On narrow screens the sources SHALL be a separate tab of the page. A booking that does not exist or is not visible MUST show „Buchung nicht gefunden“.
 
 #### Scenario: Open from the list
-- **WHEN** Anna clicks booking 250903 in the booking list filtered by „Haus Seeufer“
-- **THEN** the booking page opens at its own address, and the back button returns to the list filtered by „Haus Seeufer“
+- **WHEN** Anna clicks booking 250903 in the booking list filtered by „Haus Waldeck“
+- **THEN** the booking page opens at its own address, and the back button returns to the list filtered by „Haus Waldeck“
 
 #### Scenario: Check the arrival
 - **WHEN** Anna clicks the arrival field of the imported booking 250903
@@ -177,18 +177,18 @@ The booking list SHALL offer, for selected bookings, „Bestätigen“ for booki
 - **THEN** all 6 become ordinary bookings and disappear from the filtered list
 
 #### Scenario: Assign a month to a statement
-- **WHEN** Anna selects the 7 Fewo & Meer bookings of „Haus Seeufer“ in October 2026 and assigns them to the October statement with 15 % commission and 60.00 cleaning
+- **WHEN** Anna selects the 7 Fewo & Meer bookings of „Haus Waldeck“ in October 2026 and assigns them to the October statement with 15 % commission and 60.00 cleaning
 - **THEN** the statement has 7 lines, each with the expected rent as gross, 15 % of it as commission and 60.00 cleaning, and the bookings show the status settled
 
 #### Scenario: Booking of another unit
-- **WHEN** Anna assigns a booking of „Whg. 1“ together with others to a statement of „Haus Seeufer“
+- **WHEN** Anna assigns a booking of „Whg. 1“ together with others to a statement of „Haus Waldeck“
 - **THEN** that booking is not assigned and the report names „Die Buchung gehört zu einer anderen Einheit“
 
 ### Requirement: Owner use
 A booking SHALL be either a guest booking or an owner use („Eigenbelegung“), and existing bookings SHALL be guest bookings. An owner use SHALL have a unit, arrival and departure, and optionally an external booking number and agency; it MUST NOT carry adults, children, pets, guest data or an expected rent, and it MUST NEVER be „zu prüfen“. The same rules as for guest bookings SHALL apply to who may record, edit, cancel and delete it, to overlaps and to unique booking numbers. When recording a booking, the user SHALL choose „Gastbuchung“ or „Eigenbelegung“, with „Gastbuchung“ preselected. The booking list SHALL show the kind and SHALL be filterable by it, and the booking page of an owner use MUST NOT show guest, guest-count or rent fields.
 
 #### Scenario: Record an owner use by hand
-- **WHEN** Anna records an „Eigenbelegung“ on "Haus Seeufer" from 2027-06-09 to 2027-06-14
+- **WHEN** Anna records an „Eigenbelegung“ on "Haus Waldeck" from 2027-06-09 to 2027-06-14
 - **THEN** the owner use is saved with 5 nights and without guests or rent
 
 #### Scenario: Owner use blocks the period
@@ -329,15 +329,15 @@ The bulk action „Bestätigen“ MUST NOT confirm a booking with a reported can
 When a mail fetched by the regular poll creates a booking „zu prüfen“, the system SHALL raise the notification „Neue Buchung zu prüfen“; when it proposes a change or a cancellation, the notification „Änderung oder Stornierung zu prüfen“. Recipients MUST be the users with at least `EDITOR` on the booking's unit. Both are event types of the group „Ferienvermietung“. Mails fetched as older mails, mails processed again and mails received more than two days before MUST NOT raise them.
 
 #### Scenario: New booking
-- **WHEN** the poll imports a confirmation for "Haus Seeufer" from 2027-07-12 to 2027-07-19 and Anna, `OWNER` of the property, switched on Pushover for „Neue Buchung zu prüfen“
-- **THEN** Anna gets „Neue Buchung zu prüfen“ naming "Haus Seeufer", the period and the agency, with a link to the booking
+- **WHEN** the poll imports a confirmation for "Haus Waldeck" from 2027-07-12 to 2027-07-19 and Anna, `OWNER` of the property, switched on Pushover for „Neue Buchung zu prüfen“
+- **THEN** Anna gets „Neue Buchung zu prüfen“ naming "Haus Waldeck", the period and the agency, with a link to the booking
 
 #### Scenario: Proposed cancellation
 - **WHEN** the poll imports a cancellation for a known booking and Anna switched on „Änderung oder Stornierung zu prüfen“
 - **THEN** Anna gets a notification that says a cancellation is proposed
 
 #### Scenario: Viewer
-- **WHEN** Bert is `VIEWER` of "Haus Seeufer" and a booking for it awaits review
+- **WHEN** Bert is `VIEWER` of "Haus Waldeck" and a booking for it awaits review
 - **THEN** Bert gets no notification, because he cannot confirm it
 
 #### Scenario: Older mails

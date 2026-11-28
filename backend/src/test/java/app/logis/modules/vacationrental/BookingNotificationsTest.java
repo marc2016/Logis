@@ -174,7 +174,7 @@ class BookingNotificationsTest extends VacationRentalTest {
         booking.apply(unit, java.time.LocalDate.of(2027, 7, 12), java.time.LocalDate.of(2027, 7, 19), "TEST-4711", 2,
                 1, new java.math.BigDecimal("1234.50"));
         booking.setGuest(new Guest("Erika Musterfrau", null, null, null, null, null, "erika@example.org"));
-        var summary = new app.logis.core.realestate.UnitSummary(unit, "Whg. 2", 1L, "Haus Seeufer", true,
+        var summary = new app.logis.core.realestate.UnitSummary(unit, "Whg. 2", 1L, "Haus Talblick", true,
                 app.logis.core.realestate.UnitUsage.VACATION_RENTAL, false, false);
         var proposal = new BookingProposal(BookingProposal.Type.CHANGE, null, java.time.LocalDate.of(2027, 7, 21), 3,
                 null, null, new java.math.BigDecimal("1400.00"), null, 5L);
@@ -184,7 +184,7 @@ class BookingNotificationsTest extends VacationRentalTest {
 
         assertThat(note.title()).isEqualTo("Änderung zu prüfen");
         assertThat(note.shortText()).isEqualTo(
-                "Haus Seeufer, Whg. 2, 12.07.2027 – 19.07.2027 (7 Nächte), über Fewo & Meer: Änderung vorgeschlagen");
+                "Haus Talblick, Whg. 2, 12.07.2027 – 19.07.2027 (7 Nächte), über Fewo & Meer: Änderung vorgeschlagen");
         assertThat(note.longText()).contains("Neuer Zeitraum: 12.07.2027 – 21.07.2027 (9 Nächte)")
                 .contains("Neue Personenzahl: 3 Erwachsene, 1 Kind").contains("Neue erwartete Miete: 1.400,00 €")
                 .contains("Erwartete Miete: 1.234,50 €").contains("Gast: Erika Musterfrau")

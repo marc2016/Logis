@@ -15,7 +15,7 @@ import static app.logis.modules.vacationrental.GermanText.find;
 
 /**
  * Rules for bookings delivered by DS Destination Solutions ("Buchungsmitteilung"), e.g. from Holidu or VVV
- * Nordhorn. The agency is the intermediary the mail names. Only confirmations are known so far; anything else is
+ * Talstadt. The agency is the intermediary the mail names. Only confirmations are known so far; anything else is
  * left to the AI fallback.
  */
 @Component

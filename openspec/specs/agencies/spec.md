@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Agencies are the intermediaries through which vacation rental bookings arrive, e.g. Fewo & Meer, Holidu, VVV Nordhorn or a direct booking. One shared, managed list keeps their names consistent across users and maps the names used in booking mails to them.
+Agencies are the intermediaries through which vacation rental bookings arrive, e.g. Fewo & Meer, Holidu, VVV Talstadt or a direct booking. One shared, managed list keeps their names consistent across users and maps the names used in booking mails to them.
 
 ## Requirements
 
@@ -21,8 +21,8 @@ The system SHALL keep one list of agencies shared by all users, shown on the pag
 Every signed-in user SHALL be able to rename and archive or restore an agency. Renaming MUST keep the previous name as a mail name, so that later mails with that name still find the agency. Archived agencies MUST NOT be offered when choosing an agency for a booking, but MUST stay on existing bookings and MUST still be found by their mail names.
 
 #### Scenario: Shorten an imported name
-- **WHEN** Anna renames „VVV-Stadt- und Citymarketing Nordhorn e.V.“ to „VVV Nordhorn“
-- **THEN** all its bookings show „VVV Nordhorn“, and a later mail naming „VVV-Stadt- und Citymarketing Nordhorn e.V.“ is assigned to „VVV Nordhorn“
+- **WHEN** Anna renames „VVV-Stadt- und Citymarketing Talstadt e.V.“ to „VVV Talstadt“
+- **THEN** all its bookings show „VVV Talstadt“, and a later mail naming „VVV-Stadt- und Citymarketing Talstadt e.V.“ is assigned to „VVV Talstadt“
 
 #### Scenario: Archived agency
 - **WHEN** Anna archives „Airbnb“
@@ -61,5 +61,5 @@ When a recognised booking mail names an agency, the system SHALL assign the agen
 - **THEN** the agency „Ferienbüro Süd“ exists, and the new booking references it
 
 #### Scenario: Known mail name
-- **WHEN** a mail names „VVV-Stadt- und Citymarketing Nordhorn e.V.“ and Anna has renamed that agency to „VVV Nordhorn“
-- **THEN** no new agency is created, and the booking references „VVV Nordhorn“
+- **WHEN** a mail names „VVV-Stadt- und Citymarketing Talstadt e.V.“ and Anna has renamed that agency to „VVV Talstadt“
+- **THEN** no new agency is created, and the booking references „VVV Talstadt“
