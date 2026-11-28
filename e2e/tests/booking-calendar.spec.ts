@@ -66,39 +66,26 @@ test('record a booking, see it in the calendar and settle it', async ({ page, ap
   await expect(page.getByRole('row', { name: monthName }).getByRole('button', { name: 'Max Testgast, Abgerechnet' })).toBeVisible()
 })
 
-test('month labels stay visible when the calendar is scrolled sideways', async ({ page, api }) => {
-  const home = await holidayHome(api)
-  const year = new Date().getFullYear()
-  await page.goto(`/ferienvermietung/kalender?year=${year}`)
-  await expect(page.getByRole('combobox', { name: 'Einheit' })).toContainText(home.name)
-  const grid = page.getByRole('grid', { name: 'Belegung' })
-  // Scroll the calendar to its right end, as on a phone where day 31 is far off screen.
-  await grid.locator('..').evaluate((el) => el.scrollTo({ left: el.scrollWidth }))
-  const label = page.getByRole('row', { name: `Juni ${year}` }).getByRole('rowheader')
-  await expect(label).toBeInViewport()
-  const box = (await label.boundingBox())!
-  const container = (await grid.locator('..').boundingBox())!
-  expect(box.x).toBeLessThanOrEqual(container.x + 1)
-})
-
-test('the calendar shows weekdays and today, scrolled into view', async ({ page, api }) => {
+test('the calendar fits the screen and shows weekdays and today', async ({ page, api }, testInfo) => {
   await holidayHome(api)
   await page.goto('/ferienvermietung/kalender')
+  const grid = page.getByRole('grid', { name: 'Belegung' })
   const today = page.locator('[data-today="true"]')
   await expect(today).toHaveCount(1)
-  // On the phone the calendar is wider than the screen: it opens scrolled sideways to today, next to the month
-  // column (80 px), while the page itself stays where it is.
-  await expect(async () => {
-    const frame = (await page.getByRole('grid', { name: 'Belegung' }).locator('..').boundingBox())!
-    const cell = (await today.boundingBox())!
-    expect(cell.x).toBeGreaterThanOrEqual(frame.x + 80)
-    expect(cell.x + cell.width).toBeLessThanOrEqual(frame.x + frame.width)
-  }).toPass()
-  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  // No sideways scrolling: nothing sticks out of the calendar, and day 31 is on the screen (spec occupancy).
+  const frame = page.getByTestId('calendar-frame')
+  expect(await frame.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+  const year = new Date().getFullYear()
+  await expect(page.getByRole('row', { name: `Januar ${year}` }).getByRole('gridcell', { name: new RegExp(`^\\p{L}+, 31\\. Januar ${year}`, 'u') })).toBeInViewport()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await expect(grid).toBeVisible()
+
   // Today as the browser sees it: its time zone can be a day ahead of the test runner's around midnight.
   const now = await page.evaluate(() => ({ day: new Date().getDate(), weekday: new Date().getDay() }))
   const weekday = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][now.weekday]
-  await expect(today).toHaveText(`${now.day}${weekday}`)
+  // Wide calendars show the weekday under the number; on the phone only the number is left.
+  const shown = await today.evaluate((el) => (el as HTMLElement).innerText.replace(/\s+/g, ''))
+  expect(shown).toBe(testInfo.project.name === 'phone' ? `${now.day}` : `${now.day}${weekday}`)
   await expect(today).toHaveAttribute('aria-label', /, heute$/)
   await expect(today).toHaveAttribute('aria-current', 'date')
 })

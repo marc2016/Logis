@@ -37,6 +37,24 @@ test('list pages fit on phone and tablet screens', async ({ page, api }) => {
   expect(problems).toEqual([])
 })
 
+test('the occupancy calendar fits without scrolling sideways', async ({ page, api }) => {
+  const home = await holidayHome(api)
+  await booking(api, home.unitId, '2030-07-10', '2030-07-12', 'Erika Musterfrau', 'L-3001')
+  const problems: string[] = []
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(`/ferienvermietung/kalender?year=2030`)
+    await expect(page.getByRole('row', { name: 'Juli 2030' }).getByRole('button', { name: /Erika Musterfrau/ })).toBeVisible()
+    const sizes = await page.getByTestId('calendar-frame').evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
+    if (sizes.scroll > sizes.client) problems.push(`calendar at ${width} px: ${sizes.scroll} px content in ${sizes.client} px`)
+    const last = page.getByRole('gridcell', { name: /31\. Juli 2030/ })
+    const box = (await last.boundingBox())!
+    if (box.x + box.width > width + 1) problems.push(`calendar at ${width} px: 31 July ends at ${Math.round(box.x + box.width)} px`)
+    for (const p of await layoutProblems(page)) problems.push(`calendar at ${width} px: ${p}`)
+  }
+  expect(problems).toEqual([])
+})
+
 test('the evaluation fits on phone and tablet screens', async ({ page, api }) => {
   const home = await holidayHome(api)
   await booking(api, home.unitId, '2030-07-01', '2030-07-11', 'Erika Musterfrau', 'L-2001')

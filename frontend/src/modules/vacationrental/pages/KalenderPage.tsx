@@ -120,7 +120,6 @@ export function KalenderPage() {
               year={data.year}
               currentMonth={currentMonth}
               today={today}
-              scrollToToday={year === currentYear}
               bookings={bookings}
               onOpen={(bookingId) => navigate(bookingPath(bookingId), { state: backTo(location) })}
             />

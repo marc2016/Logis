@@ -138,37 +138,51 @@ describe('Calendar by year', () => {
     expect(document.querySelectorAll('[data-today]')).toHaveLength(1)
   })
 
-  it('scrolls the calendar sideways to today for the current year and after "Heute", not for other years', async () => {
+  it('fits the width instead of scrolling sideways', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-11-28T10:00:00Z'))
-    // A frame 300 px wide; today's cell lies at 900 px, outside it.
-    const rect = (left: number, width: number) => ({ left, right: left + width, width, top: 0, bottom: 36, height: 36, x: left, y: 0, toJSON: () => ({}) })
-    const originalRect = Element.prototype.getBoundingClientRect
-    const originalScroll = Element.prototype.scrollTo
-    const scrolls: number[] = []
-    Element.prototype.getBoundingClientRect = function (this: Element) {
-      if (this.getAttribute('data-today')) return rect(900, 28) as DOMRect
-      if (this.classList.contains('overflow-x-auto')) return rect(0, 300) as DOMRect
-      return rect(0, 0) as DOMRect
-    }
-    Element.prototype.scrollTo = function (this: Element, options?: ScrollToOptions | number) {
-      scrolls.push((options as ScrollToOptions).left ?? 0)
-    } as typeof Element.prototype.scrollTo
-    try {
-      mockApi({ ...base, ...years() })
-      renderApp('/ferienvermietung/kalender')
-      const user = userEvent.setup()
-      // Centre of the cell (914) to the centre of the part right of the month column (80 + 110 = 190).
-      await waitFor(() => expect(scrolls).toEqual([724]))
-      await user.click(screen.getByRole('button', { name: 'Jahr 2027' }))
-      await waitFor(() => expect(headings()[0]).toBe('Dezember 2026'))
-      expect(scrolls).toHaveLength(1)
-      await user.click(screen.getByRole('button', { name: 'Heute' }))
-      await waitFor(() => expect(scrolls).toHaveLength(2))
-    } finally {
-      Element.prototype.getBoundingClientRect = originalRect
-      Element.prototype.scrollTo = originalScroll
-    }
+    mockApi({ ...base, ...years() })
+    renderApp('/ferienvermietung/kalender')
+    await waitFor(() => expect(headings()).toHaveLength(14))
+    const frame = screen.getByTestId('calendar-frame')
+    expect(frame.className).not.toMatch(/overflow-x-auto/)
+    expect(frame.className).toMatch(/@container\/calendar/)
+    // Day columns may shrink to any width; the month column narrows by a container query (design D1, D2).
+    expect(screen.getByRole('grid', { name: 'Belegung' }).style.gridTemplateColumns).toBe('var(--month-column) repeat(31, minmax(0, 1fr))')
+  })
+
+  it('shows the short month and only the number on narrow calendars, keeping the full names for screen readers', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-28T10:00:00Z'))
+    mockApi({ ...base, ...years() })
+    renderApp('/ferienvermietung/kalender')
+    await waitFor(() => expect(headings()).toHaveLength(14))
+    const november = monthRow('November 2026')
+    const header = within(november).getByRole('rowheader', { name: 'November 2026' })
+    expect(header).toHaveTextContent('Nov 26')
+    expect(header).toHaveTextContent('Nov. 2026')
+    expect(within(header).getByText('Nov 26').className).toMatch(/@min-\[46rem\]\/calendar:hidden/)
+    expect(within(header).getByText('Nov. 2026').className).toMatch(/^hidden /)
+    expect(within(monthRow('März 2026')).getByRole('rowheader')).toHaveTextContent('Mär 26')
+    // The weekday is hidden on narrow calendars; the cell's name still says it.
+    const today = within(november).getByRole('gridcell', { name: 'Samstag, 28. November 2026, heute' })
+    const weekday = today.querySelector('[data-weekday]')!
+    expect(weekday).toHaveTextContent('Sa')
+    expect(weekday.className).toMatch(/^hidden .*@min-\[46rem\]\/calendar:inline/)
+    expect(today.className).toMatch(/bg-muted\/50/)
+  })
+
+  it('cuts off the label of a short bar but keeps its name and opening it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-28T10:00:00Z'))
+    mockApi({
+      ...base,
+      ...years([stay(520, '2026-11-10', '2026-11-12', 'Erika Musterfrau-Beispiel')]),
+    })
+    renderApp('/ferienvermietung/kalender')
+    const bar = await within(await waitFor(() => monthRow('November 2026'))).findByRole('button', { name: /Erika Musterfrau-Beispiel/ })
+    expect(bar.className).toMatch(/truncate/)
+    expect(bar).toHaveAttribute('title', expect.stringContaining('Erika Musterfrau-Beispiel'))
   })
 
   it('opens the year of an old month link', async () => {

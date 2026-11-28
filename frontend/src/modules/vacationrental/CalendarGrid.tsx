@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { daysIn, nightsInMonth } from './calendar'
 import { CANCELLATION_REPORTED, kindLabel, statusLabel, type CalendarBooking } from './api'
@@ -19,20 +18,11 @@ function monthTitle(month: string) {
   return monthLong.format(monthDate(month))
 }
 
-/** Width of the sticky month column (5rem), which covers the days scrolled under it. */
-const MONTH_COLUMN = 80
+const monthName = new Intl.DateTimeFormat('de-DE', { month: 'short', timeZone: 'UTC' })
 
-/**
- * Scrolls the calendar's own frame sideways so that the cell is centred, only if it is not fully visible; the page
- * itself does not move (design D3 of calendar-today-weekdays).
- */
-function scrollSideways(frame: HTMLElement, cell: HTMLElement) {
-  const f = frame.getBoundingClientRect()
-  const c = cell.getBoundingClientRect()
-  const left = f.left + MONTH_COLUMN
-  if (c.left >= left && c.right <= f.right) return
-  const centre = left + (f.right - left) / 2
-  frame.scrollTo?.({ left: frame.scrollLeft + (c.left + c.width / 2 - centre) })
+/** „Nov 26“ for narrow calendars (design D2 of calendar-fit-width). */
+function monthTiny(month: string) {
+  return `${monthName.format(monthDate(month)).replace('.', '')} ${month.slice(2, 4)}`
 }
 
 interface Props {
@@ -44,8 +34,6 @@ interface Props {
   currentMonth: string
   /** Today ("2026-11-20"), marked in its cell. */
   today: string
-  /** Scroll today's cell into view, e.g. when the current year opens or after „Heute“. */
-  scrollToToday?: boolean
   /** Stays of the shown unit over all months. */
   bookings: CalendarBooking[]
   onOpen: (bookingId: number) => void
@@ -55,19 +43,14 @@ interface Props {
  * One unit over a year: one row per month, one column per day (1 to 31), one bar per stay over its nights.
  * Planned stays are outlined, settled ones filled; the neighbouring months of other years are muted.
  */
-export function CalendarGrid({ months, year, currentMonth, today, scrollToToday = false, bookings, onOpen }: Props) {
+export function CalendarGrid({ months, year, currentMonth, today, bookings, onOpen }: Props) {
   const visible = bookings.filter((b) => b.status !== 'CANCELLED')
-  const frame = useRef<HTMLDivElement>(null)
-  const todayCell = useRef<HTMLDivElement>(null)
-  // Only when the year changes to the current one, not after every reload of its bookings (design D3).
-  useEffect(() => {
-    if (scrollToToday && frame.current && todayCell.current) scrollSideways(frame.current, todayCell.current)
-  }, [scrollToToday, year])
+  // Fits the width and never scrolls sideways; narrow calendars show less in each day (design of calendar-fit-width).
   return (
-    <div ref={frame} className="overflow-x-auto rounded-lg border">
+    <div className="@container/calendar overflow-hidden rounded-lg border" data-testid="calendar-frame">
       <div
-        className="grid w-max min-w-full text-xs"
-        style={{ gridTemplateColumns: `5rem repeat(${MAX_DAYS}, minmax(1.75rem, 1fr))` }}
+        className="grid w-full text-xs [--month-column:2.75rem] @min-[46rem]/calendar:[--month-column:5rem]"
+        style={{ gridTemplateColumns: `var(--month-column) repeat(${MAX_DAYS}, minmax(0, 1fr))` }}
         role="grid"
         aria-label="Belegung"
       >
@@ -87,14 +70,20 @@ export function CalendarGrid({ months, year, currentMonth, today, scrollToToday 
             >
               <div
                 className={cn(
-                  'sticky left-0 z-20 flex items-center border-b bg-background px-2 font-medium whitespace-nowrap',
+                  'flex items-center border-b bg-background px-1 text-[10px] font-medium whitespace-nowrap @min-[46rem]/calendar:px-2 @min-[46rem]/calendar:text-xs',
                   outside && 'text-muted-foreground italic',
                   current && 'border-l-4 border-l-primary text-primary',
                 )}
                 style={{ gridRow: row, gridColumn: 1 }}
                 role="rowheader"
+                aria-label={monthTitle(month)}
               >
-                {monthShort.format(monthDate(month))}
+                <span className="@min-[46rem]/calendar:hidden" aria-hidden="true">
+                  {monthTiny(month)}
+                </span>
+                <span className="hidden @min-[46rem]/calendar:inline" aria-hidden="true">
+                  {monthShort.format(monthDate(month))}
+                </span>
               </div>
               {Array.from({ length: MAX_DAYS }, (_, i) => {
                 const weekday = i < days ? monthDate(month, i + 1).getUTCDay() : null
@@ -102,13 +91,12 @@ export function CalendarGrid({ months, year, currentMonth, today, scrollToToday 
                 return (
                   <div
                     key={i}
-                    ref={isToday ? todayCell : undefined}
                     role={weekday === null ? undefined : 'gridcell'}
                     aria-label={weekday === null ? undefined : `${dayLong.format(monthDate(month, i + 1))}${isToday ? ', heute' : ''}`}
                     aria-current={isToday ? 'date' : undefined}
                     data-today={isToday ? 'true' : undefined}
                     className={cn(
-                      'flex h-12 flex-col items-start gap-0.5 border-b border-l px-0.5 pt-0.5 text-[10px] leading-none whitespace-nowrap text-muted-foreground',
+                      'flex h-12 min-w-0 flex-col items-center gap-0.5 overflow-hidden border-b border-l pt-0.5 text-[8px] leading-none tracking-[-0.06em] whitespace-nowrap text-muted-foreground @min-[46rem]/calendar:items-start @min-[46rem]/calendar:px-0.5 @min-[46rem]/calendar:text-[10px] @min-[46rem]/calendar:tracking-normal',
                       weekday === null ? 'bg-muted' : (weekday === 0 || weekday === 6) && 'bg-muted/50',
                       isToday && 'ring-1 ring-primary ring-inset',
                     )}
@@ -118,7 +106,10 @@ export function CalendarGrid({ months, year, currentMonth, today, scrollToToday 
                       <>
                         <span className={cn(isToday && 'rounded-sm bg-primary px-0.5 font-semibold text-primary-foreground')}>{i + 1}</span>
                         {/* Under the number, so that the columns keep their width (design D1 of calendar-today-weekdays). */}
-                        <span className="text-[9px] opacity-70">{WEEKDAYS[weekday]}</span>
+                        {/* Narrow calendars show the weekday only by the weekend background (design D2 of calendar-fit-width). */}
+                        <span className="hidden text-[9px] opacity-70 @min-[46rem]/calendar:inline" data-weekday>
+                          {WEEKDAYS[weekday]}
+                        </span>
                       </>
                     )}
                   </div>
@@ -137,7 +128,7 @@ export function CalendarGrid({ months, year, currentMonth, today, scrollToToday 
                     onClick={() => onOpen(b.id)}
                     style={{ gridRow: row, gridColumn: `${span[0] + 1} / ${span[1] + 2}` }}
                     className={cn(
-                      'z-10 mx-px mt-6 mb-0.5 truncate rounded px-1 text-left leading-5',
+                      'z-10 mx-px mt-6 mb-0.5 min-w-0 truncate rounded px-px text-left text-[10px] leading-5 @min-[46rem]/calendar:px-1 @min-[46rem]/calendar:text-xs',
                       owner
                         ? 'border-2 border-muted-foreground/40 bg-muted text-muted-foreground'
                         : b.status === 'SETTLED'
