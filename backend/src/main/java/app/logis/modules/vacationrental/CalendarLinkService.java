@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.realestate.UnitUsage;
 import app.logis.core.sharing.ShareRole;
@@ -9,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -75,7 +75,7 @@ class CalendarLinkService {
         return links.findByTokenHash(CalendarLink.hash(token))
                 .filter(link -> access.role(link.getUnitId(), link.getCreatedBy()).isPresent())
                 .map(link -> {
-                    var today = LocalDate.now(clock);
+                    var today = GermanTime.today(clock);
                     var stays = bookings.findForUnits(Set.of(link.getUnitId()), CalendarFeed.since(today).minusDays(1), null)
                             .stream()
                             .filter(b -> !b.isCancelled())

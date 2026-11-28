@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.notifications.Notification;
 import app.logis.core.notifications.NotificationType;
@@ -38,7 +39,7 @@ class BookingDigest {
             BookingNotifications.GROUP);
     static final NotificationType DEPARTURES = NotificationType.of("vacationrental.departures", "Abreisen morgen",
             BookingNotifications.GROUP);
-    static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+    static final ZoneId ZONE = GermanTime.ZONE;
     static final int HOUR = 18;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final Logger log = LoggerFactory.getLogger(BookingDigest.class);

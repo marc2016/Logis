@@ -1,5 +1,6 @@
 package app.logis.core.auth;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.geo.GeoLocator;
 import app.logis.core.notifications.Notification;
 import app.logis.core.notifications.NotificationType;
@@ -43,7 +44,7 @@ class SignInMonitor {
             java.util.Set.of("mail"));
     static final Duration HISTORY = Duration.ofDays(180);
     private static final Duration COOKIE_LIFETIME = Duration.ofDays(365);
-    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+    private static final ZoneId ZONE = GermanTime.ZONE;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm 'Uhr'", Locale.GERMAN);
 
     private final JdbcTemplate jdbc;

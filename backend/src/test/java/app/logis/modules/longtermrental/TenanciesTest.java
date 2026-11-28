@@ -238,4 +238,17 @@ class TenanciesTest extends LongTermRentalTest {
         move.put("version", 0);
         putJson(TENANCIES + "/" + second, move, emil.session()).andExpect(status().isNotFound());
     }
+
+    @Test
+    void stateFollowsTheGermanDayAfterMidnight() throws Exception {
+        var anna = actor();
+        var house = rentalHouse(anna);
+        // 15 January 2027, 00:30 in Germany; in UTC it is still 14 January. Sessions do not live that long.
+        clock.set(java.time.Instant.parse("2027-01-14T23:30:00Z"));
+        anna = new Actor(anna.user(), login(anna.user()));
+        var starting = tenancy(anna, house[1], java.time.LocalDate.parse("2027-01-15"), null);
+        var ended = tenancy(anna, house[2], java.time.LocalDate.parse("2026-01-01"), java.time.LocalDate.parse("2027-01-14"));
+        getWith(TENANCIES + "/" + starting, anna.session()).andExpect(jsonPath("$.state").value("RUNNING"));
+        getWith(TENANCIES + "/" + ended, anna.session()).andExpect(jsonPath("$.state").value("ENDED"));
+    }
 }

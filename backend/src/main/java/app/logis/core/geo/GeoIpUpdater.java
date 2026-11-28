@@ -1,5 +1,6 @@
 package app.logis.core.geo;
 
+import app.logis.shared.GermanTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,7 +32,7 @@ import java.util.zip.GZIPInputStream;
 class GeoIpUpdater {
 
     private static final Logger log = LoggerFactory.getLogger(GeoIpUpdater.class);
-    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+    private static final ZoneId ZONE = GermanTime.ZONE;
 
     private final GeoProperties properties;
     private final GeoLocator locator;

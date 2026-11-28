@@ -1,5 +1,6 @@
 package app.logis.modules.vacationrental;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.documents.Documents;
 import app.logis.core.mail.Handled;
 import app.logis.core.mail.MailAttachments;
@@ -48,7 +49,7 @@ class StatementMailImport {
     static final String ALREADY_SETTLED = "bereits abgerechnet";
     static final String EXTENSION_NOTE = "Verlängerungsbuchung";
 
-    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+    private static final ZoneId ZONE = GermanTime.ZONE;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final Session SESSION = Session.getInstance(new Properties());
     private static final Pattern FEWO_SUBJECT = Pattern.compile("^Ihre Abrechnung für (\\p{L}+) (\\d{4}) - (.+)$");

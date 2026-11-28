@@ -20,7 +20,7 @@ abstract class LongTermRentalTest extends RealestateTest {
     static final String TENANCIES = "/api/longtermrental/tenancies";
 
     protected LocalDate today() {
-        return LocalDate.now(clock);
+        return app.logis.shared.GermanTime.today(clock);
     }
 
     /** A property with the long-term units „Whg. 1“ and „Whg. 2“; returns property ID and both unit IDs. */

@@ -1,5 +1,6 @@
 package app.logis.core.mail;
 
+import app.logis.shared.GermanTime;
 import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.HashSet;
@@ -36,7 +37,7 @@ class MailService {
      * Days such as the cut-off date are the user's days: the browser sends them in local time, while the server clock
      * runs in UTC. Around midnight the two differ by a day, so day boundaries are taken in this zone.
      */
-    static final java.time.ZoneId ZONE = java.time.ZoneId.of("Europe/Berlin");
+    static final java.time.ZoneId ZONE = GermanTime.ZONE;
 
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
     static final String NOT_FOUND = "Mail nicht gefunden";
@@ -140,7 +141,7 @@ class MailService {
         if (from == null) {
             throw ApiException.badRequest("Bitte ein Datum angeben.");
         }
-        if (from.isAfter(LocalDate.ofInstant(clock.instant(), ZONE))) {
+        if (from.isAfter(GermanTime.today(clock))) {
             throw ApiException.badRequest("Das Datum darf nicht in der Zukunft liegen.");
         }
         if (mailboxes.findById(ownerId).isEmpty()) {

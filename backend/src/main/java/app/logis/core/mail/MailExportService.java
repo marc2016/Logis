@@ -1,5 +1,6 @@
 package app.logis.core.mail;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.ledger.LegalEntities;
 import app.logis.core.realestate.PropertyAddresses;
 import app.logis.core.web.ApiException;
@@ -43,7 +44,7 @@ class MailExportService {
     static final String NOT_FOUND = "Postfach nicht gefunden";
 
     private static final Logger log = LoggerFactory.getLogger(MailExportService.class);
-    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+    private static final ZoneId ZONE = GermanTime.ZONE;
     private static final Map<String, String> CORE_LABELS = Map.of(StoredMail.NOT_RECOGNISED, "Nicht erkannt",
             StoredMail.IGNORED, "Ignoriert", StoredMail.FAILED, "Fehler");
 

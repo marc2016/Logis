@@ -1,5 +1,6 @@
 package app.logis.core.mail;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.auth.LogisPrincipal;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -52,7 +52,7 @@ class AdminMailExportController {
     void export(@RequestBody MailExportService.Filter filter, @AuthenticationPrincipal LogisPrincipal me,
             HttpServletResponse response) throws IOException {
         exports.check(filter);
-        var date = clock.instant().atZone(ZoneId.of("Europe/Berlin")).toLocalDate();
+        var date = GermanTime.today(clock);
         response.setContentType("application/zip");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"logis-mails-" + date + ".zip\"");
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");

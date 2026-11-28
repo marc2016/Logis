@@ -1,5 +1,6 @@
 package app.logis.modules.longtermrental;
 
+import app.logis.shared.GermanTime;
 import app.logis.core.documents.Documents;
 import app.logis.core.modules.ConditionalOnLogisModule;
 import app.logis.core.realestate.UnitAccess;
@@ -267,7 +268,7 @@ class TenancyService {
         var ids = tenancies.stream().map(Tenancy::id).toList();
         var tenants = store.tenants(ids);
         var terms = store.rentTerms(ids);
-        var today = LocalDate.now(clock);
+        var today = GermanTime.today(clock);
         return tenancies.stream().filter(t -> summaries.containsKey(t.unitId())).map(t -> {
             var own = terms.getOrDefault(t.id(), List.of());
             var state = t.startDate().isAfter(today) ? State.FUTURE
