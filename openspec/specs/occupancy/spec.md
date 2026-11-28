@@ -7,7 +7,7 @@ Occupancy shows how vacation rental units are used over time: a calendar of stay
 ## Requirements
 
 ### Requirement: Occupancy calendar by year
-The system SHALL show the occupancy calendar for one vacation rental unit chosen by the user as a table with one row per month and one column per day of the month, with one bar per booking that is not cancelled. It SHALL show one calendar year at a time: the last month of the previous year, the twelve months of the year, and the first month of the following year. It SHALL start with the current year. The user SHALL be able to page to the previous and the next year and to return to the current year with „Heute“, and the shown year SHALL be kept in the address. The months of the neighbouring years MUST be visually set apart from the year, and the current month MUST be marked. Every day SHALL show its number and its weekday as a two-letter abbreviation („Mo“, „Di“, „Mi“, „Do“, „Fr“, „Sa“, „So“), and today MUST be marked in its cell. When the calendar opens on the current year and when the user chooses „Heute“, today SHALL be scrolled into view if the calendar is wider than the screen. Planned and settled bookings MUST be distinguishable. Only units with an effective role for the user MUST be offered.
+The system SHALL show the occupancy calendar for one vacation rental unit chosen by the user as a table with one row per month and one column per day of the month, with one bar per booking that is not cancelled. It SHALL show one calendar year at a time: the last month of the previous year, the twelve months of the year, and the first month of the following year. It SHALL start with the current year. The user SHALL be able to page to the previous and the next year and to return to the current year with „Heute“, and the shown year SHALL be kept in the address. The months of the neighbouring years MUST be visually set apart from the year, and the current month MUST be marked. The calendar MUST fit the width of the screen without scrolling sideways. Every day SHALL show its number; where the day columns are wide enough, it SHALL also show its weekday as a two-letter abbreviation („Mo“, „Di“, „Mi“, „Do“, „Fr“, „Sa“, „So“). Saturdays and Sundays MUST be set apart by their background. Today MUST be marked in its cell. Planned and settled bookings MUST be distinguishable. Only units with an effective role for the user MUST be offered.
 
 #### Scenario: November at the holiday home
 - **WHEN** Anna opens the calendar of the unit "Haus Seeufer" in November 2026
@@ -42,7 +42,7 @@ The system SHALL show the occupancy calendar for one vacation rental unit chosen
 - **THEN** both the year 2026 and the year 2027 show its bar on 30 and 31 December and on 1 January
 
 #### Scenario: Weekdays
-- **WHEN** Anna opens the calendar for 2026
+- **WHEN** Anna opens the calendar for 2026 on a desktop screen
 - **THEN** the cell of 20 November 2026 shows „20“ and „Fr“, and the cell of 21 November 2026 shows „Sa“ on the weekend background
 
 #### Scenario: Today
@@ -51,7 +51,11 @@ The system SHALL show the occupancy calendar for one vacation rental unit chosen
 
 #### Scenario: Today on a phone
 - **WHEN** Anna opens the calendar on a phone on 28 November 2026
-- **THEN** the calendar is scrolled sideways so that 28 November is visible
+- **THEN** every month fits the screen width without scrolling sideways, the cell of 28 November shows „28“ without a weekday abbreviation and is marked as today, and 28 and 29 November have the weekend background
+
+#### Scenario: Bar too short for its label
+- **WHEN** on a phone a booking of two nights is too short to show its guest's name
+- **THEN** its bar shows as much of the name as fits, and tapping it opens the booking
 
 ### Requirement: Counting nights and money
 A booking SHALL count its nights from arrival up to the night before departure, and a stay across a month boundary MUST be split by night. Cancelled bookings MUST NOT count as nights. Money MUST NOT be split by night: settled amounts MUST count in the month of their statement date, the same as in the property finances, and planned rent in the month of arrival.
