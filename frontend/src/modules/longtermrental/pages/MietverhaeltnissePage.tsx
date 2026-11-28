@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DataTable } from '@/components/DataTable'
 import { Money } from '@/components/Money'
+import { formatEUR } from '@/lib/money'
 import { PageHeader } from '@/components/PageHeader'
 import { TenancyDialog } from '../TenancyDialog'
 import { StateBadge } from '../StateBadge'
@@ -31,6 +32,20 @@ const columns = [
     header: 'Aktuelle Miete',
     cell: (c) => (c.getValue() ? <Money amount={c.getValue()!} colored={false} /> : '–'),
     meta: { label: 'Aktuelle Miete', className: 'text-right' },
+  }),
+  column.accessor((t) => t.arrears, {
+    id: 'arrears',
+    header: 'Rückstand',
+    // Arrears are decimal strings from the server; "0.00" means paid up (spec rent-payments).
+    cell: (c) =>
+      /^0+(\.0+)?$/.test(c.getValue()) ? (
+        ''
+      ) : (
+        <span className={c.row.original.overdue ? 'font-medium text-destructive' : undefined} data-overdue={c.row.original.overdue ? 'true' : undefined}>
+          {formatEUR(c.getValue())} Rückstand
+        </span>
+      ),
+    meta: { label: 'Rückstand', className: 'text-right' },
   }),
   column.accessor('state', { header: 'Status', cell: (c) => <StateBadge state={c.getValue()} />, meta: { label: 'Status' } }),
 ]

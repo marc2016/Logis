@@ -83,4 +83,28 @@ describe('Bulk actions on transactions', () => {
     expect(await screen.findByText('Edeka')).toBeInTheDocument()
     expect(screen.queryByRole('checkbox', { name: /auswählen/ })).not.toBeInTheDocument()
   })
+
+  it('shows the transaction of a rent payment with its origin and without edit actions, and reports it in bulk', async () => {
+    const items = [
+      transaction({ id: 201, counterparty: 'Erika Musterfrau', amount: '800.00', source: { type: 'longtermrental.tenancy', id: 600 } }),
+      transaction({ id: 202, counterparty: 'Supermarkt' }),
+    ]
+    mockApi({
+      ...base,
+      'GET /api/transactions': { body: page(items) },
+      'DELETE /api/transactions/201': { status: 409, body: { detail: 'Diese Transaktion gehört zu einer Mietzahlung und wird dort geändert' } },
+      'DELETE /api/transactions/202': { status: 204 },
+    })
+    renderApp('/finanzen/konten/1')
+    const user = userEvent.setup()
+    const managed = await screen.findByRole('row', { name: /Erika Musterfrau/ })
+    expect(within(managed).getByRole('link', { name: 'Mietzahlung' })).toHaveAttribute('href', '/dauervermietung/mietverhaeltnisse/600')
+    expect(within(managed).queryByRole('button', { name: 'Transaktion bearbeiten' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('row', { name: /Supermarkt/ })).getByRole('button', { name: 'Transaktion bearbeiten' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Alle auf dieser Seite auswählen' }))
+    await user.click(within(toolbar()).getByRole('button', { name: 'Löschen' }))
+    await user.click(within(toolbar()).getByRole('button', { name: 'Ja' }))
+    expect(await screen.findByText('1 gelöscht, 1 nicht: Diese Transaktion gehört zu einer Mietzahlung und wird dort geändert')).toBeInTheDocument()
+  })
 })

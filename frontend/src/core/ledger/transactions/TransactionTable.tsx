@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { ArrowLeftRightIcon, HouseIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftRightIcon, HouseIcon, LinkIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,11 @@ function updateBody(t: Transaction, change: Partial<Pick<Transaction, 'categoryI
     version: t.version,
     ...change,
   }
+}
+
+/** Transactions managed by a module: shown with their origin, changed only there (spec transactions). */
+const managedSources: Record<string, { label: string; path: (id: number) => string }> = {
+  'longtermrental.tenancy': { label: 'Mietzahlung', path: (id) => `/dauervermietung/mietverhaeltnisse/${id}` },
 }
 
 export function TransactionTable({ items, accounts, showAccount = true, isLoading, selectionKey = '' }: Props) {
@@ -175,7 +181,16 @@ export function TransactionTable({ items, accounts, showAccount = true, isLoadin
                   <Money amount={t.amount} />
                 </TableCell>
                 <TableCell className="text-right">
-                  {canEdit(t) && (
+                  {t.source && (
+                    <Link
+                      to={managedSources[t.source.type]?.path(t.source.id) ?? '#'}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      <LinkIcon className="size-3" />
+                      {managedSources[t.source.type]?.label ?? 'Verknüpft'}
+                    </Link>
+                  )}
+                  {canEdit(t) && !t.source && (
                     <>
                       <Button variant="ghost" size="icon" aria-label="Transaktion bearbeiten" onClick={() => setEditing(t)}>
                         <PencilIcon />

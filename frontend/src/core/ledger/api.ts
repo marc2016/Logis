@@ -77,6 +77,8 @@ export interface Transaction {
   targetName: string | null
   access: TransactionAccess
   version: number
+  /** Set when a module manages the transaction, e.g. a rent payment; it is changed only there. */
+  source: { type: string; id: number } | null
 }
 
 export interface TransactionPage {

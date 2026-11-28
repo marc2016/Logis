@@ -149,4 +149,20 @@ describe('Mietverhältnisse', () => {
     expect(await screen.findByRole('row', { name: /Erika Musterfrau/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mietverhältnis' })).not.toBeInTheDocument()
   })
+
+  it('shows the arrears of each tenancy, marked when overdue', async () => {
+    mockApi({
+      ...base,
+      'GET /api/longtermrental/tenancies': {
+        body: [
+          tenancy({ id: 601, arrears: '800.00', overdue: true }),
+          tenancy({ id: 602, unit: whg2, tenants: [{ ...tenancy().tenants[0], id: 2, name: 'Max Mustermann' }] }),
+        ],
+      },
+    })
+    renderApp('/dauervermietung/mietverhaeltnisse')
+    const behind = await screen.findByRole('row', { name: /Erika Musterfrau/ })
+    expect(within(behind).getByText('800,00 € Rückstand')).toHaveAttribute('data-overdue', 'true')
+    expect(screen.getByRole('row', { name: /Max Mustermann/ })).not.toHaveTextContent('Rückstand')
+  })
 })

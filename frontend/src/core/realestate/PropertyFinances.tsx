@@ -22,6 +22,7 @@ const kindLabel: Record<FinanceKind, string> = { INCOME: 'Einnahme', EXPENSE: 'A
 /** Where a contributed item can be opened. */
 const sourceLink: Record<string, (id: number) => string> = {
   'vacationrental.statement': (id) => `/ferienvermietung/abrechnungen?statement=${id}`,
+  'longtermrental.tenancy': (id) => `/dauervermietung/mietverhaeltnisse/${id}`,
 }
 
 const column = createColumnHelper<FinanceItem>()

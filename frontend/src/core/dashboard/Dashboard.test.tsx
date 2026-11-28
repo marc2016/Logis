@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { authenticated, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
+import { authenticated, longTermRentalActive, mockApi, renderApp, vacationRentalActive } from '@/test/renderApp'
 import { account, page, transaction } from '@/core/ledger/fixtures'
 import { formatDate, todayIso } from '@/core/ledger/transactions/format'
 import { formatEUR } from '@/lib/money'
 import { booking, bookingPage, waldeck } from '@/modules/vacationrental/fixtures'
+import { tenancy } from '@/modules/longtermrental/fixtures'
 import type { MonthFigures } from '@/modules/vacationrental/api'
 import { change, plusDays, stayEvents } from '@/modules/vacationrental/dashboard/figures'
 import type { Tile } from './api'
@@ -57,6 +58,50 @@ function api({ tiles = null as Tile[] | null, rental = true, inbox = [] as unkno
 }
 
 const headings = async () => (await screen.findAllByRole('heading', { level: 2 })).map((h) => h.textContent)
+
+/** Only the long-term rental module, with a stored „Mietrückstände“ tile. */
+function arrearsApi(tenancies: unknown[], active = true) {
+  mockApi({
+    'GET /api/auth/me': authenticated(),
+    'GET /api/modules': active ? longTermRentalActive : { body: [] },
+    'GET /api/dashboard': { body: { tiles: [{ id: 'r', type: 'longtermrental.arrears', settings: {} }] } },
+    'GET /api/mail/inbox': { body: [] },
+    'GET /api/mail/mailbox/fetch-status': { status: 204 },
+    'GET /api/longtermrental/tenancies': { body: tenancies },
+  })
+}
+
+describe('Tile „Mietrückstände“', () => {
+  it('lists overdue tenancies, largest arrears first, linking to them', async () => {
+    arrearsApi([
+      tenancy({ id: 601, arrears: '400.00', overdue: true }),
+      tenancy({ id: 602, arrears: '1600.00', overdue: true, tenants: [{ ...tenancy().tenants[0], name: 'Max Mustermann' }] }),
+      tenancy({ id: 603, arrears: '800.00', overdue: false, tenants: [{ ...tenancy().tenants[0], name: 'Otto Beispiel' }] }),
+    ])
+    renderApp('/')
+    const tile = await screen.findByRole('region', { name: 'Mietrückstände' })
+    const links = await within(tile).findAllByRole('link')
+    expect(links.map((l) => l.textContent)).toEqual([
+      expect.stringContaining('Max Mustermann'),
+      expect.stringContaining('Erika Musterfrau'),
+    ])
+    expect(links[0]).toHaveTextContent('1.600,00 €')
+    expect(links[0]).toHaveAttribute('href', '/dauervermietung/mietverhaeltnisse/602')
+  })
+
+  it('says when there are no arrears', async () => {
+    arrearsApi([tenancy()])
+    renderApp('/')
+    expect(await within(await screen.findByRole('region', { name: 'Mietrückstände' })).findByText('Keine Mietrückstände.')).toBeInTheDocument()
+  })
+
+  it('is not shown while the module is inactive', async () => {
+    arrearsApi([], false)
+    renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Übersicht' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Mietrückstände' })).not.toBeInTheDocument()
+  })
+})
 
 describe('Start page', () => {
   it('shows the default tiles until the user customises', async () => {

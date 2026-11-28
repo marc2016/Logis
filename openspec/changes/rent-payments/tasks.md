@@ -17,11 +17,11 @@
 
 ## 3. Frontend
 
-- [ ] 3.1 API types and hooks; section „Mietkonto“ with totals, months, payments and overdue marks on the tenancy page (design D6). Verify with `TenancyPage.test.tsx` cases including a viewer.
-- [ ] 3.2 Payment dialog: record, change, delete; remembered account (design D6). Verify with frontend tests.
-- [ ] 3.3 Column „Rückstand“ in „Mietverhältnisse“. Verify with `Mietverhaeltnisse.test.tsx`.
-- [ ] 3.4 Managed transactions in the finances: „Mietzahlung“ link, no edit actions, bulk summary. Verify with `Ledger.test.tsx` cases.
-- [ ] 3.5 Tile „Mietrückstände“ in the long-term rental module. Verify with `Dashboard.test.tsx` cases: list, empty state, module inactive.
+- [x] 3.1 API types and hooks; section „Mietkonto“ with totals, months, payments and overdue marks on the tenancy page (design D6). Verify with `TenancyPage.test.tsx` cases including a viewer.
+- [x] 3.2 Payment dialog: record, change, delete; remembered account (design D6). Verify with frontend tests.
+- [x] 3.3 Column „Rückstand“ in „Mietverhältnisse“. Verify with `Mietverhaeltnisse.test.tsx`.
+- [x] 3.4 Managed transactions in the finances: „Mietzahlung“ link, no edit actions, bulk summary. Verify with `Ledger.test.tsx` cases.
+- [x] 3.5 Tile „Mietrückstände“ in the long-term rental module. Verify with `Dashboard.test.tsx` cases: list, empty state, module inactive.
 
 ## 4. End-to-end
 

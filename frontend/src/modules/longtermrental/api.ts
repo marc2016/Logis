@@ -1,3 +1,4 @@
+import { ledgerKeys } from '@/core/ledger/api'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -61,6 +62,44 @@ export interface Tenancy {
   rentTerms: Rent[]
   canEdit: boolean
   version: number
+  /** Rent due up to this month minus paid; 0.00 when paid up (spec rent-payments). */
+  arrears: string
+  /** More paid than due. */
+  credit: string
+  /** A month is not fully paid after its third working day. */
+  overdue: boolean
+}
+
+export interface RentMonth {
+  /** „2027-05“ */
+  month: string
+  due: string
+  paid: string
+  open: string
+  overdue: boolean
+}
+
+/** A payment; account and note only for editors. */
+export interface RentPayment {
+  id: number
+  date: string
+  amount: string
+  accountId: number | null
+  accountName: string | null
+  note: string | null
+  version: number
+}
+
+/** The rent account of a tenancy, newest month and payment first. */
+export interface RentAccount {
+  due: string
+  paid: string
+  arrears: string
+  credit: string
+  overdue: boolean
+  canEdit: boolean
+  months: RentMonth[]
+  payments: RentPayment[]
 }
 
 /** A long-term unit: its running tenancy, or vacant since a day (null: never rented), and the next tenancy. */
@@ -92,6 +131,7 @@ export const tenancyKeys = {
   units: ['longtermrental', 'units'] as const,
   list: (filter: TenancyFilter) => ['longtermrental', 'tenancies', filter] as const,
   one: (id: number) => ['longtermrental', 'tenancy', id] as const,
+  rentAccount: (id: number) => ['longtermrental', 'rent-account', id] as const,
 }
 
 export const TENANCIES = '/api/longtermrental/tenancies'
@@ -123,4 +163,22 @@ export function useTenancy(id: number | null) {
 export function useInvalidateTenancies() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: tenancyKeys.all })
+}
+
+export function useRentAccount(tenancyId: number) {
+  return useQuery({
+    queryKey: tenancyKeys.rentAccount(tenancyId),
+    queryFn: () => api<RentAccount>(`${TENANCIES}/${tenancyId}/rent-account`),
+  })
+}
+
+/** Payments change the tenancies, their rent accounts and the account and transactions of the finances. */
+export function useInvalidateAfterPayment() {
+  const queryClient = useQueryClient()
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: tenancyKeys.all }),
+      queryClient.invalidateQueries({ queryKey: ledgerKeys.accounts }),
+      queryClient.invalidateQueries({ queryKey: ledgerKeys.transactions }),
+    ])
 }

@@ -13,6 +13,7 @@ import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatDate } from '@/core/ledger/transactions/format'
 import { EndDialog } from '../EndDialog'
+import { RentAccountSection } from '../RentAccountSection'
 import { RentDialog } from '../RentDialog'
 import { StateBadge } from '../StateBadge'
 import { TenancyDialog } from '../TenancyDialog'
@@ -248,6 +249,8 @@ export function TenancyPage() {
           </Table>
         </div>
       </section>
+
+      <RentAccountSection tenancyId={tenancy.id} />
 
       <section className="space-y-2" aria-labelledby="tenancy-deposit">
         <h2 id="tenancy-deposit" className="text-lg font-semibold">

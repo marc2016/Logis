@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { Navigate } from 'react-router'
 import { DoorOpenIcon, FileSignatureIcon, KeyRoundIcon } from 'lucide-react'
 import type { LogisModule } from '@/app/types'
+import { longTermRentalWidgets } from './dashboard/widgets'
 
 export const longTermRentalModule: LogisModule = {
   id: 'longtermrental',
@@ -20,4 +21,5 @@ export const longTermRentalModule: LogisModule = {
     { path: 'mietverhaeltnisse/:tenancyId', lazy: async () => ({ Component: (await import('./pages/TenancyPage')).TenancyPage }) },
     { path: 'einheiten', lazy: async () => ({ Component: (await import('./pages/EinheitenPage')).EinheitenPage }) },
   ],
+  dashboardWidgets: longTermRentalWidgets,
 }

@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 @ConditionalOnLogisModule(LongTermRentalConfiguration.MODULE_ID)
 class RentPaymentService {
 
-    static final String SOURCE_TYPE = "longtermrental.payment";
+    /** Transactions of payments point to their tenancy, so the finances can link to it. */
+    static final String SOURCE_TYPE = "longtermrental.tenancy";
     static final String NOT_FOUND = "Zahlung nicht gefunden";
     static final String CHANGED = "Die Zahlung wurde inzwischen geändert";
 
@@ -58,7 +59,7 @@ class RentPaymentService {
         var details = tenancies.requireEditable(userId, tenancyId);
         var amount = validate(input);
         var id = payments.insert(tenancyId, input.date(), amount, note(input.note()));
-        var transactionId = managed.create(userId, SOURCE_TYPE, id, transaction(details, input, amount));
+        var transactionId = managed.create(userId, SOURCE_TYPE, tenancyId, transaction(details, input, amount));
         payments.linkTransaction(id, transactionId);
         return account(userId, tenancyId);
     }
