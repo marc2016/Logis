@@ -148,6 +148,9 @@ test('long-term rental fits on phone and tablet screens', async ({ page, api }) 
   await call(api, 'POST', `/api/longtermrental/tenancies/${running.id}/rent-terms`, { validFrom: inDays(-30), coldRent: '680.00', utilitiesAdvance: '160.00', others: [{ label: 'Stellplatz', amount: '40.00' }] })
   await tenancy(api, vacant.unitId, inDays(-400), 'Max Mustermann', inDays(-20))
   await tenancy(api, vacant.unitId, inDays(30), 'Max Mustermann')
+  // A payment, so the rent account shows its months and payments with the account (change rent-payments).
+  const giro = await account(api, (await owner(api)).id)
+  await call(api, 'POST', `/api/longtermrental/tenancies/${running.id}/payments`, { date: inDays(-10), amount: '880.00', accountId: giro.id, note: 'Überweisung mit einer längeren Notiz' })
 
   const problems = [
     ...(await check(page, '/dauervermietung/mietverhaeltnisse?state=all', 'Mietverhältnisse')),

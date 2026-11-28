@@ -25,8 +25,8 @@
 
 ## 4. End-to-end
 
-- [ ] 4.1 `e2e/tests/rent-payments.spec.ts`: a tenancy two months old, one payment recorded into an account, the rent account shows one month open and overdue, the account has the transaction, which cannot be edited, the list shows the arrears, the tile lists the tenancy. Add the row in `e2e/COVERAGE.md`. Verify on desktop and phone.
-- [ ] 4.2 Add the tenancy page with its rent account to `layout.spec.ts`. Verify: passes.
+- [x] 4.1 `e2e/tests/rent-payments.spec.ts`: a tenancy two months old, one payment recorded into an account, the rent account shows one month open and overdue, the account has the transaction, which cannot be edited, the list shows the arrears, the tile lists the tenancy. Add the row in `e2e/COVERAGE.md`. Verify on desktop and phone.
+- [x] 4.2 Add the tenancy page with its rent account to `layout.spec.ts`. Verify: passes.
 
 ## 5. Verification
 
