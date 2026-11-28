@@ -48,15 +48,21 @@ class RentPaymentStore {
         return result;
     }
 
-    /** All payments of the given units' tenancies, for the property finances. */
-    List<Payment> ofUnits(Collection<Long> unitIds, LocalDate from, LocalDate to) {
+    /** A payment with the unit of its tenancy, for the property finances. */
+    record UnitPayment(Long tenancyId, Long unitId, LocalDate date, BigDecimal amount) {
+    }
+
+    /** Payments of the given units' tenancies dated between {@code from} and {@code to}. */
+    List<UnitPayment> ofUnits(Collection<Long> unitIds, LocalDate from, LocalDate to) {
         if (unitIds.isEmpty()) {
             return List.of();
         }
-        return jdbc.query("SELECT p.id, p.tenancy_id, p.payment_date, p.amount, p.transaction_id, p.note, p.version "
+        return jdbc.query("SELECT p.tenancy_id, t.unit_id, p.payment_date, p.amount "
                         + "FROM longtermrental.rent_payments p JOIN longtermrental.tenancies t ON t.id = p.tenancy_id "
                         + "WHERE t.unit_id = ANY(?) AND p.payment_date BETWEEN ? AND ? ORDER BY p.payment_date, p.id",
-                RentPaymentStore::payment, unitIds.toArray(Long[]::new), Date.valueOf(from), Date.valueOf(to));
+                (rs, i) -> new UnitPayment(rs.getLong(1), rs.getLong(2), rs.getDate(3).toLocalDate(),
+                        rs.getBigDecimal(4)),
+                unitIds.toArray(Long[]::new), Date.valueOf(from), Date.valueOf(to));
     }
 
     Optional<Payment> byId(Long id) {

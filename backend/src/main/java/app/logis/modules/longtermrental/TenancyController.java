@@ -69,7 +69,9 @@ class TenancyController {
     /** {@code tenants} carry contact data only for editors; they are empty once the tenant data is deleted. */
     record TenancyView(Long id, UnitRef unit, LocalDate startDate, LocalDate endDate, State state, List<Tenant> tenants,
             boolean tenantsDeleted, @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal depositAmount,
-            LocalDate depositReceivedOn, RentView currentRent, List<RentView> rentTerms, boolean canEdit, long version) {
+            LocalDate depositReceivedOn, RentView currentRent, List<RentView> rentTerms, boolean canEdit, long version,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal arrears,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal credit, boolean overdue) {
 
         static TenancyView of(Details d) {
             if (d == null) {
@@ -81,7 +83,8 @@ class TenancyController {
                     : d.tenants().stream().map(x -> new Tenant(x.id(), x.name(), null, null, null, null, null, null)).toList();
             return new TenancyView(t.id(), UnitRef.of(d.unit()), t.startDate(), t.endDate(), d.state(), tenants,
                     t.tenantsDeleted(), t.depositAmount(), t.depositReceivedOn(), RentView.of(d.current()),
-                    d.terms().stream().map(RentView::of).toList(), d.canEdit(), t.version());
+                    d.terms().stream().map(RentView::of).toList(), d.canEdit(), t.version(), d.account().arrears(),
+                    d.account().credit(), d.account().overdue());
         }
     }
 

@@ -1,5 +1,6 @@
 package app.logis.modules.longtermrental;
 
+import app.logis.core.ledger.ManagedTransactions;
 import app.logis.shared.GermanTime;
 import app.logis.core.documents.Documents;
 import app.logis.core.modules.ConditionalOnLogisModule;
@@ -47,6 +48,7 @@ class TenancyService {
     static final String FIRST_TERM = "Die erste Miete kann nicht gelöscht werden.";
     static final String TERM_BEFORE_START = "Die Miete muss nach dem Beginn des Mietverhältnisses gelten.";
     static final String TERM_BEFORE_NEW_START = "Eine spätere Miete gilt bereits vor dem neuen Beginn.";
+    static final String HAS_PAYMENTS = "Das Mietverhältnis hat Zahlungen und kann nicht gelöscht werden";
     static final String NOT_ENDED = "Mieterdaten können erst nach dem Ende des Mietverhältnisses gelöscht werden.";
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("9999999.99");
 
@@ -66,7 +68,7 @@ class TenancyService {
 
     /** {@code current}: the rent term valid today, or at the start or end for future and ended tenancies. */
     record Details(Tenancy tenancy, UnitSummary unit, ShareRole role, List<Tenant> tenants, List<RentTerm> terms,
-            RentTerm current, State state) {
+            RentTerm current, State state, List<RentPaymentStore.Payment> payments, RentLedger.Account account) {
 
         boolean canEdit() {
             return role.atLeast(ShareRole.EDITOR);
@@ -81,9 +83,14 @@ class TenancyService {
     private final UnitAccess units;
     private final Clock clock;
     private final Documents documents;
+    private final RentPaymentStore payments;
+    private final ManagedTransactions managed;
 
-    TenancyService(TenancyStore store, UnitAccess units, Clock clock, Documents documents) {
+    TenancyService(TenancyStore store, UnitAccess units, Clock clock, Documents documents, RentPaymentStore payments,
+            ManagedTransactions managed) {
         this.documents = documents;
+        this.payments = payments;
+        this.managed = managed;
         this.store = store;
         this.units = units;
         this.clock = clock;
@@ -204,12 +211,21 @@ class TenancyService {
         if (tenants != null) {
             store.replaceTenants(id, tenants);
         }
+        if (!tenancy.unitId().equals(input.unitId())) {
+            // The payments' transactions follow the tenancy to its new unit (design D4 of rent-payments).
+            for (var payment : existing.payments()) {
+                managed.retarget(userId, payment.transactionId(), input.unitId());
+            }
+        }
         return get(userId, id);
     }
 
     @Transactional
     void delete(Long userId, Long id) {
         requireEditable(userId, id);
+        if (payments.exists(id)) {
+            throw ApiException.conflict(HAS_PAYMENTS);
+        }
         documents.deleteAll(TenancyDocumentOwner.TYPE, id);
         store.delete(id);
     }
@@ -269,6 +285,7 @@ class TenancyService {
         var tenants = store.tenants(ids);
         var terms = store.rentTerms(ids);
         var today = GermanTime.today(clock);
+        var paid = payments.ofTenancies(ids);
         return tenancies.stream().filter(t -> summaries.containsKey(t.unitId())).map(t -> {
             var own = terms.getOrDefault(t.id(), List.of());
             var state = t.startDate().isAfter(today) ? State.FUTURE
@@ -276,12 +293,16 @@ class TenancyService {
             var at = state == State.FUTURE ? t.startDate() : state == State.ENDED ? t.endDate() : today;
             var current = own.stream().filter(term -> !term.validFrom().isAfter(at)).reduce((a, b) -> b)
                     .orElse(own.isEmpty() ? null : own.getFirst());
+            var ownPayments = paid.getOrDefault(t.id(), List.of());
+            var account = RentLedger.compute(own, t.startDate(), t.endDate(),
+                    ownPayments.stream().map(RentPaymentStore.Payment::amount).toList(), today);
             return new Details(t, summaries.get(t.unitId()), roles.get(t.unitId()), tenants.getOrDefault(t.id(), List.of()),
-                    own, current, state);
+                    own, current, state, ownPayments, account);
         }).toList();
     }
 
-    private Details requireEditable(Long userId, Long id) {
+    /** The tenancy if the user may change it, e.g. to record payments; otherwise 404 or 403. */
+    Details requireEditable(Long userId, Long id) {
         var details = get(userId, id);
         if (!details.canEdit()) {
             throw ApiException.forbidden(FORBIDDEN);
