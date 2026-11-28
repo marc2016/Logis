@@ -8,8 +8,8 @@
 
 ## 2. Rent payments
 
-- [ ] 2.1 Migration `V<yyyyMMdd>.<HHmm>__longtermrental_rent_payments.sql` (design D1). Verify: the backend starts against a database with existing tenancies.
-- [ ] 2.2 `RentLedger` (design D3). Verify with a unit test per scenario of „Rent due per month“ and „Allocation and arrears“: full months, mid-month start and end, rent change, one month behind, partial payment, credit, second vs. after the third working day, a month starting on a weekend.
+- [x] 2.1 Migration `V<yyyyMMdd>.<HHmm>__longtermrental_rent_payments.sql` (design D1). Verify: the backend starts against a database with existing tenancies.
+- [x] 2.2 `RentLedger` (design D3). Verify with a unit test per scenario of „Rent due per month“ and „Allocation and arrears“: full months, mid-month start and end, rent change, one month behind, partial payment, credit, second vs. after the third working day, a month starting on a weekend.
 - [ ] 2.3 Payments service and endpoints with the transaction in one database transaction (design D4). Verify with `RentPaymentsTest`: record, change, delete with their transactions; account without rights; amount ≤ 0; viewer sees no account and cannot record.
 - [ ] 2.4 Rent account endpoint and arrears in the tenancy list (design D3, D4). Verify with `RentPaymentsTest` cases for the account view and the list.
 - [ ] 2.5 Tenancy delete refused with payments; unit change moves transaction targets (design D4). Verify with `RentPaymentsTest` cases.
