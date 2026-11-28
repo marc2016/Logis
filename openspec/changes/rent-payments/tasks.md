@@ -2,9 +2,9 @@
 
 ## 1. Ledger
 
-- [ ] 1.1 Core migration `V<yyyyMMdd>.<HHmm>__core_transaction_source.sql` with nullable `source_type`, `source_id` and the both-or-none check (design D2). Verify with a migration test: existing transactions unchanged, no source.
-- [ ] 1.2 `ManagedTransactions` in `core/ledger` with a named interface: create, update, delete with rights check, category „Mieteinnahmen“ and unit target (design D1). Verify with `ManagedTransactionsTest`: created with category and target; account without `EDITOR` refused; archived category → none.
-- [ ] 1.3 Reject changing and deleting managed transactions, also in bulk, and expose their source in the transaction view (design D2). Verify with `TransactionsTest` cases: update and delete refused with the message; normal transactions unchanged; view shows the source.
+- [x] 1.1 Core migration `V<yyyyMMdd>.<HHmm>__core_transaction_source.sql` with nullable `source_type`, `source_id` and the both-or-none check (design D2). Verify with a migration test: existing transactions unchanged, no source.
+- [x] 1.2 `ManagedTransactions` in `core/ledger` with a named interface: create, update, delete with rights check, category „Mieteinnahmen“ and unit target (design D1). Verify with `ManagedTransactionsTest`: created with category and target; account without `EDITOR` refused; archived category → none.
+- [x] 1.3 Reject changing and deleting managed transactions, also in bulk, and expose their source in the transaction view (design D2). Verify with `TransactionsTest` cases: update and delete refused with the message; normal transactions unchanged; view shows the source.
 
 ## 2. Rent payments
 

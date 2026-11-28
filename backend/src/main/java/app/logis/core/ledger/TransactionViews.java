@@ -47,7 +47,15 @@ class TransactionViews {
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal amount, Long categoryId, String categoryName,
             String counterparty, String purpose, String note, UUID transferId, Long counterAccountId,
             String counterAccountName, Long propertyId, Long unitId, String targetName, Access access,
-            int version) {
+            int version, Source source) {
+    }
+
+    /** Where a managed transaction comes from; the frontend module of {@code type} links to it. */
+    record Source(String type, Long id) {
+
+        static Source of(Transaction t) {
+            return t.isManaged() ? new Source(t.getSourceType(), t.getSourceId()) : null;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -94,12 +102,13 @@ class TransactionViews {
             if (!visible.contains(t.getAccountId())) {
                 return new TransactionView(t.getId(), null, null, t.getBookingDate(), t.getAmount(), t.getCategoryId(),
                         categoryNames.get(t.getCategoryId()), t.getCounterparty(), t.getPurpose(), null, null, null,
-                        null, t.getPropertyId(), t.getUnitId(), targetName, Access.TARGET, t.getVersion());
+                        null, t.getPropertyId(), t.getUnitId(), targetName, Access.TARGET, t.getVersion(),
+                        Source.of(t));
             }
             return new TransactionView(t.getId(), t.getAccountId(), names.get(t.getAccountId()), t.getBookingDate(),
                     t.getAmount(), t.getCategoryId(), categoryNames.get(t.getCategoryId()), t.getCounterparty(),
                     t.getPurpose(), t.getNote(), t.getTransferId(), counterId, counterName, t.getPropertyId(),
-                    t.getUnitId(), targetName, Access.FULL, t.getVersion());
+                    t.getUnitId(), targetName, Access.FULL, t.getVersion(), Source.of(t));
         }).toList();
     }
 }

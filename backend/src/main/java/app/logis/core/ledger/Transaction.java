@@ -50,6 +50,13 @@ class Transaction {
     private Long unitId;
 
     /** Both sides of a transfer share this ID. */
+    /** Module record that manages this transaction, e.g. {@code longtermrental.payment}; null for own entries. */
+    @Column(name = "source_type", length = 64, updatable = false)
+    private String sourceType;
+
+    @Column(name = "source_id", updatable = false)
+    private Long sourceId;
+
     @Column(name = "transfer_id", updatable = false)
     private UUID transferId;
 
@@ -97,6 +104,24 @@ class Transaction {
     void touch(Long userId, Instant now) {
         this.updatedBy = userId;
         this.updatedAt = now;
+    }
+
+    void setSource(String sourceType, Long sourceId) {
+        this.sourceType = sourceType;
+        this.sourceId = sourceId;
+    }
+
+    String getSourceType() {
+        return sourceType;
+    }
+
+    Long getSourceId() {
+        return sourceId;
+    }
+
+    /** Managed by a module: changed and deleted only through it (spec transactions). */
+    boolean isManaged() {
+        return sourceType != null;
     }
 
     boolean isTransfer() {

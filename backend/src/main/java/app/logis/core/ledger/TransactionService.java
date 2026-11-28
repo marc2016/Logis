@@ -29,6 +29,7 @@ import java.util.UUID;
 class TransactionService {
 
     static final String STALE = "Die Transaktion wurde inzwischen geändert";
+    static final String MANAGED = "Diese Transaktion gehört zu einer Mietzahlung und wird dort geändert";
     static final String TRANSFER_TARGET = "Umbuchungen können keinem Objekt zugeordnet werden";
     static final int MAX_PAGE_SIZE = 100;
 
@@ -75,6 +76,7 @@ class TransactionService {
 
     Transaction update(Long userId, Long id, TransactionInput input, Integer version) {
         var t = load(userId, id);
+        requireOwn(t);
         if (t.isTransfer()) {
             if (input.propertyId() != null || input.unitId() != null) {
                 throw ApiException.badRequest(TRANSFER_TARGET);
@@ -97,6 +99,7 @@ class TransactionService {
     /** Deletes a transaction; for a transfer, both sides. */
     void delete(Long userId, Long id) {
         var t = load(userId, id);
+        requireOwn(t);
         if (t.isTransfer()) {
             deleteTransfer(userId, t.getTransferId());
             return;
@@ -271,6 +274,12 @@ class TransactionService {
             targets.requireAssignable(input.propertyId(), input.unitId(), userId);
         }
         t.setTarget(input.propertyId(), input.unitId());
+    }
+
+    private static void requireOwn(Transaction t) {
+        if (t.isManaged()) {
+            throw ApiException.conflict(MANAGED);
+        }
     }
 
     private static void requireVersion(Transaction t, Integer version) {
