@@ -15,7 +15,7 @@
 ## 3. Verification
 
 - [x] 3.1 Run `cd frontend && npm test && npm run lint && npm run build`. All must be green.
-- [ ] 3.2 Run the full end-to-end suite against a stack with the new frontend image. It must be green.
+- [x] 3.2 Run the full end-to-end suite against a stack with the new frontend image. It must be green.
 - [x] 3.3 Check screenshots of the calendar at 390, 820 and 1440 px for cut-off or overlapping text.
 
 ## Workflow follow-up
